@@ -26,7 +26,7 @@ sudo apt-get -y install gr-iio
 
 # install scratchradio which includes Limesuite and Gnu Radio 
 git clone https://github.com/myriadrf/ScratchRadio
-cd Scratchradio
+cd ScratchRadio
 sudo ./scripts/install_deps.sh
 make LimeSuite
 make GnuRadio
