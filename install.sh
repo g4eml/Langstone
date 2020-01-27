@@ -46,6 +46,9 @@ make all
 sudo make install
 
 cd ~
+# Set auto login to command line.
+
+sudo raspi-config nonint do_boot_behaviour B2
 
 # install the Langstone Files
 
