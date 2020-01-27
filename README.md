@@ -22,7 +22,7 @@ The preferred installation method only needs a Windows PC connected to the same 
 - Log in (user: pi, password: raspberry) then cut and paste the following code in, one line at a time:
 
 ```sh
-wget https://raw.githubusercontent.com/g4eml/Langstone/master/install.sh
+wget https://raw.githubusercontent.com/g4eml/langstone/master/install.sh
 chmod +x install.sh
 ./install.sh
 ```
