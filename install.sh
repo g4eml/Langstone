@@ -6,7 +6,6 @@
 # Update the package manager
 sudo dpkg --configure -a
 sudo apt-get -y update
-sudo apt-get -y upgrade
 
 # Uninstall the apt-listchanges package to allow silent install of ca certificates (201704030)
 # http://unix.stackexchange.com/questions/124468/how-do-i-resolve-an-apparent-hanging-update-process
