@@ -22,15 +22,9 @@ sudo apt-get -y install git
 sudo apt-get -y install libxml2 libxml2-dev bison flex libcdk5-dev cmake
 sudo apt-get -y install libaio-dev libusb-1.0-0-dev libserialport-dev libxml2-dev libavahi-client-dev sudo apt-get install doxygen graphviz
 sudo apt-get -y install gr-iio
+sudo apt-get -y install gnuradio
 
 
-# install scratchradio which includes Limesuite and Gnu Radio 
-git clone https://github.com/myriadrf/ScratchRadio
-cd ScratchRadio
-sudo ./scripts/install_deps.sh
-make LimeSuite
-make GnuRadio
-make clean
 
 # install WiringPi
 cd /tmp
