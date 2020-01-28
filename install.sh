@@ -60,6 +60,7 @@ if !(grep Langstone ~/.bashrc) then
   echo /home/pi/Langstone/run >> ~/.bashrc
 fi
 
+
 #Reboot and start
 sudo reboot
 
