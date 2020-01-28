@@ -1,5 +1,7 @@
 #!/bin/sh
 if !(ps -ax |grep -v grep| grep SSB_TRX.py) then
+  sudo amixer -c1 cset numid=6 100%
+  sudo amixer -c1 cset numid=8 50%
   sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
   taskset -c 1 python /home/pi/Langstone/SSB_TRX.py > /dev/null 2>&1 &
   sleep 10
