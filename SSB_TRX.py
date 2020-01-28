@@ -254,14 +254,14 @@ class SSB_TRX(gr.top_block):
 
 def docommands(tb):
   try:
-    os.mkfifo("/tmp/haylingin")
+    os.mkfifo("/tmp/langstonein")
   except OSError as oe:
     if oe.errno != errno.EEXIST:
       raise    
   ex=False
   lastbase=0
   while not ex:
-    fifoin=open("/tmp/haylingin",'r')
+    fifoin=open("/tmp/langstonein",'r')
     while True:
        try:
         with fifoin as filein:
