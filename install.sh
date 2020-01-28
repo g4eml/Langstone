@@ -46,5 +46,7 @@ sudo raspi-config nonint do_boot_behaviour B2
 
 # install the Langstone Files
 
+git clone https://github.com/g4eml/Langstone.git
+
 
 
