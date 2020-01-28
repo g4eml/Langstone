@@ -48,8 +48,9 @@ sudo raspi-config nonint do_boot_behaviour B2
 
 git clone https://github.com/g4eml/Langstone.git
 cd Langstone
-chmod 777 build
-chmod 777 run
+chmod +x build
+chmod +x run
+./build
 
 
 
