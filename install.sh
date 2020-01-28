@@ -53,4 +53,14 @@ chmod +x run
 ./build
 
 
+#make Langstone autostart on boot
+
+echo cp /home/pi/Langstone/splash.bgra /dev/fb0 >> ~/.bashrc
+echo /home/pi/Langstone/run >> ~/.bashrc
+
+#Reboot and start
+sudo reboot
+
+
+
 
