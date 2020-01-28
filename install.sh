@@ -56,7 +56,6 @@ chmod +x run
 #make Langstone autostart on boot
 
 if !(grep Langstone ~/.bashrc) then
-  echo cp /home/pi/Langstone/splash.bgra /dev/fb0 >> ~/.bashrc
   echo /home/pi/Langstone/run >> ~/.bashrc
 fi
 
