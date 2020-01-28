@@ -59,6 +59,18 @@ if !(grep Langstone ~/.bashrc) then
   echo /home/pi/Langstone/run >> ~/.bashrc
 fi
 
+#Configure the boot parameters
+
+if !(grep lcd_rotate /boot/config.txt) then
+  sudo sh -c "echo lcd_rotate=2 >> /boot/config.txt"
+fi
+if !(grep disable_splash /boot/config.txt) then
+  sudo sh -c "echo disable_splash=1 >> /boot/config.txt"
+fi
+if !(grep global_cursor_default /boot/cmdline.txt) then
+  sudo sed -i '1s,$, vt.global_cursor_default=0,' /boot/cmdline.txt
+fi
+
 
 #Reboot and start
 sudo reboot
