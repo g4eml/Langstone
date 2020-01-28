@@ -242,9 +242,9 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 
 void initFifo()
 {
- if(access("/tmp/haylingin",F_OK)==-1)   //does fifo exist already?
+ if(access("/tmp/langstonein",F_OK)==-1)   //does fifo exist already?
     {
-        mkfifo("/tmp/haylingin", 0666);
+        mkfifo("/tmp/langstonein", 0666);
     }
 }
 
@@ -253,7 +253,7 @@ void sendFifo(char * s)
   char fs[50];
   strcpy(fs,s);
   strcat(fs,"\n");
-  fifofd=open("/tmp/haylingin",O_WRONLY);
+  fifofd=open("/tmp/langstonein",O_WRONLY);
   write(fifofd,fs,strlen(fs));
   close(fifofd);
 }
