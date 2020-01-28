@@ -1,0 +1,2 @@
+cc HaylingGUI.c -liio -lwiringPi
+mv a.out GUI

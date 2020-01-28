@@ -1,0 +1,10 @@
+#!/bin/sh
+if !(ps -ax |grep -v grep| grep SSB_TRX.py) then
+  sudo cp /home/pi/Hayling/splashload.bgra /dev/fb0
+  taskset -c 1 python /home/pi/Hayling/SSB_TRX.py > /dev/null 2>&1 &
+  sleep 10
+  /home/pi/Hayling/GUI &
+fi
+
+
+
