@@ -55,8 +55,10 @@ chmod +x run
 
 #make Langstone autostart on boot
 
-echo cp /home/pi/Langstone/splash.bgra /dev/fb0 >> ~/.bashrc
-echo /home/pi/Langstone/run >> ~/.bashrc
+if !(grep Langstone ~/.bashrc) then
+  echo cp /home/pi/Langstone/splash.bgra /dev/fb0 >> ~/.bashrc
+  echo /home/pi/Langstone/run >> ~/.bashrc
+fi
 
 #Reboot and start
 sudo reboot
