@@ -14,7 +14,7 @@ Currently only one set of hardware is supported:-
 
 - Adalm Pluto SDR Module
 
-- USB Audio module
+- USB Audio module. Connected to loudspeaker or headphones and microphone. 
  
 - USB Scroll mouse
 
@@ -22,9 +22,12 @@ Currently only one set of hardware is supported:-
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
-All control is done using the touchscreen.
-Tuning uses the mouse scrollwheel. The mouse left and right buttons select the tuning step. Mouse movement is not used. 
+All control is done using the touchscreen and mouse.
+
+Tuning uses the mouse scrollwheel. The mouse left and right buttons select the tuning step. The centre button is used for the CW key Mouse movement is not used.
+
 The intention is to eventaully make use of the mouse hardware to make a proper tuning knob and panel controls. 
+
 Microphone input and headphone output uses the USB audio device. (a couple of pounds on Ebay)
 
 The software consists of two parts. The SDR itself uses a python GNURadio Flowgraph which can be created on a PC running GNUradio companion. This Python program is manually edited so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
