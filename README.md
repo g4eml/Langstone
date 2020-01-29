@@ -18,7 +18,7 @@ Currently only one set of hardware is supported:-
  
 - USB Scroll mouse
 
-- PTT via Raspberry Pi GPIO pin 
+- PTT via Raspberry Pi GPIO pin 11. This needs a pull up resistor to 3.3V. Grounding this pin will key the transmitter. 
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
