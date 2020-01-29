@@ -30,7 +30,7 @@ The intention is to eventually make use of the mouse hardware to make a proper t
 
 Microphone input and headphone output uses the USB audio device. (a couple of pounds on Ebay)
 
-The software consists of two parts. The SDR itself uses a python GNURadio Flowgraph which can be created on a PC running GNUradio companion. This Python program is manually edited to adding the code from .py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
+The software consists of two parts. The SDR itself uses a python GNURadio Flowgraph which can be created on a PC running GNUradio companion. This Python program is manually edited to adding the code from controlTRX.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
 
 
 
