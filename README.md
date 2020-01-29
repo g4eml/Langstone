@@ -6,15 +6,15 @@ This is not yet a finished project but more of a demonstration of what can be do
 
 Currently only one set of hardware is supported:-
 
--Raspberry Pi 4
+- Raspberry Pi 4
 
--Official Raspberry Pi 7" touchscreen.
+- Official Raspberry Pi 7" touchscreen.
 
--Adalm Pluto SDR Module
+- Adalm Pluto SDR Module
 
--USB Audio module
-
--USB Scroll mouse
+- USB Audio module
+ 
+- USB Scroll mouse
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
