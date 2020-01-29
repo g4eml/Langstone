@@ -18,6 +18,8 @@ Currently only one set of hardware is supported:-
  
 - USB Scroll mouse
 
+- PTT via Raspberry Pi GPIO pin 
+
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
 All control is done using the touchscreen.
