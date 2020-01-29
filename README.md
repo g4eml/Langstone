@@ -1,7 +1,9 @@
 # Langstone SDR Transceiver
 
 This is an experimental project to produce a simple VHF, UHF and Microwave SDR Transceiver operating on SSB CW and FM.
-This was inspired by the very successful Portsdown Amateur Television system created by the British Amateur Television Club.
+
+It was inspired by the very successful Portsdown Amateur Television system created by the British Amateur Television Club.
+
 This is not yet a finished project but more of a demonstration of what can be done. 
 
 Currently only one set of hardware is supported:-
