@@ -24,7 +24,7 @@ To build a complete functional transceiver you will need to add suitable filters
 
 All control is done using the touchscreen and mouse.
 
-Tuning uses the mouse scrollwheel. The mouse left and right buttons select the tuning step. The centre button is used for the CW key Mouse movement is not used.
+Tuning uses the mouse scrollwheel. The mouse left and right buttons select the tuning step. The centre button is used for the CW key.  Mouse movement is not used.
 
 The intention is to eventually make use of the mouse hardware to make a proper tuning knob and panel controls. 
 
