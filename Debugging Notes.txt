@@ -1,0 +1,53 @@
+If the transceiver does not start up correctly then please try the following. 
+
+
+Log into the Pi using ssh the same way that you did to build the software. 
+
+Type 'ps -ax' to get a list of the running programs. 
+
+You should be able to find the two programs needed in the list. They will be called home/pi/Langstone/SSB-TRX.py   and  home/pi/Langstone/GUI
+
+If the transceiver is not running then one of these will probably be missing. 
+
+Make a note of the Process ID for either or both of the programs and then kill them using the command
+
+'kill -9 nnn'     where nnn is the process ID noted above.
+
+Repeat this to kill both programs.
+
+Try ps -ax again to make sure both programs have been killed
+
+try starting the GNURadio Program manually
+ 
+cd ~/Langstone
+python SSB_TRX.py &
+
+You should see a couple of INFO lines about the Audio Source and Audio Sync and a line  len(audio_taps) = 213
+The LED on your USB Audio Dongle should start flashing 
+
+Any other error messages should give a clue as to what is wrong. 
+
+If this works then start the GUI with the command
+
+./GUI &
+
+The LCD Screen should come to life and the transceiver should be working.
+
+You should not see any error messages. 
+
+ps -ax   again should now show both programs running.  
+
+You may see occasional aU characters printed on your ssh screen. This is normal and indicates an occasional audio overrun condition. 
+This seems to be a bug in GNU radio on the Pi and does not affect operation if they are only happening occasionally. 
+
+
+
+
+
+
+
+
+
+
+
+
