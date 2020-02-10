@@ -265,8 +265,6 @@ void initGPIO(void)
   wiringPiSetup();
   pinMode(pttPin,INPUT);
   pinMode(keyPin,INPUT);
-  pullUpDnControl(pttPin,PUD_UP);
-  pullUpDnControl(keyPin,PUD_UP);
   lastKey=1;
 }
 
@@ -331,6 +329,15 @@ void initGUI()
   setSSBMic(SSBMic);
   setFMMic(FMMic);
   setTx(ptt|ptts);
+  
+  if(mode==4) 
+  	{
+  	sqlButtons(1);
+		}
+	else
+		{
+		sqlButtons(0);
+		}
 
 }
 
