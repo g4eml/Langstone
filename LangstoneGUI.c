@@ -118,7 +118,6 @@ int mousePresent;
 int touchPresent;
 
 #define pttPin 0     // Wiring Pi pin number. Physical pin is 11
-#define keyPin 1     // Wiring Pi pin number. Physical pin is 12
 
 
 int main(int argc, char* argv[])
@@ -263,9 +262,6 @@ void initGPIO(void)
 {
   wiringPiSetup();
   pinMode(pttPin,INPUT);
-  pinMode(keyPin,INPUT);
-  pullUpDnControl(pttPin,PUD_UP);
-  pullUpDnControl(keyPin,PUD_UP);  
 }
 
 void processGPIO(void)
@@ -287,9 +283,6 @@ void processGPIO(void)
             setTx(ptt|ptts);
           }
       }
-      
-  v=digitalread(keyPin);
-  setKey(v);  
 }
 
 void initGUI()
@@ -414,7 +407,16 @@ void processMouse(int mbut)
       if(volume >maxvol) volume=maxvol;
       setVolume(volume);    
     }
-
+  
+  if(mbut==3+128)      //centre button down 
+    {
+      setKey(1);
+    }  
+    
+  if(mbut==3)      //centre button up 
+    {
+      setKey(0);     
+    }  
     
 }
 
