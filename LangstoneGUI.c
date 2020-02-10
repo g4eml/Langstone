@@ -288,7 +288,7 @@ void processGPIO(void)
           }
       }
       
-  v=digitalread(keyPin);
+  v=digitalRead(keyPin);
   setKey(v);  
 }
 
