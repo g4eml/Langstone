@@ -18,7 +18,9 @@ Currently only one set of hardware is supported:-
  
 - USB Scroll mouse
 
-- PTT via Raspberry Pi GPIO pin 11. This needs a pull up resistor to 3.3V. Grounding this pin will key the transmitter. 
+- PTT via Raspberry Pi GPIO pin 11. This needs a pull up resistor to 3.3V. Grounding this pin will switch to Transmit.
+
+- CW Key is via Raspberry Pi GPIO pin 12. This needs a pull up resistor to 3.3V. Grounding this pin will key the transmitter. 
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
@@ -58,6 +60,6 @@ chmod +x install.sh
 ./install.sh
 ```
 
-The initial build can take some time, however it does not need any user input, so go and make a cup of coffee and keep an eye on the touchscreen.  When the build is finished the Pi will reboot and start-up with the Langstone Transceiver
+The initial build can take some time, however it does not need any user input, so go and make a cup of coffee and keep an eye on the touchscreen.  When the build is finished the Pi will reboot and start-up with the Langstone Transceiver. If it does not appear to be working see the file 'Debugging Notes.txt' for some things to look at.
 
 
