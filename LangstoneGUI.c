@@ -295,6 +295,30 @@ void processGPIO(void)
 	}
 }
 
+
+void sqlButtons(int show)
+{
+ char sqlStr[5]; 
+  gotoXY(sqlButtonsX,sqlButtonsY);
+  if(show==1)
+    {
+      setForeColour(0,255,0);
+    }
+  else
+    {
+      setForeColour(0,0,0);
+    }
+  displayButton("SQ+");
+  gotoXY(sqlButtonsX,sqlButtonsY+buttonSpaceY);  
+  displayButton("SQ-");
+	textSize=2;
+	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+	displayStr("   ");
+	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+	sprintf(sqlStr,"%d",squelch);
+	displayStr(sqlStr);
+}
+
 void initGUI()
 {
   clearScreen();
@@ -341,28 +365,7 @@ void initGUI()
 
 }
 
-void sqlButtons(int show)
-{
- char sqlStr[5]; 
-  gotoXY(sqlButtonsX,sqlButtonsY);
-  if(show==1)
-    {
-      setForeColour(0,255,0);
-    }
-  else
-    {
-      setForeColour(0,0,0);
-    }
-  displayButton("SQ+");
-  gotoXY(sqlButtonsX,sqlButtonsY+buttonSpaceY);  
-  displayButton("SQ-");
-	textSize=2;
-	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
-	displayStr("   ");
-	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
-	sprintf(sqlStr,"%d",squelch);
-	displayStr(sqlStr);
-}
+
 
 void displayMenu()
 {
