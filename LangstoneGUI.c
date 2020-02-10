@@ -292,7 +292,7 @@ void processGPIO(void)
     v=digitalRead(keyPin);
     if(v!=lastKey)
 	{
-	setKey(v);
+	setKey(!v);
 	lastKey=v;
 	}
 }
