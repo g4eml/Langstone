@@ -283,6 +283,7 @@ void processGPIO(void)
             setTx(ptt|ptts);
           }
       }
+
 }
 
 void initGUI()
