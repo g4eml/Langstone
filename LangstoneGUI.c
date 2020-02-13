@@ -17,7 +17,7 @@ void setVolume(int vol);
 void setSquelch(int sql);
 void setSSBMic(int mic);
 void setFMMic(int mic);
-void setBandBits(char b);
+void setBandBits(int b);
 void processTouch();
 void processMouse(int mbut);
 void initGUI();
@@ -44,8 +44,8 @@ int band=2;
 double bandFreq[numband] = {144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,10489.55};
 double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10069.5};
 double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10345.0};
-char bandBits[numband]={0,1,2,3,4,5,6,7,8,9};
-char bbits=0;
+int bandBits[numband]={0,1,2,3,4,5,6,7,8,9};
+int bbits=0;
 #define minFreq 0.0
 #define maxFreq 99999.99999
 #define minHwFreq 70.0
@@ -901,7 +901,7 @@ void setFreq(double fr)
      
 }
 
-void setBandBits(char b)
+void setBandBits(int b)
 {
 if(b & 0x01) 
 		{
