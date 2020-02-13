@@ -17,6 +17,7 @@ void setVolume(int vol);
 void setSquelch(int sql);
 void setSSBMic(int mic);
 void setFMMic(int mic);
+void setBandBits(char b);
 void processTouch();
 void processMouse(int mbut);
 void initGUI();
@@ -43,7 +44,7 @@ int band=2;
 double bandFreq[numband] = {144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,10489.55};
 double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10069.5};
 double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10345.0};
-char bandbits[numband]={0,1,2,3,4,5,6,7,8,9}
+char bandBits[numband]={0,1,2,3,4,5,6,7,8,9};
 char bbits=0;
 #define minFreq 0.0
 #define maxFreq 99999.99999
@@ -904,38 +905,38 @@ void setBandBits(char b)
 {
 if(b & 0x01) 
 		{
-		digitalWrite(bandBit1,HIGH);
+		digitalWrite(bandPin1,HIGH);
 		}
 else
 		{
-		digitalWrite(bandBit1,LOW);
+		digitalWrite(bandPin1,LOW);
 		}
 		
 if(b & 0x02) 
 		{
-		digitalWrite(bandBit2,HIGH);
+		digitalWrite(bandPin2,HIGH);
 		}
 else
 		{
-		digitalWrite(bandBit2,LOW);
+		digitalWrite(bandPin2,LOW);
 		}		
 
 if(b & 0x04) 
 		{
-		digitalWrite(bandBit3,HIGH);
+		digitalWrite(bandPin3,HIGH);
 		}
 else
 		{
-		digitalWrite(bandBit3,LOW);
+		digitalWrite(bandPin3,LOW);
 		}		
 
 if(b & 0x08) 
 		{
-		digitalWrite(bandBit4,HIGH);
+		digitalWrite(bandPin4,HIGH);
 		}
 else
 		{
-		digitalWrite(bandBit4,LOW);
+		digitalWrite(bandPin4,LOW);
 		}		
 }
 
