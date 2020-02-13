@@ -1038,7 +1038,7 @@ int setexit;
                   mouseScroll=0;
                   if(bandBits[band]<0) bandBits[band]=0;
                   if(bandBits[band]>15) bandBits[band]=15;
-                  bbits=bandbits[band];
+                  bbits=bandBits[band];
                   setBandBits(bbits);
                   displaySetting(settingNo);                           
               }
