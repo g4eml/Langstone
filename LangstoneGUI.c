@@ -1040,7 +1040,8 @@ int setexit;
                   if(bandBits[band]>15) bandBits[band]=15;
                   bbits=bandBits[band];
                   setBandBits(bbits);
-                  displaySetting(settingNo);                           
+                  displaySetting(settingNo);  
+									}                         
               }
               
                 if(but==1+128)      //Left Mouse Button down
