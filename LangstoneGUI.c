@@ -117,8 +117,8 @@ int FMMic=50;
 int tuneDigit=8;
 #define maxTuneDigit 11
 
-#define TXDELAY 20000       //us delay between setting Tx output bit and sending tx command to SDR
-#define RXDELAY 20000       //us delay between sending rx command to SDR and setting Tx output bit low. 
+#define TXDELAY 100000       //us delay between setting Tx output bit and sending tx command to SDR
+#define RXDELAY 100000       //us delay between sending rx command to SDR and setting Tx output bit low. 
 
 char mousePath[20];
 char touchPath[20];
