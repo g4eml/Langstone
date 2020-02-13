@@ -24,7 +24,7 @@ Currently only one set of hardware is supported:-
 
 - Tx Output is via Raspberry Pi GPIO pin 13. This output goes high when the Langstone is transmitting. This can be used to switch antenna relays and amplifiers. (100ms delay included for sequencing)
 
-- 4 Band select Outputs on pins 15, 16, 18 and 22. These can be used to select external filters, amplifiers or Trnasverters. The state of these outputs is defined using the Band Bits setting. 
+- 4 Band select Outputs on pins 15, 16, 18 and 22. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
