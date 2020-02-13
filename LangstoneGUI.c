@@ -43,6 +43,8 @@ int band=2;
 double bandFreq[numband] = {144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,10489.55};
 double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10069.5};
 double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10345.0};
+char bandbits[numband]={0,1,2,3,4,5,6,7,8,9}
+char bbits=0;
 #define minFreq 0.0
 #define maxFreq 99999.99999
 #define minHwFreq 70.0
@@ -53,9 +55,9 @@ double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10345.0
 int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
 
-#define numSettings 4
+#define numSettings 5
 int settingNo=0;
-char * settingText[numSettings]={"SSB Mic Gain = ","FM MIc Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = "};
+char * settingText[numSettings]={"SSB Mic Gain = ","FM MIc Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = "};
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -114,6 +116,9 @@ int FMMic=50;
 int tuneDigit=8;
 #define maxTuneDigit 11
 
+#define TXDELAY 20000       //us delay between setting Tx output bit and sending tx command to SDR
+#define RXDELAY 20000       //us delay between sending rx command to SDR and setting Tx output bit low. 
+
 char mousePath[20];
 char touchPath[20];
 int mousePresent;
@@ -121,6 +126,11 @@ int touchPresent;
 
 #define pttPin 0     // Wiring Pi pin number. Physical pin is 11
 #define keyPin 1     //Wiring Pi pin number. Physical pin is 12
+#define txPin 2     //Wiring Pi pin number. Physical pin is 13  		
+#define bandPin1 3     //Wiring Pi pin number. Physical pin is 15
+#define bandPin2 4     //Wiring Pi pin number. Physical pin is 16
+#define bandPin3 5     //Wiring Pi pin number. Physical pin is 18
+#define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
 
 int main(int argc, char* argv[])
 {
@@ -265,6 +275,16 @@ void initGPIO(void)
   wiringPiSetup();
   pinMode(pttPin,INPUT);
   pinMode(keyPin,INPUT);
+  pinMode(txPin,OUTPUT);
+  pinMode(bandPin1,OUTPUT); 
+	pinMode(bandPin2,OUTPUT);  
+	pinMode(bandPin3,OUTPUT);  
+	pinMode(bandPin4,OUTPUT);  
+	digitalWrite(txPin,LOW);
+	digitalWrite(bandPin1,LOW);	
+	digitalWrite(bandPin2,LOW);	
+	digitalWrite(bandPin3,LOW);	
+	digitalWrite(bandPin4,LOW);		 
   lastKey=1;
 }
 
@@ -347,6 +367,8 @@ void initGUI()
 
   freq=bandFreq[band];
   setFreq(freq);
+  bbits=bandBits[band];
+  setBandBits(bbits);
   setMode(mode); 
   setVolume(volume);
   setSquelch(squelch);
@@ -525,6 +547,8 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND
       if(band==numband) band=0;
       freq=bandFreq[band];
       setFreq(freq);
+      bbits=bandBits[band];
+      setBandBits(bbits);
       writeConfig();					//save all settings when changing band. 
       return;         
     }      
@@ -745,6 +769,8 @@ void setTx(int pt)
 	textSize=2;
 	if(pt)
 	  {
+	  	digitalWrite(txPin,HIGH);
+	  	usleep(TXDELAY);
 		  sendFifo("T");
 		  setForeColour(255,0,0);
 		  displayStr("Tx");  
@@ -754,6 +780,8 @@ void setTx(int pt)
 		  sendFifo("R");
 		  setForeColour(0,255,0);
 		  displayStr("Rx");
+		  usleep(RXDELAY);
+		  digitalWrite(txPin,LOW);
 	  }
 }
 
@@ -872,6 +900,45 @@ void setFreq(double fr)
      
 }
 
+void setBandBits(char b)
+{
+if(b & 0x01) 
+		{
+		digitalWrite(bandBit1,HIGH);
+		}
+else
+		{
+		digitalWrite(bandBit1,LOW);
+		}
+		
+if(b & 0x02) 
+		{
+		digitalWrite(bandBit2,HIGH);
+		}
+else
+		{
+		digitalWrite(bandBit2,LOW);
+		}		
+
+if(b & 0x04) 
+		{
+		digitalWrite(bandBit3,HIGH);
+		}
+else
+		{
+		digitalWrite(bandBit3,LOW);
+		}		
+
+if(b & 0x08) 
+		{
+		digitalWrite(bandBit4,HIGH);
+		}
+else
+		{
+		digitalWrite(bandBit4,LOW);
+		}		
+}
+
 void changeSettings(void)
 {
 int setexit;
@@ -963,7 +1030,16 @@ int setexit;
                     displaySetting(settingNo);
                     mouseScroll=0;
                     setFreq(freq);
-                  }                             
+                  }  
+								if(settingNo==4)        // Band Bits
+                  {
+                  bandBits[band]=bandBits[band]+mouseScroll;
+                  mouseScroll=0;
+                  if(bandBits[band]<0) bandBits[band]=0;
+                  if(bandBits[band]>15) bandBits[band]=15;
+                  bbits=bandbits[band];
+                  setBandBits(bbits);
+                  displaySetting(settingNo);                           
               }
               
                 if(but==1+128)      //Left Mouse Button down
@@ -1026,6 +1102,27 @@ void displaySetting(int se)
   sprintf(valStr,"%f",bandTxOffset[band]);
   displayStr(valStr);
   }
+  
+	if(se==4)
+  {
+    if(bbits==0)  sprintf(valStr,"0000"); 
+    if(bbits==1)  sprintf(valStr,"0001");
+		if(bbits==2)  sprintf(valStr,"0010"); 
+		if(bbits==3)  sprintf(valStr,"0011"); 
+		if(bbits==4)  sprintf(valStr,"0100"); 
+		if(bbits==5)  sprintf(valStr,"0101"); 
+		if(bbits==6)  sprintf(valStr,"0110"); 
+		if(bbits==7)  sprintf(valStr,"0111"); 
+		if(bbits==8)  sprintf(valStr,"1000"); 
+	  if(bbits==9)  sprintf(valStr,"1001"); 
+    if(bbits==10)  sprintf(valStr,"1010");
+		if(bbits==11)  sprintf(valStr,"1011"); 
+		if(bbits==12)  sprintf(valStr,"1100"); 
+		if(bbits==13)  sprintf(valStr,"1101"); 
+		if(bbits==14)  sprintf(valStr,"1110"); 
+		if(bbits==15)  sprintf(valStr,"1111"); 												  
+  displayStr(valStr);
+  }
 }
 
 int readConfig(void)
@@ -1045,34 +1142,44 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
 	{
 		if(strstr(variable,"bandFreq0")) sscanf(value,"%lf",&bandFreq[0]);
 		if(strstr(variable,"bandTxOffset0")) sscanf(value,"%lf",&bandTxOffset[0]);
-		if(strstr(variable,"bandRxOffset0")) sscanf(value,"%lf",&bandRxOffset[0]);	
+		if(strstr(variable,"bandRxOffset0")) sscanf(value,"%lf",&bandRxOffset[0]);
+		if(strstr(variable,"bandBits0")) sscanf(value,"%d",&bandBits[0]);	
 		if(strstr(variable,"bandFreq1")) sscanf(value,"%lf",&bandFreq[1]);
 		if(strstr(variable,"bandTXOffset1")) sscanf(value,"%lf",&bandTxOffset[1]);	
 		if(strstr(variable,"bandRxOffset1")) sscanf(value,"%lf",&bandRxOffset[1]);
+		if(strstr(variable,"bandBits1")) sscanf(value,"%d",&bandBits[1]);	
 		if(strstr(variable,"bandFreq2")) sscanf(value,"%lf",&bandFreq[2]);
 		if(strstr(variable,"bandTxOffset2")) sscanf(value,"%lf",&bandTxOffset[2]);	
 		if(strstr(variable,"bandRxOffset2")) sscanf(value,"%lf",&bandRxOffset[2]);
+		if(strstr(variable,"bandBits2")) sscanf(value,"%d",&bandBits[2]);	
 		if(strstr(variable,"bandFreq3")) sscanf(value,"%lf",&bandFreq[3]);
 		if(strstr(variable,"bandTxOffset3")) sscanf(value,"%lf",&bandTxOffset[3]);	
 		if(strstr(variable,"bandRxOffset3")) sscanf(value,"%lf",&bandRxOffset[3]);
+		if(strstr(variable,"bandBits3")) sscanf(value,"%d",&bandBits[3]);	
 		if(strstr(variable,"bandFreq4")) sscanf(value,"%lf",&bandFreq[4]);
 		if(strstr(variable,"bandTxOffset4")) sscanf(value,"%lf",&bandTxOffset[4]);	
 		if(strstr(variable,"bandRxOffset4")) sscanf(value,"%lf",&bandRxOffset[4]);
+		if(strstr(variable,"bandBits4")) sscanf(value,"%d",&bandBits[4]);	
 		if(strstr(variable,"bandFreq5")) sscanf(value,"%lf",&bandFreq[5]);
 		if(strstr(variable,"bandTxOffset5")) sscanf(value,"%lf",&bandTxOffset[5]);	
 		if(strstr(variable,"bandRxOffset5")) sscanf(value,"%lf",&bandRxOffset[5]);
+		if(strstr(variable,"bandBits5")) sscanf(value,"%d",&bandBits[5]);	
 		if(strstr(variable,"bandFreq6")) sscanf(value,"%lf",&bandFreq[6]);
 		if(strstr(variable,"bandTxOffset6")) sscanf(value,"%lf",&bandTxOffset[6]);	
 		if(strstr(variable,"bandRxOffset6")) sscanf(value,"%lf",&bandRxOffset[6]);
+		if(strstr(variable,"bandBits6")) sscanf(value,"%d",&bandBits[6]);	
 		if(strstr(variable,"bandFreq7")) sscanf(value,"%lf",&bandFreq[7]);
 		if(strstr(variable,"bandTxffset7")) sscanf(value,"%lf",&bandTxOffset[7]);	
 		if(strstr(variable,"bandRxOffset7")) sscanf(value,"%lf",&bandRxOffset[7]);
+		if(strstr(variable,"bandBits7")) sscanf(value,"%d",&bandBits[7]);	
 		if(strstr(variable,"bandFreq8")) sscanf(value,"%lf",&bandFreq[8]);
 		if(strstr(variable,"bandTxOffset8")) sscanf(value,"%lf",&bandTxOffset[8]);	
 		if(strstr(variable,"bandRxOffset8")) sscanf(value,"%lf",&bandRxOffset[8]);
+		if(strstr(variable,"bandBits8")) sscanf(value,"%d",&bandBits[8]);	
 		if(strstr(variable,"bandFreq9")) sscanf(value,"%lf",&bandFreq[9]);
 		if(strstr(variable,"bandTxOffset9")) sscanf(value,"%lf",&bandTxOffset[9]);	
 		if(strstr(variable,"bandRxOffset9")) sscanf(value,"%lf",&bandRxOffset[9]);
+		if(strstr(variable,"bandBits9")) sscanf(value,"%d",&bandBits[9]);	
 
 		if(strstr(variable,"currentBand")) sscanf(value,"%d",&band);
 		if(strstr(variable,"tuneDigit")) sscanf(value,"%d",&tuneDigit);		
@@ -1109,33 +1216,43 @@ if(conffile==NULL)
 fprintf(conffile,"bandFreq0 %lf\n",bandFreq[0]);
 fprintf(conffile,"bandTxOffset0 %lf\n",bandTxOffset[0]);
 fprintf(conffile,"bandRxOffset0 %lf\n",bandRxOffset[0]);
+fprintf(conffile,"bandBits0 %d\n",bandBits[0]);
 fprintf(conffile,"bandFreq1 %lf\n",bandFreq[1]);
 fprintf(conffile,"bandTxOffset1 %lf\n",bandTxOffset[1]);
 fprintf(conffile,"bandRxOffset1 %lf\n",bandRxOffset[1]);
+fprintf(conffile,"bandBits1 %d\n",bandBits[1]);
 fprintf(conffile,"bandFreq2 %lf\n",bandFreq[2]);
 fprintf(conffile,"bandTxOffset2 %lf\n",bandTxOffset[2]);
 fprintf(conffile,"bandRxOffset2 %lf\n",bandRxOffset[2]);
+fprintf(conffile,"bandBits2 %d\n",bandBits[2]);
 fprintf(conffile,"bandFreq3 %lf\n",bandFreq[3]);
 fprintf(conffile,"bandTxOffset3 %lf\n",bandTxOffset[3]);
 fprintf(conffile,"bandRxOffset3 %lf\n",bandRxOffset[3]);
+fprintf(conffile,"bandBits3 %d\n",bandBits[3]);
 fprintf(conffile,"bandFreq4 %lf\n",bandFreq[4]);
 fprintf(conffile,"bandTxOffset4 %lf\n",bandTxOffset[4]);
 fprintf(conffile,"bandRxOffset4 %lf\n",bandRxOffset[4]);
+fprintf(conffile,"bandBits4 %d\n",bandBits[4]);
 fprintf(conffile,"bandFreq5 %lf\n",bandFreq[5]);
 fprintf(conffile,"bandTxOffset5 %lf\n",bandTxOffset[5]);
 fprintf(conffile,"bandRxOffset5 %lf\n",bandRxOffset[5]);
+fprintf(conffile,"bandBits5 %d\n",bandBits[5]);
 fprintf(conffile,"bandFreq6 %lf\n",bandFreq[6]);
 fprintf(conffile,"bandTxOffset6 %lf\n",bandTxOffset[6]);
 fprintf(conffile,"bandRxOffset6 %lf\n",bandRxOffset[6]);
+fprintf(conffile,"bandBits6 %d\n",bandBits[6]);
 fprintf(conffile,"bandFreq7 %lf\n",bandFreq[7]);
 fprintf(conffile,"bandTxOffset7 %lf\n",bandTxOffset[7]);
 fprintf(conffile,"bandRxOffset7 %lf\n",bandRxOffset[7]);
+fprintf(conffile,"bandBits7 %d\n",bandBits[7]);
 fprintf(conffile,"bandFreq8 %lf\n",bandFreq[8]);
 fprintf(conffile,"bandTxOffset8 %lf\n",bandTxOffset[8]);
 fprintf(conffile,"bandRxOffset8 %lf\n",bandRxOffset[8]);
+fprintf(conffile,"bandBits8 %d\n",bandBits[8]);
 fprintf(conffile,"bandFreq9 %lf\n",bandFreq[9]);
 fprintf(conffile,"bandTxOffset9 %lf\n",bandTxOffset[9]);
 fprintf(conffile,"bandRxOffset9 %lf\n",bandRxOffset[9]);
+fprintf(conffile,"bandBits9 %d\n",bandBits[9]);
 
 fprintf(conffile,"currentBand %d\n",band);
 fprintf(conffile,"tuneDigit %d\n",tuneDigit);
