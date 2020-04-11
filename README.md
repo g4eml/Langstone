@@ -22,9 +22,9 @@ Currently only one set of hardware is supported:-
 
 - CW Key is via Raspberry Pi GPIO pin 12. This needs a pull up resistor to 3.3V. Grounding this pin will key the transmitter. 
 
-- Tx Output is via Raspberry Pi GPIO pin 13. This output goes high when the Langstone is transmitting. This can be used to switch antenna relays and amplifiers. (100ms delay included for sequencing)
+- Tx Output is via Raspberry Pi GPIO pin 40. This output goes high when the Langstone is transmitting. This can be used to switch antenna relays and amplifiers. (100ms delay included for sequencing)
 
-- 4 Band select Outputs on pins 15, 16, 18 and 22. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
+- 4 Band select Outputs on pins 31, 24, 7 and 6. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
@@ -32,7 +32,9 @@ All control is done using the touchscreen and mouse.
 
 Tuning uses the mouse scrollwheel. The mouse left and right buttons select the tuning step. The centre button is used for the CW key.  Mouse movement is not used.
 
-The intention is to eventually make use of the mouse hardware to make a proper tuning knob and panel controls. 
+A mouse is used to provide the tuning input because it effectively hands the task of monitoring the tuning knob to a seperate processor (in the mouse). Rotary encoders can be tricky to handle reliably in linux. 
+
+It is easy to modify a cheap mouse by disconnecting the existing switches and wiring the PCB to larger switches on the Langstone front panel. The scroll wheel can likewise be replaced with a panel mounted tuning knob. 
 
 Microphone input and headphone output uses the USB audio device. (a couple of pounds on Ebay)
 

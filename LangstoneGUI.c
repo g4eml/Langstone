@@ -125,12 +125,12 @@ char touchPath[20];
 int mousePresent;
 int touchPresent;
 
-#define pttPin 0     // Wiring Pi pin number. Physical pin is 11
-#define keyPin 1     //Wiring Pi pin number. Physical pin is 12
-#define txPin 2     //Wiring Pi pin number. Physical pin is 13  		
-#define bandPin1 3     //Wiring Pi pin number. Physical pin is 15
-#define bandPin2 4     //Wiring Pi pin number. Physical pin is 16
-#define bandPin3 5     //Wiring Pi pin number. Physical pin is 18
+#define pttPin 0     		// Wiring Pi pin number. Physical pin is 11
+#define keyPin 1     		//Wiring Pi pin number. Physical pin is 12
+#define txPin 29     		//Wiring Pi pin number. Physical pin is 40  		
+#define bandPin1 31     //Wiring Pi pin number. Physical pin is 28
+#define bandPin2 24    	//Wiring Pi pin number. Physical pin is 35
+#define bandPin3 7    	//Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
 
 int main(int argc, char* argv[])
