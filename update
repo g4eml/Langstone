@@ -1,0 +1,4 @@
+./stop
+git pull
+./build
+./run
