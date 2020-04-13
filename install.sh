@@ -52,6 +52,7 @@ cd Langstone
 chmod +x build
 chmod +x run
 chmod +x stop
+chmod +x update
 ./build
 
 
