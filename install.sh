@@ -51,6 +51,7 @@ git clone https://github.com/g4eml/Langstone.git
 cd Langstone
 chmod +x build
 chmod +x run
+chmod +x stop
 ./build
 
 
