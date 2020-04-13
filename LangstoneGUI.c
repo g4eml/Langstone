@@ -549,7 +549,6 @@ if(buttonTouched(sqlButtonsX,sqlButtonsY+buttonSpaceY)) //sql-
 
 if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND
     {
-      initGUI();
       bandFreq[band]=freq;
       band=band+1;
       if(band==numband) band=0;
