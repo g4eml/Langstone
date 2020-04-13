@@ -549,6 +549,7 @@ if(buttonTouched(sqlButtonsX,sqlButtonsY+buttonSpaceY)) //sql-
 
 if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND
     {
+      initGUI();
       bandFreq[band]=freq;
       band=band+1;
       if(band==numband) band=0;
@@ -992,7 +993,7 @@ int setexit;
                   writeConfig();
                   system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
                   sleep(5);
-                  exit(0);
+//                  exit(0);
                   system("sudo poweroff");                          
                 }
             }
