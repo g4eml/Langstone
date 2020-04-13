@@ -58,7 +58,7 @@ char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
 
 #define numSettings 5
 int settingNo=0;
-char * settingText[numSettings]={"SSB Mic Gain = ","FM MIc Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = "};
+char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = "};
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -520,18 +520,24 @@ if(buttonTouched(volButtonsX,volButtonsY+buttonSpaceY)) //Vol-
 
 if(buttonTouched(sqlButtonsX,sqlButtonsY))    //sql+
     {
-      squelch=squelch+1;
-      if(squelch >maxsql) squelch=maxsql;
-      setSquelch(squelch);
+     if(mode==4)
+     	{
+      	squelch=squelch+1;
+      	if(squelch >maxsql) squelch=maxsql;
+      	setSquelch(squelch);
+     	}
       return;
     }
 
 if(buttonTouched(sqlButtonsX,sqlButtonsY+buttonSpaceY)) //sql-
     {
+     if(mode==4)
+	{
        squelch=squelch-1;
        if(squelch < 0) squelch=0;
        setSquelch(squelch);
-       return;
+	}
+      return;
     }
 
 
@@ -948,8 +954,8 @@ int setexit;
   displayButton("MENU");
   displayButton(" ");
   displayButton("NEXT");
-  displayButton("PREV");
   displayButton(" ");
+  displayButton("PREV");
   displayButton(" ");
   setForeColour(255,0,0);
   displayButton("OFF");
@@ -973,7 +979,7 @@ int setexit;
                   if(settingNo==numSettings) settingNo=0;
                   displaySetting(settingNo);
                 } 
-            if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))  // PREV
+            if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))  // PREV
                 {
                   settingNo=settingNo-1;
                   if(settingNo<0) settingNo=numSettings-1;
@@ -987,7 +993,7 @@ int setexit;
                   system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
                   sleep(5);
                   exit(0);
-                //  system("sudo poweroff");                          
+                  system("sudo poweroff");                          
                 }
             }
           }
