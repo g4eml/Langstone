@@ -676,6 +676,8 @@ void setSquelch(int sql)
 	char sqlStr[10];
 	sprintf(sqlStr,"Z%d",sql);
 	sendFifo(sqlStr);
+	if(mode==4)
+	{
 	setForeColour(0,255,0);
 	textSize=2;
 	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
@@ -683,6 +685,7 @@ void setSquelch(int sql)
 	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
 	sprintf(sqlStr,"%d",sql);
 	displayStr(sqlStr);
+	}
 }
 
 void setSSBMic(int mic)
