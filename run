@@ -1,17 +1,23 @@
 #!/bin/bash
-if test -z "$SSH_CLIENT"
-then
-	if !(ps -ax |grep -v grep| grep SSB_TRX.py) then
-  	sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
-  	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
-  	sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
-  	sudo raspi-gpio set 17,18 ip pu
- 	 sleep 10
-  	taskset -c 1 python /home/pi/Langstone/SSB_TRX.py > /dev/null 2>&1 &
-  	sleep 10
-  	/home/pi/Langstone/GUI &
+if !(ps -ax |grep -v grep| grep -q SSB_TRX.py) then
+	sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
+	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
+	sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
+	sudo raspi-gpio set 17,18 ip pu
+	sleep 10
+	python /home/pi/Langstone/SSB_TRX.py > /tmp/LangstoneTRX.log 2>&1 &
+	sleep 10
+	if (ps -ax | grep -v grep| grep -q SSB_TRX.py)then
+		/home/pi/Langstone/GUI > /tmp/LangstoneGUI.log &
+	else
+		clear
+		echo ERROR:- SSB_TRX.py failed to start.
+		cat /tmp/LangstoneTRX.log
 	fi
+else
+	echo Langstone is already running. Use ./stop first.
 fi
+
 
 
 
