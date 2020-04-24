@@ -1,13 +1,16 @@
-#!/bin/sh
-if !(ps -ax |grep -v grep| grep SSB_TRX.py) then
-  sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
-  sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
-  sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
-  sudo raspi-gpio set 17,18 ip pu
-  sleep 10
-  taskset -c 1 python /home/pi/Langstone/SSB_TRX.py > /dev/null 2>&1 &
-  sleep 10
-  /home/pi/Langstone/GUI &
+#!/bin/bash
+if test -z "$SSH_CLIENT"
+then
+	if !(ps -ax |grep -v grep| grep SSB_TRX.py) then
+  	sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
+  	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
+  	sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
+  	sudo raspi-gpio set 17,18 ip pu
+ 	 sleep 10
+  	taskset -c 1 python /home/pi/Langstone/SSB_TRX.py > /dev/null 2>&1 &
+  	sleep 10
+  	/home/pi/Langstone/GUI &
+	fi
 fi
 
 
