@@ -124,6 +124,7 @@ char mousePath[20];
 char touchPath[20];
 int mousePresent;
 int touchPresent;
+int plutoPresent;
 
 #define pttPin 0     		// Wiring Pi pin number. Physical pin is 11
 #define keyPin 1     		//Wiring Pi pin number. Physical pin is 12
@@ -235,6 +236,7 @@ void detectHw()
 	  }
 	fclose(fp);
 	if(ln)  free(ln);
+    plutoPresent=1;      //this will be reset by setPlutoFreq if Pluto is not present.
 }
 
 
@@ -242,16 +244,25 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 {
 	struct iio_context *ctx;
 	struct iio_device *phy;
- 
-	ctx = iio_create_context_from_uri("ip:192.168.2.1"); 
-	if(ctx==NULL) 
+   if(plutoPresent)
+    {
+	ctx = iio_create_context_from_uri("ip:192.168.2.1");
+	if(ctx==NULL)
 	{
-	printf("Pluto Not Found\n");
+	  plutoPresent=0;
+	  gotoXY(220,120);
+	  setForeColour(255,0,0);
+	  textSize=2;
+	  displayStr("PLUTO NOT DETECTED");
 	}
+	else
+	{ 
 	phy = iio_context_find_device(ctx, "ad9361-phy"); 
 	iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
   iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq 
-	iio_context_destroy(ctx); 
+	iio_context_destroy(ctx);
+	}
+   }
 }
 
 
