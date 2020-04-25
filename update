@@ -1,2 +1,6 @@
+#!/bin/bash
 git pull
+if test -f "runonce.sh" ; then
+./runonce.sh
+fi
 ./build
