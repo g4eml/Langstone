@@ -135,7 +135,7 @@ int touchPresent;
 
 int main(int argc, char* argv[])
 {
-	readConfig();
+  readConfig();
   detectHw();
   initFifo();
   initScreen();
@@ -188,7 +188,6 @@ int main(int argc, char* argv[])
  
     usleep(1000);    //delay 1 ms giving approximately 1000 interations per second. 
   }
-
 }
 
 
@@ -245,6 +244,10 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 	struct iio_device *phy;
  
 	ctx = iio_create_context_from_uri("ip:192.168.2.1"); 
+	if(ctx==NULL) 
+	{
+	printf("Pluto Not Found\n");
+	}
 	phy = iio_context_find_device(ctx, "ad9361-phy"); 
 	iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
   iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq 
@@ -266,7 +269,7 @@ void sendFifo(char * s)
   char fs[50];
   strcpy(fs,s);
   strcat(fs,"\n");
-  fifofd=open("/tmp/langstonein",O_WRONLY);
+  fifofd=open("/tmp/langstonein",O_WRONLY | O_NONBLOCK);
   write(fifofd,fs,strlen(fs));
   close(fifofd);
 }
@@ -365,7 +368,6 @@ void initGUI()
 
  //bottom row of buttons
   displayMenu();
-
   freq=bandFreq[band];
   setFreq(freq);
   bbits=bandBits[band];
@@ -823,7 +825,6 @@ void setHwFreq(double fr)
      rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz
      txoffsethz=txoffsethz-800;     
     }
-  
 	if(LOrxfreqhz!=lastLOhz);         
 	  {
   	  setPlutoFreq(LOrxfreqhz,LOtxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
