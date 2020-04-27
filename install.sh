@@ -59,10 +59,10 @@ chmod +x update
 #make Langstone autostart on boot
 
 if !(grep Langstone ~/.bashrc) then
-  echo if test -z \"\$SSH_CLIENT\" >>~/.bashrc 
-  echo then >> ~./.bashrc
+  echo if test -z \"\$SSH_CLIENT\" >> ~/.bashrc 
+  echo then >> ~/.bashrc
   echo /home/pi/Langstone/run >> ~/.bashrc
-  echo fi >> ~./bashrc
+  echo fi >> ~/.bashrc
 fi
 
 #Configure the boot parameters
