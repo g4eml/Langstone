@@ -16,6 +16,7 @@ from gnuradio import iio
 from gnuradio.eng_option import eng_option
 from gnuradio.filter import firdes
 from optparse import OptionParser
+from gnuradio.fft import logpwrfft
 import os
 import errno
 
@@ -39,7 +40,7 @@ class SSB_TRX(gr.top_block):
         self.MON = MON = False
         self.KEY = KEY = False
         self.FMMIC = FMMIC = 50
-        self.FM = FM = True
+        self.FM = FM = False
         self.CW = CW = False
         self.AFGain = AFGain = 20
 
@@ -52,9 +53,19 @@ class SSB_TRX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
-        self.pluto_source_0 = iio.pluto_source('ip:192.168.2.1', BaseFreq, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
-        self.pluto_sink_0 = iio.pluto_sink('ip:192.168.2.1', TxLO, 529200, 2000000, 0x800, False, 0, '', True)
-        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,12000,6000)), RxOffset, 529200)
+        self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
+        	sample_rate=44100,
+        	fft_size=512,
+        	ref_scale=2,
+        	frame_rate=15,
+        	avg_alpha=0.9,
+        	average=True,
+        )
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_float*512, "/tmp/langstonefft", False)
+        self.blocks_file_sink_0.set_unbuffered(False)
+        self.pluto_source_0 = iio.pluto_source('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, False, 0, '', True)
+        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,20000,6000)), RxOffset, 529200)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_mute_xx_0 = blocks.mute_ff(bool(PTT and (not MON)))
         self.blocks_multiply_xx_2 = blocks.multiply_vcc(1)
@@ -98,7 +109,8 @@ class SSB_TRX(gr.top_block):
         	max_dev=5e3,
           )
         self.analog_const_source_x_0 = analog.sig_source_f(0, analog.GR_CONST_WAVE, 0, 0, 0)
-
+        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))  
+        self.connect((self.logpwrfft_x_0, 0), (self.blocks_file_sink_0, 0)) 
 
 
         ##################################################

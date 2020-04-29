@@ -134,17 +134,36 @@ int plutoPresent;
 #define bandPin3 7    	//Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
 
+
+
+//robs
+void waterfall(void);
+void init_fft_Fifo();
+float inbuf[2];
+FILE *fftstream;
+float buf[512][150];
+int points=512;
+int rows=150;
+int spectrum_rows=20;
+
+
 int main(int argc, char* argv[])
 {
   readConfig();
   detectHw();
   initFifo();
+  init_fft_Fifo();
   initScreen();
   initGPIO();
   if(touchPresent) initTouch(touchPath);
   if(mousePresent) initMouse(mousePath);
   initGUI();  
+
   
+  fftstream=fopen("/tmp/langstonefft","r");
+  fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
+
+
   
   while(1)
   {
@@ -186,13 +205,80 @@ int main(int argc, char* argv[])
           dotCount=0;
           }
       } 
- 
+    waterfall();
     usleep(1000);    //delay 1 ms giving approximately 1000 interations per second. 
   }
 }
 
 
+void waterfall(){
+  int level,level2;
 
+
+
+  //check if data avilable to read
+  int ret = fread(&inbuf,sizeof(float),1,fftstream);
+  if(ret>0){    
+
+    //shift buffer
+    for(int r=rows-1;r>0;r--){	
+      for(int p=0;p<points;p++){	
+        buf[p][r]=buf[p][r-1];
+      }
+    }
+
+    buf[0+points/2][0]=inbuf[0];    //use the read value
+
+    //Read in float values, shift centre and store in buffer 1st 'row'
+    for(int p=1;p<points;p++){	
+    fread(&inbuf,sizeof(float),1,fftstream);
+      if(p<points/2){
+        buf[p+points/2][0]=inbuf[0];
+      }else{
+        buf[p-points/2][0]=inbuf[0];
+      }
+    }
+
+    //RF level adjustment
+    int reflevel=-40;
+    int baselevel=-100;
+    float scaling = 255.0/(float)(reflevel-baselevel);
+
+    //draw waterfall
+    for(int r=0;r<rows;r++){	
+      for(int p=0;p<points;p++){	
+        //limit values displayed to range specified
+        if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
+        if (buf[p][r]>reflevel){buf[p][r]=reflevel;}
+        //scale to 0-255
+        level = (buf[p][r]-baselevel)*scaling;   
+        setPixel(p+140,206+r,level,level,level);
+      }
+    }
+
+    //clear spectrum area
+    for(int r=0;r<spectrum_rows+1;r++){	
+      for(int p=0;p<points;p++){	 
+        setPixel(p+140,186-r,0,0,0);
+      }
+    }
+
+    //draw spectrum line
+    scaling = 20/(float)(reflevel-baselevel);
+    for(int p=0;p<points-1;p++){	
+        //limit values displayed to range specified
+        if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
+        if (buf[p][0]>reflevel){buf[p][0]=reflevel;}
+        //scale to display height
+        level = (buf[p][0]-baselevel)*scaling;   
+        level2 = (buf[p+1][0]-baselevel)*scaling;
+        drawLine(p+140, 186-level, p+1+140, 186-level2,128,128,128);
+        if(p==points/2){
+          drawLine(p+140, 186-10, p+140, 186-20,128,0,0);
+        }
+      }
+  }
+}
 
 void detectHw()
 {
@@ -272,6 +358,14 @@ void initFifo()
  if(access("/tmp/langstonein",F_OK)==-1)   //does fifo exist already?
     {
         mkfifo("/tmp/langstonein", 0666);
+    }
+}
+
+void init_fft_Fifo()
+{
+ if(access("/tmp/langstonefft",F_OK)==-1)   //does fifo exist already?
+    {
+        mkfifo("/tmp/landstonefft", 0666);
     }
 }
 
@@ -398,6 +492,14 @@ void initGUI()
 		{
 		sqlButtons(0);
 		}
+
+    //clear waterfall buffer.
+        //shift buffer
+    for(int r=0;r<rows;r++){	
+      for(int p=0;p<points;p++){	
+        buf[p][r]=-100;
+      }
+    }
 
 }
 
