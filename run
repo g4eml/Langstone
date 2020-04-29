@@ -1,4 +1,16 @@
 #!/bin/bash
+
+if test -e /tmp/langstonefft ; then
+rm /tmp/langstonefft
+fi
+mkfifo /tmp/langstonefft
+
+if test -e /tmp/langstonein ;then
+rm /tmp/langstonein
+fi
+mkfifo /tmp/langstonein
+
+
 if !(ps -ax |grep -v grep| grep -q SSB_TRX.py) then
 	sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
 	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
@@ -8,7 +20,7 @@ if !(ps -ax |grep -v grep| grep -q SSB_TRX.py) then
 	python /home/pi/Langstone/SSB_TRX.py > /tmp/LangstoneTRX.log 2>&1 &
 	sleep 10
 	if (ps -ax | grep -v grep| grep -q SSB_TRX.py)then
-		/home/pi/Langstone/GUI > /tmp/LangstoneGUI.log &
+		/home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1 &
 	else
 		clear
 		echo ERROR:- SSB_TRX.py failed to start.
