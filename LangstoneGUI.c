@@ -365,7 +365,7 @@ void init_fft_Fifo()
 {
  if(access("/tmp/langstonefft",F_OK)==-1)   //does fifo exist already?
     {
-        mkfifo("/tmp/landstonefft", 0666);
+        mkfifo("/tmp/langstonefft", 0666);
     }
 }
 
