@@ -1,6 +1,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <iio.h>
 #include <unistd.h>
 #include <wiringPi.h>
@@ -118,8 +119,8 @@ int FMMic=50;
 int tuneDigit=8;
 #define maxTuneDigit 11
 
-#define TXDELAY 100000       //us delay between setting Tx output bit and sending tx command to SDR
-#define RXDELAY 100000       //us delay between sending rx command to SDR and setting Tx output bit low. 
+#define TXDELAY 10000      //100ms delay between setting Tx output bit and sending tx command to SDR
+#define RXDELAY 10000       //100ms delay between sending rx command to SDR and setting Tx output bit low. 
 
 char mousePath[20];
 char touchPath[20];
@@ -145,11 +146,18 @@ FILE *fftstream;
 float buf[512][150];
 int points=512;
 int rows=150;
-int spectrum_rows=20;
+
+
 int FFTRef = -30;
+int spectrum_rows=50;
+
 
 int main(int argc, char* argv[])
 {
+
+clock_t lastClock;
+
+  lastClock=0;
   readConfig();
   detectHw();
   initFifo();
@@ -164,7 +172,8 @@ int main(int argc, char* argv[])
   fftstream=fopen("/tmp/langstonefft","r");
   fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
 
-
+	delay(500);
+	setFreq(freq);      //not sure why this is needed but first setfreq doesnt seem to register. suspect might be something to do with pipe delays.
   
   while(1)
   {
@@ -197,26 +206,25 @@ int main(int argc, char* argv[])
           {
             setKey(1);
           }
-        if(dotCount==125)
+        if(dotCount==12)
           {
             setKey(0);
           }
-        if(dotCount==250)
+        if(dotCount==25)
           {
           dotCount=0;
           }
       } 
     waterfall();
-    usleep(1000);    //delay 1 ms giving approximately 1000 interations per second. 
+    while(clock() < (lastClock + CLOCKS_PER_SEC/100));        //delay until the next iteration at 100 per second
+    lastClock=clock();
   }
 }
 
 
 void waterfall(){
   int level,level2;
-
-
-
+  
   //check if data avilable to read
   int ret = fread(&inbuf,sizeof(float),1,fftstream);
   if(ret>0){    
@@ -241,6 +249,7 @@ void waterfall(){
     }
 
     //RF level adjustment
+
     int baselevel=FFTRef-50;
     float scaling = 255.0/(float)(FFTRef-baselevel);
 
@@ -250,8 +259,9 @@ void waterfall(){
         //limit values displayed to range specified
         if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
         if (buf[p][r]>FFTRef){buf[p][r]=FFTRef;}
+
         //scale to 0-255
-        level = (buf[p][r]-baselevel)*scaling;   
+        level = (buf[p][r]-baseLevel)*scaling;   
         setPixel(p+140,206+r,level,level,level);
       }
     }
@@ -264,17 +274,19 @@ void waterfall(){
     }
 
     //draw spectrum line
+    
     scaling = 20/(float)(FFTRef-baselevel);
     for(int p=0;p<points-1;p++){	
         //limit values displayed to range specified
         if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
         if (buf[p][0]>FFTRef){buf[p][0]=FFTRef;}
+
         //scale to display height
-        level = (buf[p][0]-baselevel)*scaling;   
-        level2 = (buf[p+1][0]-baselevel)*scaling;
-        drawLine(p+140, 186-level, p+1+140, 186-level2,128,128,128);
+        level = (buf[p][0]-baseLevel)*scaling;   
+        level2 = (buf[p+1][0]-baseLevel)*scaling;
+        drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
         if(p==points/2){
-          drawLine(p+140, 186-10, p+140, 186-20,128,0,0);
+          drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
         }
       }
   }
@@ -479,7 +491,6 @@ void initGUI()
  //bottom row of buttons
   displayMenu();
   freq=bandFreq[band];
-  setFreq(freq);
   bbits=bandBits[band];
   setBandBits(bbits);
   setMode(mode); 
@@ -488,6 +499,8 @@ void initGUI()
   setSSBMic(SSBMic);
   setFMMic(FMMic);
   setTx(ptt|ptts);
+  setFreqInc();
+  setFreq(freq);
   
   if(mode==4) 
   	{
