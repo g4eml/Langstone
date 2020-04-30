@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <iio.h>
 #include <unistd.h>
 #include <wiringPi.h>
@@ -117,8 +118,8 @@ int FMMic=50;
 int tuneDigit=8;
 #define maxTuneDigit 11
 
-#define TXDELAY 100000       //us delay between setting Tx output bit and sending tx command to SDR
-#define RXDELAY 100000       //us delay between sending rx command to SDR and setting Tx output bit low. 
+#define TXDELAY 10000      //100ms delay between setting Tx output bit and sending tx command to SDR
+#define RXDELAY 10000       //100ms delay between sending rx command to SDR and setting Tx output bit low. 
 
 char mousePath[20];
 char touchPath[20];
@@ -144,11 +145,20 @@ FILE *fftstream;
 float buf[512][150];
 int points=512;
 int rows=150;
-int spectrum_rows=20;
+int spectrum_rows=50;
+int RxFftMaxLevel=-10;
+int TxFftMaxLevel=0;
+int RxFftBaseLevel=-100;
+int TxFftBaseLevel=-50;
+
 
 
 int main(int argc, char* argv[])
 {
+
+clock_t lastClock;
+
+  lastClock=0;
   readConfig();
   detectHw();
   initFifo();
@@ -163,7 +173,8 @@ int main(int argc, char* argv[])
   fftstream=fopen("/tmp/langstonefft","r");
   fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
 
-
+	delay(500);
+	setFreq(freq);      //not sure why this is needed but first setfreq doesnt seem to register. suspect might be something to do with pipe delays.
   
   while(1)
   {
@@ -196,25 +207,39 @@ int main(int argc, char* argv[])
           {
             setKey(1);
           }
-        if(dotCount==125)
+        if(dotCount==12)
           {
             setKey(0);
           }
-        if(dotCount==250)
+        if(dotCount==25)
           {
           dotCount=0;
           }
       } 
     waterfall();
-    usleep(1000);    //delay 1 ms giving approximately 1000 interations per second. 
+    while(clock() < (lastClock + CLOCKS_PER_SEC/100));        //delay until the next iteration at 100 per second
+    lastClock=clock();
   }
 }
 
 
 void waterfall(){
   int level,level2;
-
-
+  int FftMaxLevel;
+  int FftBaseLevel;
+  
+  //change the display scaling when on Simplex transmit to prevent overloading.
+  
+  if ((((ptt | ptts)!=0) | (sendDots==1)) & (abs(bandTxOffset[band]-bandRxOffset[band]) < 0.000001))                             		
+  {
+  	FftMaxLevel=TxFftMaxLevel;
+  	FftBaseLevel=TxFftBaseLevel;
+	}
+	else
+  {
+    FftMaxLevel=RxFftMaxLevel;
+  	FftBaseLevel=RxFftBaseLevel;
+	}
 
   //check if data avilable to read
   int ret = fread(&inbuf,sizeof(float),1,fftstream);
@@ -240,18 +265,17 @@ void waterfall(){
     }
 
     //RF level adjustment
-    int reflevel=-40;
-    int baselevel=-100;
-    float scaling = 255.0/(float)(reflevel-baselevel);
+
+    float scaling = 255.0/(float)(FftMaxLevel-FftBaseLevel);
 
     //draw waterfall
     for(int r=0;r<rows;r++){	
       for(int p=0;p<points;p++){	
         //limit values displayed to range specified
-        if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
-        if (buf[p][r]>reflevel){buf[p][r]=reflevel;}
+        if (buf[p][r]<FftBaseLevel){buf[p][r]=FftBaseLevel;}
+        if (buf[p][r]>FftMaxLevel){buf[p][r]=FftMaxLevel;}
         //scale to 0-255
-        level = (buf[p][r]-baselevel)*scaling;   
+        level = (buf[p][r]-FftBaseLevel)*scaling;   
         setPixel(p+140,206+r,level,level,level);
       }
     }
@@ -264,17 +288,17 @@ void waterfall(){
     }
 
     //draw spectrum line
-    scaling = 20/(float)(reflevel-baselevel);
+    scaling = spectrum_rows/(float)(FftMaxLevel-FftBaseLevel);
     for(int p=0;p<points-1;p++){	
         //limit values displayed to range specified
-        if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
-        if (buf[p][0]>reflevel){buf[p][0]=reflevel;}
+        if (buf[p][0]<FftBaseLevel){buf[p][0]=FftBaseLevel;}
+        if (buf[p][0]>FftMaxLevel){buf[p][0]=FftMaxLevel;}
         //scale to display height
-        level = (buf[p][0]-baselevel)*scaling;   
-        level2 = (buf[p+1][0]-baselevel)*scaling;
-        drawLine(p+140, 186-level, p+1+140, 186-level2,128,128,128);
+        level = (buf[p][0]-FftBaseLevel)*scaling;   
+        level2 = (buf[p+1][0]-FftBaseLevel)*scaling;
+        drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
         if(p==points/2){
-          drawLine(p+140, 186-10, p+140, 186-20,128,0,0);
+          drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
         }
       }
   }
@@ -474,7 +498,6 @@ void initGUI()
  //bottom row of buttons
   displayMenu();
   freq=bandFreq[band];
-  setFreq(freq);
   bbits=bandBits[band];
   setBandBits(bbits);
   setMode(mode); 
@@ -483,6 +506,8 @@ void initGUI()
   setSSBMic(SSBMic);
   setFMMic(FMMic);
   setTx(ptt|ptts);
+  setFreqInc();
+  setFreq(freq);
   
   if(mode==4) 
   	{
