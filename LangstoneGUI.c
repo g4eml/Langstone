@@ -836,7 +836,7 @@ void setHwFreq(double fr)
      rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz
      txoffsethz=txoffsethz-800;     
     }
-	if(LOrxfreqhz!=lastLOhz);         
+	if(LOrxfreqhz!=lastLOhz)         
 	  {
   	  setPlutoFreq(LOrxfreqhz,LOtxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
   	  lastLOhz=LOrxfreqhz;
@@ -846,6 +846,7 @@ void setHwFreq(double fr)
 	sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
 	sendFifo(offsetStr);
 	sprintf(offsetStr,"o%d",txoffsethz);   //send the Tx offset tuning value 
+	usleep(1000);
 	sendFifo(offsetStr);  
 }
 
