@@ -337,7 +337,7 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 	struct iio_device *phy;
    if(plutoPresent)
     {
-	ctx = iio_create_context_from_uri("ip:192.168.1.16");
+	ctx = iio_create_context_from_uri("ip:192.168.2.1");
 	if(ctx==NULL)
 	{
 	  plutoPresent=0;
