@@ -146,8 +146,6 @@ FILE *fftstream;
 float buf[512][150];
 int points=512;
 int rows=150;
-
-
 int FFTRef = -30;
 int spectrum_rows=50;
 
@@ -261,7 +259,7 @@ void waterfall(){
         if (buf[p][r]>FFTRef){buf[p][r]=FFTRef;}
 
         //scale to 0-255
-        level = (buf[p][r]-baseLevel)*scaling;   
+        level = (buf[p][r]-baselevel)*scaling;   
         setPixel(p+140,206+r,level,level,level);
       }
     }
@@ -282,8 +280,8 @@ void waterfall(){
         if (buf[p][0]>FFTRef){buf[p][0]=FFTRef;}
 
         //scale to display height
-        level = (buf[p][0]-baseLevel)*scaling;   
-        level2 = (buf[p+1][0]-baseLevel)*scaling;
+        level = (buf[p][0]-baselevel)*scaling;   
+        level2 = (buf[p+1][0]-baselevel)*scaling;
         drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
         if(p==points/2){
           drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
