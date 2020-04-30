@@ -1,3 +1,4 @@
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <iio.h>
@@ -35,7 +36,7 @@ void initGPIO(void);
 int readConfig(void);
 int writeConfig(void);
 void setMoni(int m);
-
+void setFFTRef(int ref);
 
 double freq;
 double freqInc=0.001;
@@ -56,9 +57,9 @@ int bbits=0;
 int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
 
-#define numSettings 5
+#define numSettings 6
 int settingNo=0;
-char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = "};
+char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","Ref Lvl = "};
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -145,7 +146,7 @@ float buf[512][150];
 int points=512;
 int rows=150;
 int spectrum_rows=20;
-
+int FFTRef = -30;
 
 int main(int argc, char* argv[])
 {
@@ -240,16 +241,15 @@ void waterfall(){
     }
 
     //RF level adjustment
-    int reflevel=-40;
-    int baselevel=-100;
-    float scaling = 255.0/(float)(reflevel-baselevel);
+    int baselevel=FFTRef-50;
+    float scaling = 255.0/(float)(FFTRef-baselevel);
 
     //draw waterfall
     for(int r=0;r<rows;r++){	
       for(int p=0;p<points;p++){	
         //limit values displayed to range specified
         if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
-        if (buf[p][r]>reflevel){buf[p][r]=reflevel;}
+        if (buf[p][r]>FFTRef){buf[p][r]=FFTRef;}
         //scale to 0-255
         level = (buf[p][r]-baselevel)*scaling;   
         setPixel(p+140,206+r,level,level,level);
@@ -264,11 +264,11 @@ void waterfall(){
     }
 
     //draw spectrum line
-    scaling = 20/(float)(reflevel-baselevel);
+    scaling = 20/(float)(FFTRef-baselevel);
     for(int p=0;p<points-1;p++){	
         //limit values displayed to range specified
         if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
-        if (buf[p][0]>reflevel){buf[p][0]=reflevel;}
+        if (buf[p][0]>FFTRef){buf[p][0]=FFTRef;}
         //scale to display height
         level = (buf[p][0]-baselevel)*scaling;   
         level2 = (buf[p+1][0]-baselevel)*scaling;
@@ -278,6 +278,11 @@ void waterfall(){
         }
       }
   }
+}
+
+void setFFTRef(int ref)
+{
+  FFTRef=ref;
 }
 
 void detectHw()
@@ -332,7 +337,7 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 	struct iio_device *phy;
    if(plutoPresent)
     {
-	ctx = iio_create_context_from_uri("ip:192.168.2.1");
+	ctx = iio_create_context_from_uri("ip:192.168.1.16");
 	if(ctx==NULL)
 	{
 	  plutoPresent=0;
@@ -938,7 +943,7 @@ void setHwFreq(double fr)
      rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz
      txoffsethz=txoffsethz-800;     
     }
-	if(LOrxfreqhz!=lastLOhz);         
+	if(LOrxfreqhz!=lastLOhz)         
 	  {
   	  setPlutoFreq(LOrxfreqhz,LOtxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
   	  lastLOhz=LOrxfreqhz;
@@ -948,6 +953,7 @@ void setHwFreq(double fr)
 	sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
 	sendFifo(offsetStr);
 	sprintf(offsetStr,"o%d",txoffsethz);   //send the Tx offset tuning value 
+  usleep(1000);
 	sendFifo(offsetStr);  
 }
 
@@ -1155,7 +1161,7 @@ int setexit;
                     mouseScroll=0;
                     setFreq(freq);
                   }  
-								if(settingNo==4)        // Band Bits
+				if(settingNo==4)        // Band Bits
                   {
                   bandBits[band]=bandBits[band]+mouseScroll;
                   mouseScroll=0;
@@ -1164,7 +1170,16 @@ int setexit;
                   bbits=bandBits[band];
                   setBandBits(bbits);
                   displaySetting(settingNo);  
-									}                         
+				}    
+                if(settingNo==5)        // FFT Ref Level
+                {
+                  FFTRef=FFTRef+mouseScroll;
+                  mouseScroll=0;
+                  if(FFTRef<-50) FFTRef=-50;
+                  if(FFTRef>0) FFTRef=0;
+                  setFFTRef(FFTRef);
+                  displaySetting(settingNo);  
+				}                      
               }
               
                 if(but==1+128)      //Left Mouse Button down
@@ -1246,6 +1261,11 @@ void displaySetting(int se)
 		if(bbits==13)  sprintf(valStr,"1101"); 
 		if(bbits==14)  sprintf(valStr,"1110"); 
 		if(bbits==15)  sprintf(valStr,"1111"); 												  
+  displayStr(valStr);
+  }
+  if(se==5)
+  {
+  sprintf(valStr,"%d",FFTRef);
   displayStr(valStr);
   }
 }
