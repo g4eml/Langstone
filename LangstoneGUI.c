@@ -1344,7 +1344,7 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
 		if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
 		if(strstr(variable,"squelch")) sscanf(value,"%d",&squelch);
-
+    if(strstr(variable,"FFTRef")) sscanf(value,"%d",&FFTRef);
 
 						
 	}
@@ -1417,6 +1417,7 @@ fprintf(conffile,"SSBMic %d\n",SSBMic);
 fprintf(conffile,"FMMic %d\n",FMMic);
 fprintf(conffile,"volume %d\n",volume);
 fprintf(conffile,"squelch %d\n",squelch);
+fprintf(conffile,"FFTRef %d\n",FFTRef);
 
 fclose(conffile);
 return 0;
