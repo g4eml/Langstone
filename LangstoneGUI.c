@@ -276,7 +276,7 @@ void waterfall(){
 
     //draw spectrum line
     
-    scaling = 20/(float)(FFTRef-baselevel);
+    scaling = spectrum_rows/(float)(FFTRef-baselevel);
     for(int p=0;p<points-1;p++){	
         //limit values displayed to range specified
         if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
