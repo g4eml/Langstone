@@ -1126,6 +1126,7 @@ void setHwFreq(double fr)
 	sendFifo(offsetStr);
 	sprintf(offsetStr,"o%d",txoffsethz);   //send the Tx offset tuning value 
   usleep(1000);
+
 	sendFifo(offsetStr);  
 }
 
