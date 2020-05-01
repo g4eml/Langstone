@@ -103,7 +103,7 @@ int fifofd;
 int sendDots=0;
 int dotCount=0;
 
-double lastLOhz;
+long long lastLOhz;
 
 int lastKey=1;
 
@@ -174,6 +174,7 @@ clock_t lastClock;
   fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
 
 	delay(500);
+	lastLOhz=0;
 	setFreq(freq);      //not sure why this is needed but first setfreq doesnt seem to register. suspect might be something to do with pipe delays.
   
   while(1)
@@ -364,7 +365,7 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 	phy = iio_context_find_device(ctx, "ad9361-phy"); 
 	iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
   iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq 
-	iio_context_destroy(ctx);
+	iio_context_destroy(ctx);	
 	}
    }
 }
@@ -501,7 +502,6 @@ void initGUI()
   setFMMic(FMMic);
   setTx(ptt|ptts);
   setFreqInc();
-  setFreq(freq);
   
   if(mode==4) 
   	{
