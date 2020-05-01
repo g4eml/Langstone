@@ -226,72 +226,88 @@ clock_t lastClock;
 
 void waterfall(){
   int level,level2;
-  
-  //check if data avilable to read
-  int ret = fread(&inbuf,sizeof(float),1,fftstream);
-  if(ret>0){    
-
-    //shift buffer
-    for(int r=rows-1;r>0;r--){	
-      for(int p=0;p<points;p++){	
-        buf[p][r]=buf[p][r-1];
-      }
-    }
-
-    buf[0+points/2][0]=inbuf[0];    //use the read value
-
-    //Read in float values, shift centre and store in buffer 1st 'row'
-    for(int p=1;p<points;p++){	
-    fread(&inbuf,sizeof(float),1,fftstream);
-      if(p<points/2){
-        buf[p+points/2][0]=inbuf[0];
-      }else{
-        buf[p-points/2][0]=inbuf[0];
-      }
-    }
-
-    //RF level adjustment
-
-    int baselevel=FFTRef-50;
-    float scaling = 255.0/(float)(FFTRef-baselevel);
-
-    //draw waterfall
-    for(int r=0;r<rows;r++){	
-      for(int p=0;p<points;p++){	
-        //limit values displayed to range specified
-        if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
-        if (buf[p][r]>FFTRef){buf[p][r]=FFTRef;}
-
-        //scale to 0-255
-        level = (buf[p][r]-baselevel)*scaling;   
-        setPixel(p+140,206+r,level,level,level);
-      }
-    }
-
-    //clear spectrum area
-    for(int r=0;r<spectrum_rows+1;r++){	
-      for(int p=0;p<points;p++){	 
-        setPixel(p+140,186-r,0,0,0);
-      }
-    }
-
-    //draw spectrum line
-    
-    scaling = spectrum_rows/(float)(FFTRef-baselevel);
-    for(int p=0;p<points-1;p++){	
-        //limit values displayed to range specified
-        if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
-        if (buf[p][0]>FFTRef){buf[p][0]=FFTRef;}
-
-        //scale to display height
-        level = (buf[p][0]-baselevel)*scaling;   
-        level2 = (buf[p+1][0]-baselevel)*scaling;
-        drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
-        if(p==points/2){
-          drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
-        }
-      }
-  }
+  int ret;
+ 
+	if(((ptt || ptts) ==0) || (abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001 ) )    //if we are receiving or transmitting with an offset (duplex) then show the waterfall)
+	{  
+		  //check if data avilable to read
+		  ret = fread(&inbuf,sizeof(float),1,fftstream);
+		  if(ret>0){    
+		
+		    //shift buffer
+		    for(int r=rows-1;r>0;r--){	
+		      for(int p=0;p<points;p++){	
+		        buf[p][r]=buf[p][r-1];
+		      }
+		    }
+		
+		    buf[0+points/2][0]=inbuf[0];    //use the read value
+		
+		    //Read in float values, shift centre and store in buffer 1st 'row'
+		    for(int p=1;p<points;p++){	
+		    fread(&inbuf,sizeof(float),1,fftstream);
+		      if(p<points/2){
+		        buf[p+points/2][0]=inbuf[0];
+		      }else{
+		        buf[p-points/2][0]=inbuf[0];
+		      }
+		    }
+		
+		    //RF level adjustment
+		
+		    int baselevel=FFTRef-50;
+		    float scaling = 255.0/(float)(FFTRef-baselevel);
+		
+		    //draw waterfall
+		    for(int r=0;r<rows;r++){	
+		      for(int p=0;p<points;p++){	
+		        //limit values displayed to range specified
+		        if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
+		        if (buf[p][r]>FFTRef){buf[p][r]=FFTRef;}
+		
+		        //scale to 0-255
+		        level = (buf[p][r]-baselevel)*scaling;   
+		        setPixel(p+140,206+r,level,level,level);
+		      }
+		    }
+		
+		    //clear spectrum area
+		    for(int r=0;r<spectrum_rows+1;r++){	
+		      for(int p=0;p<points;p++){	 
+		        setPixel(p+140,186-r,0,0,0);
+		      }
+		    }
+		
+		    //draw spectrum line
+		    
+		    scaling = spectrum_rows/(float)(FFTRef-baselevel);
+		    for(int p=0;p<points-1;p++){	
+		        //limit values displayed to range specified
+		        if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
+		        if (buf[p][0]>FFTRef){buf[p][0]=FFTRef;}
+		
+		        //scale to display height
+		        level = (buf[p][0]-baselevel)*scaling;   
+		        level2 = (buf[p+1][0]-baselevel)*scaling;
+		        drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
+		        if(p==points/2){
+		          drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
+		        }
+		      }
+		  }
+	 }
+	 else
+	 {
+	  ret = fread(&inbuf,sizeof(float),1,fftstream);
+		if(ret>0)
+		{
+		for(int p=1;p<points;p++)
+			{	
+			fread(&inbuf,sizeof(float),1,fftstream); 						//during transmission read and throw away the FFT samples. (FFT is unreliable when transmitting))
+			}
+		}   
+	 
+	 }	  
 }
 
 void setFFTRef(int ref)
@@ -787,7 +803,11 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
           setTx(1); 
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(255,0,0);
-          displayButton("DOTS");        
+          displayButton("DOTS");  
+					ptts=1;
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(255,0,0);
+          displayButton("PTT");       
         }
       else
         {
@@ -797,7 +817,11 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
           setMode(mode);
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(0,255,0);
-          displayButton("DOTS");        
+          displayButton("DOTS");  
+					ptts=0;
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(0,255,0);
+          displayButton("PTT");       
         }
       return;
       }
