@@ -109,8 +109,7 @@ class SSB_TRX(gr.top_block):
         	max_dev=5e3,
           )
         self.analog_const_source_x_0 = analog.sig_source_f(0, analog.GR_CONST_WAVE, 0, 0, 0)
-        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))  
-        self.connect((self.logpwrfft_x_0, 0), (self.blocks_file_sink_0, 0)) 
+        
 
 
         ##################################################
@@ -150,6 +149,8 @@ class SSB_TRX(gr.top_block):
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.band_pass_filter_0, 0))
         self.connect((self.pluto_source_0, 0), (self.freq_xlating_fir_filter_xxx_0, 0))
         self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_multiply_xx_1, 0))
+        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))  
+        self.connect((self.logpwrfft_x_0, 0), (self.blocks_file_sink_0, 0)) 
 
     def get_BaseFreq(self):
         return self.BaseFreq
@@ -157,7 +158,6 @@ class SSB_TRX(gr.top_block):
     def set_BaseFreq(self, BaseFreq):
         self.BaseFreq = BaseFreq
         self.set_TxLO(self.BaseFreq-10000)
-        self.pluto_source_0.set_params(self.BaseFreq, 529200, 2000000, True, True, True, "slow_attack", 64.0, '', True)
 
     def get_USB(self):
         return self.USB
@@ -179,7 +179,7 @@ class SSB_TRX(gr.top_block):
 
     def set_TxLO(self, TxLO):
         self.TxLO = TxLO
-        self.pluto_sink_0.set_params(self.TxLO, 529200, 2000000, 0, '', True)
+
 
     def get_SQL(self):
         return self.SQL
