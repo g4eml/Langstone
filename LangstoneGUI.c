@@ -31,7 +31,9 @@ int buttonTouched(int bx,int by);
 void setKey(int k);
 void displayMenu(void);
 void displaySetting(int se);
-void changeSettings(void);
+void changeSetting(void);
+void startSettings(void);
+void exitSettings(void);
 void processGPIO(void);
 void initGPIO(void);
 int readConfig(void);
@@ -60,7 +62,8 @@ char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
 
 #define numSettings 6
 int settingNo=0;
-char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","Ref Lvl = "};
+int settingsMode=0;
+char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","FFT Ref = "};
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -540,7 +543,9 @@ gotoXY(funcButtonsX,funcButtonsY);
 
 void processMouse(int mbut)
 {
-  if((mbut==128) & ((ptt|ptts)==0))        //scroll whell turned (only allowed when in Rx)
+  if(mbut==128)       //scroll whell turned 
+    {
+    if(settingsMode==0)
     {
       freq=freq+(mouseScroll*freqInc);
       mouseScroll=0;
@@ -548,6 +553,13 @@ void processMouse(int mbut)
       if(freq > maxFreq) freq=maxFreq;
       setFreq(freq);
       return;      
+		}
+		else
+		{
+			changeSetting();
+			return;
+		}
+
     }
     
   if(mbut==1+128)      //Left Mouse Button down
@@ -678,7 +690,9 @@ if(buttonTouched(sqlButtonsX,sqlButtonsY+buttonSpaceY)) //sql-
 //Function Buttons
 
 
-if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND
+if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
+    {
+    if(settingsMode==0)
     {
       bandFreq[band]=freq;
       band=band+1;
@@ -688,39 +702,85 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND
       bbits=bandBits[band];
       setBandBits(bbits);
       writeConfig();					//save all settings when changing band. 
-      return;         
+      return;
+		}
+		else
+		{
+			exitSettings();
+		  return; 
+		}
+      
+        
     }      
-if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE
+if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE or Blank
     {
+     if(settingsMode==0)
+     	{
       mode=mode+1;
       if(mode==nummode) mode=0;
       setMode(mode);
       return;
+      }
+      else
+      {
+      return;
+			}
     }
       
-if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 
+if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or NEXT
     {
+     if(settingsMode==0)
+     	{
       return;
+      }
+      else
+      {
+      settingNo=settingNo+1;
+      if(settingNo==numSettings) settingNo=0;
+      displaySetting(settingNo);
+      return;
+			}
     }
       
-if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button=SET
+if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or Blank
     {
-      changeSettings();
+     if(settingsMode==0)
+     	{
+     	startSettings();
       return;
+      }
+      else
+      {
+      return;
+			}
     }
        
-if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)
+if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or PREV
     {
-    if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001)
-      {
-      if(moni==1) setMoni(0); else setMoni(1);
+    if(settingsMode==0)
+     	{
+     	if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001)
+        {
+        if(moni==1) setMoni(0); else setMoni(1);
+        }      
       return;
-      }      
+      }
+      else
+      {
+      settingNo=settingNo-1;
+      if(settingNo<0) settingNo=numSettings-1;
+      displaySetting(settingNo);
+      return;
+			}
+			
+ 
     }      
 
-if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS 
+if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Blank
     {
-      if(sendDots==0)
+    if(settingsMode==0)
+     	{
+     	if(sendDots==0)
         {
           sendDots=1;
           setMode(2);
@@ -740,27 +800,46 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
           displayButton("DOTS");        
         }
       return;
-    } 
-		     
-if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT
-    {
-      if(ptts==0)
-      {
-        ptts=1;
-        setTx(ptt|ptts);
-        gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-        setForeColour(255,0,0);
-        displayButton("PTT"); 
       }
       else
       {
-        ptts=0;
-        setTx(ptt|ptts);
-        gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-        setForeColour(0,255,0);
-        displayButton("PTT"); 
-      }
       return;
+			}
+    } 
+		     
+if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  or OFF
+    {
+    if(settingsMode==0)
+     	{
+     	if(ptts==0)
+        {
+          ptts=1;
+          setTx(ptt|ptts);
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(255,0,0);
+          displayButton("PTT"); 
+        }
+      else
+        {
+          ptts=0;
+          setTx(ptt|ptts);
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(0,255,0);
+          displayButton("PTT"); 
+        }
+      return;
+      }
+      else
+      {
+      sendFifo("Q");       //kill the SDR
+      writeConfig();
+      system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
+      sleep(5);
+      system("sudo poweroff");                          
+      return;
+			}
+			
+
     }      
 
 
@@ -1080,9 +1159,9 @@ else
 		}		
 }
 
-void changeSettings(void)
-{
-int setexit;
+
+void startSettings(void)
+{ 
   gotoXY(funcButtonsX,funcButtonsY);
   setForeColour(0,255,0);
   displayButton("MENU");
@@ -1093,135 +1172,80 @@ int setexit;
   displayButton(" ");
   setForeColour(255,0,0);
   displayButton("OFF");
-
-  setexit=0;
   mouseScroll=0;
-  displaySetting(settingNo);  
-  while(setexit==0)
-    {
-       if(touchPresent)
-         {
-           if(getTouch()==1)
-            {
-             if(buttonTouched(funcButtonsX,funcButtonsY))  // MENU 
-                {
-                  setexit=1;
-                }
-            if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // NEXT
-                {
-                  settingNo=settingNo+1;
-                  if(settingNo==numSettings) settingNo=0;
-                  displaySetting(settingNo);
-                } 
-            if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))  // PREV
-                {
-                  settingNo=settingNo-1;
-                  if(settingNo<0) settingNo=numSettings-1;
-                  displaySetting(settingNo);
-                } 
+  displaySetting(settingNo); 
+  settingsMode=1;
+}
 
-            if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Power OFF
-                {
-                  sendFifo("Q");       //kill the SDR
-                  writeConfig();
-                  system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
-                  sleep(5);
-//                  exit(0);
-                  system("sudo poweroff");                          
-                }
-            }
-          }
-          
-        if(mousePresent)
-          {
-            int but=getMouse();
-            if(but==128)                //scroll wheel
-              {
-                if(settingNo==0)        //SSB Mic Gain
-                  {
-                  SSBMic=SSBMic+mouseScroll;
-                  mouseScroll=0;
-                  if(SSBMic<0) SSBMic=0;
-                  if(SSBMic>maxSSBMic) SSBMic=maxSSBMic;
-                  setSSBMic(SSBMic);
-                  displaySetting(settingNo);
-                  }
-                if(settingNo==1)        // FM Mic Gain
-                  {
-                  FMMic=FMMic+mouseScroll;
-                  mouseScroll=0;
-                  if(FMMic<0) FMMic=0;
-                  if(FMMic>maxFMMic) FMMic=maxFMMic;
-                  setFMMic(FMMic);
-                  displaySetting(settingNo);
-                  }
-                if(settingNo==2)        //Transverter Rx Offset 
-                  {
-                    bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
-                    displaySetting(settingNo);
-                    freq=freq+mouseScroll*freqInc;
-                    if(freq>maxFreq) freq=maxFreq;
-                    if(freq<minFreq) freq=minFreq;
-                    mouseScroll=0;
-                    setFreq(freq);
-                  } 
-                if(settingNo==3)        //Transverter Tx Offset
-                  {
-                    bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
-                    displaySetting(settingNo);
-                    mouseScroll=0;
-                    setFreq(freq);
-                  }  
-				if(settingNo==4)        // Band Bits
-                  {
-                  bandBits[band]=bandBits[band]+mouseScroll;
-                  mouseScroll=0;
-                  if(bandBits[band]<0) bandBits[band]=0;
-                  if(bandBits[band]>15) bandBits[band]=15;
-                  bbits=bandBits[band];
-                  setBandBits(bbits);
-                  displaySetting(settingNo);  
-				}    
-                if(settingNo==5)        // FFT Ref Level
-                {
-                  FFTRef=FFTRef+mouseScroll;
-                  mouseScroll=0;
-                  if(FFTRef<-50) FFTRef=-50;
-                  if(FFTRef>0) FFTRef=0;
-                  setFFTRef(FFTRef);
-                  displaySetting(settingNo);  
-				}                      
-              }
-              
-                if(but==1+128)      //Left Mouse Button down
-                  {
-                    tuneDigit=tuneDigit-1;
-                    if(tuneDigit<0) tuneDigit=0;
-                    if(tuneDigit==5) tuneDigit=4;
-                    if(tuneDigit==9) tuneDigit=8;
-                    setFreqInc();
-                    setFreq(freq);     
-                  }
-    
-                if(but==2+128)      //Right Mouse Button down
-                  {
-                    tuneDigit=tuneDigit+1;
-                    if(tuneDigit > maxTuneDigit) tuneDigit=maxTuneDigit;
-                    if(tuneDigit==5) tuneDigit=6;
-                    if(tuneDigit==9) tuneDigit=10;
-                    setFreqInc();
-                    setFreq(freq);       
-                  }           
-          }
-        
-      }   
-
+void exitSettings(void)
+{
   gotoXY(settingX,settingY);
   setForeColour(255,255,255);
   displayStr("                                ");
   writeConfig();
   displayMenu();
+  settingsMode=0;
 }
+
+void changeSetting(void)
+{
+	if(settingNo==0)        //SSB Mic Gain
+		  {
+		  SSBMic=SSBMic+mouseScroll;
+		  mouseScroll=0;
+		  if(SSBMic<0) SSBMic=0;
+		  if(SSBMic>maxSSBMic) SSBMic=maxSSBMic;
+		  setSSBMic(SSBMic);
+		  displaySetting(settingNo);
+		  }
+   if(settingNo==1)        // FM Mic Gain
+		  {
+		  FMMic=FMMic+mouseScroll;
+		  mouseScroll=0;
+		  if(FMMic<0) FMMic=0;
+		  if(FMMic>maxFMMic) FMMic=maxFMMic;
+		  setFMMic(FMMic);
+		  displaySetting(settingNo);
+		  }
+	 if(settingNo==2)        //Transverter Rx Offset 
+		  {
+		    bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
+		    displaySetting(settingNo);
+		    freq=freq+mouseScroll*freqInc;
+		    if(freq>maxFreq) freq=maxFreq;
+		    if(freq<minFreq) freq=minFreq;
+		    mouseScroll=0;
+		    setFreq(freq);
+		  } 
+	 if(settingNo==3)        //Transverter Tx Offset
+		  {
+		    bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
+		    displaySetting(settingNo);
+		    mouseScroll=0;
+		    setFreq(freq);
+		  }  
+	 if(settingNo==4)        // Band Bits
+		  {
+		  bandBits[band]=bandBits[band]+mouseScroll;
+		  mouseScroll=0;
+		  if(bandBits[band]<0) bandBits[band]=0;
+		  if(bandBits[band]>15) bandBits[band]=15;
+		  bbits=bandBits[band];
+		  setBandBits(bbits);
+		  displaySetting(settingNo);  
+		  }    
+	 if(settingNo==5)        // FFT Ref Level
+		  {
+		  FFTRef=FFTRef+mouseScroll;
+		  mouseScroll=0;
+		  if(FFTRef<-50) FFTRef=-50;
+		  if(FFTRef>0) FFTRef=0;
+		  setFFTRef(FFTRef);
+		  displaySetting(settingNo);  
+		  }                      		          
+}
+
+               
 
 void displaySetting(int se)
 {
