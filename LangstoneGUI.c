@@ -1,5 +1,7 @@
+
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <iio.h>
 #include <unistd.h>
 #include <wiringPi.h>
@@ -24,18 +26,23 @@ void initGUI();
 void sendFifo(char * s);
 void initFifo();
 void setPlutoFreq(long long rxfreq, long long txfreq);
+void PlutoTxEnable(int txon);
+void PlutoRxEnable(int rxon);
 void detectHw();
 int buttonTouched(int bx,int by);
 void setKey(int k);
 void displayMenu(void);
 void displaySetting(int se);
-void changeSettings(void);
+void changeSetting(void);
+void startSettings(void);
+void exitSettings(void);
 void processGPIO(void);
 void initGPIO(void);
 int readConfig(void);
 int writeConfig(void);
+int duplex(void);
 void setMoni(int m);
-
+void setFFTRef(int ref);
 
 double freq;
 double freqInc=0.001;
@@ -56,9 +63,10 @@ int bbits=0;
 int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
 
-#define numSettings 5
+#define numSettings 6
 int settingNo=0;
-char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = "};
+int settingsMode=0;
+char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","FFT Ref = "};
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -98,7 +106,7 @@ int fifofd;
 int sendDots=0;
 int dotCount=0;
 
-double lastLOhz;
+long long lastLOhz;
 
 int lastKey=1;
 
@@ -117,8 +125,8 @@ int FMMic=50;
 int tuneDigit=8;
 #define maxTuneDigit 11
 
-#define TXDELAY 100000       //us delay between setting Tx output bit and sending tx command to SDR
-#define RXDELAY 100000       //us delay between sending rx command to SDR and setting Tx output bit low. 
+#define TXDELAY 10000      //100ms delay between setting Tx output bit and sending tx command to SDR
+#define RXDELAY 10000       //100ms delay between sending rx command to SDR and setting Tx output bit low. 
 
 char mousePath[20];
 char touchPath[20];
@@ -134,17 +142,43 @@ int plutoPresent;
 #define bandPin3 7    	//Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
 
+
+
+//robs
+void waterfall(void);
+void init_fft_Fifo();
+float inbuf[2];
+FILE *fftstream;
+float buf[512][150];
+int points=512;
+int rows=150;
+int FFTRef = -30;
+int spectrum_rows=50;
+
+
 int main(int argc, char* argv[])
 {
+
+clock_t lastClock;
+
+  lastClock=0;
   readConfig();
   detectHw();
   initFifo();
+  init_fft_Fifo();
   initScreen();
   initGPIO();
   if(touchPresent) initTouch(touchPath);
   if(mousePresent) initMouse(mousePath);
   initGUI();  
+
   
+  fftstream=fopen("/tmp/langstonefft","r");
+  fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
+
+	delay(500);
+	lastLOhz=0;
+	setFreq(freq);      //not sure why this is needed but first setfreq doesnt seem to register. suspect might be something to do with pipe delays.
   
   while(1)
   {
@@ -177,22 +211,112 @@ int main(int argc, char* argv[])
           {
             setKey(1);
           }
-        if(dotCount==125)
+        if(dotCount==12)
           {
             setKey(0);
           }
-        if(dotCount==250)
+        if(dotCount==25)
           {
           dotCount=0;
           }
       } 
- 
-    usleep(1000);    //delay 1 ms giving approximately 1000 interations per second. 
+    waterfall();
+    while(clock() < (lastClock + CLOCKS_PER_SEC/100));        //delay until the next iteration at 100 per second
+    lastClock=clock();
   }
 }
 
 
+void waterfall(){
+  int level,level2;
+  int ret;
+ 
+	if(((ptt || ptts) ==0) || (duplex()==1) )    //if we are receiving or transmitting with an offset (duplex) then show the waterfall)
+	{  
+		  //check if data avilable to read
+		  ret = fread(&inbuf,sizeof(float),1,fftstream);
+		  if(ret>0){    
+		
+		    //shift buffer
+		    for(int r=rows-1;r>0;r--){	
+		      for(int p=0;p<points;p++){	
+		        buf[p][r]=buf[p][r-1];
+		      }
+		    }
+		
+		    buf[0+points/2][0]=inbuf[0];    //use the read value
+		
+		    //Read in float values, shift centre and store in buffer 1st 'row'
+		    for(int p=1;p<points;p++){	
+		    fread(&inbuf,sizeof(float),1,fftstream);
+		      if(p<points/2){
+		        buf[p+points/2][0]=inbuf[0];
+		      }else{
+		        buf[p-points/2][0]=inbuf[0];
+		      }
+		    }
+		
+		    //RF level adjustment
+		
+		    int baselevel=FFTRef-50;
+		    float scaling = 255.0/(float)(FFTRef-baselevel);
+		
+		    //draw waterfall
+		    for(int r=0;r<rows;r++){	
+		      for(int p=0;p<points;p++){	
+		        //limit values displayed to range specified
+		        if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
+		        if (buf[p][r]>FFTRef){buf[p][r]=FFTRef;}
+		
+		        //scale to 0-255
+		        level = (buf[p][r]-baselevel)*scaling;   
+		        setPixel(p+140,206+r,level,level,level);
+		      }
+		    }
+		
+		    //clear spectrum area
+		    for(int r=0;r<spectrum_rows+1;r++){	
+		      for(int p=0;p<points;p++){	 
+		        setPixel(p+140,186-r,0,0,0);
+		      }
+		    }
+		
+		    //draw spectrum line
+		    
+		    scaling = spectrum_rows/(float)(FFTRef-baselevel);
+		    for(int p=0;p<points-1;p++){	
+		        //limit values displayed to range specified
+		        if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
+		        if (buf[p][0]>FFTRef){buf[p][0]=FFTRef;}
+		
+		        //scale to display height
+		        level = (buf[p][0]-baselevel)*scaling;   
+		        level2 = (buf[p+1][0]-baselevel)*scaling;
+		        drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
+		        if(p==points/2){
+		          drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
+		        }
+		      }
+		  }
+	 }
+	 else
+	 {
+	  ret = fread(&inbuf,sizeof(float),1,fftstream);
+		if(ret>0)
+		{
+		for(int p=1;p<points;p++)
+			{	
+			fread(&inbuf,sizeof(float),1,fftstream); 						//during transmission read and throw away the FFT samples. (FFT is unreliable when transmitting))
+			}
+		}   
+	 
+	 }	  
+}
 
+void setFFTRef(int ref)
+{
+  FFTRef=ref;
+}
 
 void detectHw()
 {
@@ -246,23 +370,71 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 	struct iio_device *phy;
    if(plutoPresent)
     {
-	ctx = iio_create_context_from_uri("ip:192.168.2.1");
-	if(ctx==NULL)
-	{
-	  plutoPresent=0;
-	  gotoXY(220,120);
-	  setForeColour(255,0,0);
-	  textSize=2;
-	  displayStr("PLUTO NOT DETECTED");
-	}
-	else
-	{ 
-	phy = iio_context_find_device(ctx, "ad9361-phy"); 
-	iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
-  iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq 
-	iio_context_destroy(ctx);
-	}
-   }
+			ctx = iio_create_context_from_uri("ip:192.168.2.1");
+			if(ctx==NULL)
+			{
+			  plutoPresent=0;
+			  gotoXY(220,120);
+			  setForeColour(255,0,0);
+			  textSize=2;
+			  displayStr("PLUTO NOT DETECTED");
+			}
+			else
+			{ 
+			phy = iio_context_find_device(ctx, "ad9361-phy"); 
+			iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
+		  iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq
+			}
+			iio_context_destroy(ctx);	
+	  }
+	
+}
+
+
+void PlutoTxEnable(int txon)
+{
+	struct iio_context *ctx;
+	struct iio_device *phy;
+	
+  if(plutoPresent)
+    {
+      ctx = iio_create_context_from_uri("ip:192.168.2.1");
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+    	if(txon==0)
+    	  {
+    	  iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", true); //turn off TX LO
+				}
+			else
+				{
+				iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", false); //turn on TX LO
+				}
+			
+    	iio_context_destroy(ctx);
+		}
+
+}
+
+void PlutoRxEnable(int rxon)
+{
+	struct iio_context *ctx;
+	struct iio_device *phy;
+	
+  if(plutoPresent)
+    {
+      ctx = iio_create_context_from_uri("ip:192.168.2.1");
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+    	if(rxon==0)
+    	  {
+    	  iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", true); //turn off RX LO
+				}
+			else
+				{
+				iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", false); //turn on RX LO
+				}
+			
+    	iio_context_destroy(ctx);
+		}
+
 }
 
 
@@ -272,6 +444,14 @@ void initFifo()
  if(access("/tmp/langstonein",F_OK)==-1)   //does fifo exist already?
     {
         mkfifo("/tmp/langstonein", 0666);
+    }
+}
+
+void init_fft_Fifo()
+{
+ if(access("/tmp/langstonefft",F_OK)==-1)   //does fifo exist already?
+    {
+        mkfifo("/tmp/langstonefft", 0666);
     }
 }
 
@@ -380,7 +560,6 @@ void initGUI()
  //bottom row of buttons
   displayMenu();
   freq=bandFreq[band];
-  setFreq(freq);
   bbits=bandBits[band];
   setBandBits(bbits);
   setMode(mode); 
@@ -389,6 +568,7 @@ void initGUI()
   setSSBMic(SSBMic);
   setFMMic(FMMic);
   setTx(ptt|ptts);
+  setFreqInc();
   
   if(mode==4) 
   	{
@@ -398,6 +578,14 @@ void initGUI()
 		{
 		sqlButtons(0);
 		}
+
+    //clear waterfall buffer.
+        //shift buffer
+    for(int r=0;r<rows;r++){	
+      for(int p=0;p<points;p++){	
+        buf[p][r]=-100;
+      }
+    }
 
 }
 
@@ -422,7 +610,9 @@ gotoXY(funcButtonsX,funcButtonsY);
 
 void processMouse(int mbut)
 {
-  if((mbut==128) & ((ptt|ptts)==0))        //scroll whell turned (only allowed when in Rx)
+  if(mbut==128)       //scroll whell turned 
+    {
+    if(settingsMode==0)
     {
       freq=freq+(mouseScroll*freqInc);
       mouseScroll=0;
@@ -430,6 +620,13 @@ void processMouse(int mbut)
       if(freq > maxFreq) freq=maxFreq;
       setFreq(freq);
       return;      
+		}
+		else
+		{
+			changeSetting();
+			return;
+		}
+
     }
     
   if(mbut==1+128)      //Left Mouse Button down
@@ -560,7 +757,9 @@ if(buttonTouched(sqlButtonsX,sqlButtonsY+buttonSpaceY)) //sql-
 //Function Buttons
 
 
-if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND
+if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
+    {
+    if(settingsMode==0)
     {
       bandFreq[band]=freq;
       band=band+1;
@@ -570,79 +769,152 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND
       bbits=bandBits[band];
       setBandBits(bbits);
       writeConfig();					//save all settings when changing band. 
-      return;         
+      return;
+		}
+		else
+		{
+			exitSettings();
+		  return; 
+		}
+      
+        
     }      
-if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE
+if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE or Blank
     {
+     if(settingsMode==0)
+     	{
       mode=mode+1;
       if(mode==nummode) mode=0;
       setMode(mode);
       return;
+      }
+      else
+      {
+      return;
+			}
     }
       
-if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 
+if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or NEXT
     {
+     if(settingsMode==0)
+     	{
       return;
+      }
+      else
+      {
+      settingNo=settingNo+1;
+      if(settingNo==numSettings) settingNo=0;
+      displaySetting(settingNo);
+      return;
+			}
     }
       
-if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button=SET
+if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or Blank
     {
-      changeSettings();
+     if(settingsMode==0)
+     	{
+     	startSettings();
       return;
+      }
+      else
+      {
+      return;
+			}
     }
        
-if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)
+if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or PREV
     {
-    if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001)
-      {
-      if(moni==1) setMoni(0); else setMoni(1);
+    if(settingsMode==0)
+     	{
+     	if(duplex()==1)
+        {
+        if(moni==1) setMoni(0); else setMoni(1);
+        }      
       return;
-      }      
+      }
+      else
+      {
+      settingNo=settingNo-1;
+      if(settingNo<0) settingNo=numSettings-1;
+      displaySetting(settingNo);
+      return;
+			}
+			
+ 
     }      
 
-if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS 
+if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Blank
     {
-      if(sendDots==0)
+    if(settingsMode==0)
+     	{
+     	if(sendDots==0)
         {
           sendDots=1;
           setMode(2);
           setTx(1); 
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(255,0,0);
-          displayButton("DOTS");        
+          displayButton("DOTS");  
+					ptts=1;
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(255,0,0);
+          displayButton("PTT");       
         }
       else
         {
           sendDots=0;
-          setTx(ptt|ptts);
+          setTx(0);
           setKey(0);
           setMode(mode);
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(0,255,0);
-          displayButton("DOTS");        
+          displayButton("DOTS");  
+					ptts=0;
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(0,255,0);
+          displayButton("PTT");       
         }
       return;
-    } 
-		     
-if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT
-    {
-      if(ptts==0)
-      {
-        ptts=1;
-        setTx(ptt|ptts);
-        gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-        setForeColour(255,0,0);
-        displayButton("PTT"); 
       }
       else
       {
-        ptts=0;
-        setTx(ptt|ptts);
-        gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-        setForeColour(0,255,0);
-        displayButton("PTT"); 
-      }
       return;
+			}
+    } 
+		     
+if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  or OFF
+    {
+    if(settingsMode==0)
+     	{
+     	if(ptts==0)
+        {
+          ptts=1;
+          setTx(ptt|ptts);
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(255,0,0);
+          displayButton("PTT"); 
+        }
+      else
+        {
+          ptts=0;
+          setTx(ptt|ptts);
+          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+          setForeColour(0,255,0);
+          displayButton("PTT"); 
+        }
+      return;
+      }
+      else
+      {
+      sendFifo("Q");       //kill the SDR
+      writeConfig();
+      system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
+      sleep(5);
+      system("sudo poweroff");                          
+      return;
+			}
+			
+
     }      
 
 
@@ -794,6 +1066,11 @@ void setTx(int pt)
 	  {
 	  	digitalWrite(txPin,HIGH);
 	  	usleep(TXDELAY);
+	  	PlutoTxEnable(1);
+	  	if (duplex()==0)
+			{
+			PlutoRxEnable(0);
+			} 
 		  sendFifo("T");
 		  setForeColour(255,0,0);
 		  displayStr("Tx");  
@@ -801,6 +1078,8 @@ void setTx(int pt)
 	else
 	  {
 		  sendFifo("R");
+		  PlutoTxEnable(0);
+		  PlutoRxEnable(1);
 		  setForeColour(0,255,0);
 		  displayStr("Rx");
 		  usleep(RXDELAY);
@@ -846,7 +1125,8 @@ void setHwFreq(double fr)
 	sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
 	sendFifo(offsetStr);
 	sprintf(offsetStr,"o%d",txoffsethz);   //send the Tx offset tuning value 
-	usleep(1000);
+  usleep(1000);
+
 	sendFifo(offsetStr);  
 }
 
@@ -901,7 +1181,7 @@ void setFreq(double fr)
     {
      displayStr("     "); 
     }
-  else if(abs(bandTxOffset[band]-bandRxOffset[band]) < 0.000001)
+  else if(duplex()==0)
     {
     displayStr("TXVTR");
     }
@@ -912,7 +1192,7 @@ void setFreq(double fr)
  
    gotoXY(funcButtonsX+buttonSpaceX*4,funcButtonsY);
    setForeColour(0,255,0);
-   if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001)
+   if(duplex()==1)
     {
      displayButton("MONI");
     }  
@@ -921,6 +1201,18 @@ void setFreq(double fr)
      displayButton("    ");
     }
      
+}
+
+int duplex(void)
+{
+if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001 )
+	{
+	return 1;
+	}
+else
+	{
+	return 0;
+	}
 }
 
 void setBandBits(int b)
@@ -962,9 +1254,9 @@ else
 		}		
 }
 
-void changeSettings(void)
-{
-int setexit;
+
+void startSettings(void)
+{ 
   gotoXY(funcButtonsX,funcButtonsY);
   setForeColour(0,255,0);
   displayButton("MENU");
@@ -975,126 +1267,80 @@ int setexit;
   displayButton(" ");
   setForeColour(255,0,0);
   displayButton("OFF");
-
-  setexit=0;
   mouseScroll=0;
-  displaySetting(settingNo);  
-  while(setexit==0)
-    {
-       if(touchPresent)
-         {
-           if(getTouch()==1)
-            {
-             if(buttonTouched(funcButtonsX,funcButtonsY))  // MENU 
-                {
-                  setexit=1;
-                }
-            if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // NEXT
-                {
-                  settingNo=settingNo+1;
-                  if(settingNo==numSettings) settingNo=0;
-                  displaySetting(settingNo);
-                } 
-            if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))  // PREV
-                {
-                  settingNo=settingNo-1;
-                  if(settingNo<0) settingNo=numSettings-1;
-                  displaySetting(settingNo);
-                } 
+  displaySetting(settingNo); 
+  settingsMode=1;
+}
 
-            if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Power OFF
-                {
-                  sendFifo("Q");       //kill the SDR
-                  writeConfig();
-                  system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
-                  sleep(5);
-//                  exit(0);
-                  system("sudo poweroff");                          
-                }
-            }
-          }
-          
-        if(mousePresent)
-          {
-            int but=getMouse();
-            if(but==128)                //scroll wheel
-              {
-                if(settingNo==0)        //SSB Mic Gain
-                  {
-                  SSBMic=SSBMic+mouseScroll;
-                  mouseScroll=0;
-                  if(SSBMic<0) SSBMic=0;
-                  if(SSBMic>maxSSBMic) SSBMic=maxSSBMic;
-                  setSSBMic(SSBMic);
-                  displaySetting(settingNo);
-                  }
-                if(settingNo==1)        // FM Mic Gain
-                  {
-                  FMMic=FMMic+mouseScroll;
-                  mouseScroll=0;
-                  if(FMMic<0) FMMic=0;
-                  if(FMMic>maxFMMic) FMMic=maxFMMic;
-                  setFMMic(FMMic);
-                  displaySetting(settingNo);
-                  }
-                if(settingNo==2)        //Transverter Rx Offset 
-                  {
-                    bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
-                    displaySetting(settingNo);
-                    freq=freq+mouseScroll*freqInc;
-                    if(freq>maxFreq) freq=maxFreq;
-                    if(freq<minFreq) freq=minFreq;
-                    mouseScroll=0;
-                    setFreq(freq);
-                  } 
-                if(settingNo==3)        //Transverter Tx Offset
-                  {
-                    bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
-                    displaySetting(settingNo);
-                    mouseScroll=0;
-                    setFreq(freq);
-                  }  
-								if(settingNo==4)        // Band Bits
-                  {
-                  bandBits[band]=bandBits[band]+mouseScroll;
-                  mouseScroll=0;
-                  if(bandBits[band]<0) bandBits[band]=0;
-                  if(bandBits[band]>15) bandBits[band]=15;
-                  bbits=bandBits[band];
-                  setBandBits(bbits);
-                  displaySetting(settingNo);  
-									}                         
-              }
-              
-                if(but==1+128)      //Left Mouse Button down
-                  {
-                    tuneDigit=tuneDigit-1;
-                    if(tuneDigit<0) tuneDigit=0;
-                    if(tuneDigit==5) tuneDigit=4;
-                    if(tuneDigit==9) tuneDigit=8;
-                    setFreqInc();
-                    setFreq(freq);     
-                  }
-    
-                if(but==2+128)      //Right Mouse Button down
-                  {
-                    tuneDigit=tuneDigit+1;
-                    if(tuneDigit > maxTuneDigit) tuneDigit=maxTuneDigit;
-                    if(tuneDigit==5) tuneDigit=6;
-                    if(tuneDigit==9) tuneDigit=10;
-                    setFreqInc();
-                    setFreq(freq);       
-                  }           
-          }
-        
-      }   
-
+void exitSettings(void)
+{
   gotoXY(settingX,settingY);
   setForeColour(255,255,255);
   displayStr("                                ");
   writeConfig();
   displayMenu();
+  settingsMode=0;
 }
+
+void changeSetting(void)
+{
+	if(settingNo==0)        //SSB Mic Gain
+		  {
+		  SSBMic=SSBMic+mouseScroll;
+		  mouseScroll=0;
+		  if(SSBMic<0) SSBMic=0;
+		  if(SSBMic>maxSSBMic) SSBMic=maxSSBMic;
+		  setSSBMic(SSBMic);
+		  displaySetting(settingNo);
+		  }
+   if(settingNo==1)        // FM Mic Gain
+		  {
+		  FMMic=FMMic+mouseScroll;
+		  mouseScroll=0;
+		  if(FMMic<0) FMMic=0;
+		  if(FMMic>maxFMMic) FMMic=maxFMMic;
+		  setFMMic(FMMic);
+		  displaySetting(settingNo);
+		  }
+	 if(settingNo==2)        //Transverter Rx Offset 
+		  {
+		    bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
+		    displaySetting(settingNo);
+		    freq=freq+mouseScroll*freqInc;
+		    if(freq>maxFreq) freq=maxFreq;
+		    if(freq<minFreq) freq=minFreq;
+		    mouseScroll=0;
+		    setFreq(freq);
+		  } 
+	 if(settingNo==3)        //Transverter Tx Offset
+		  {
+		    bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
+		    displaySetting(settingNo);
+		    mouseScroll=0;
+		    setFreq(freq);
+		  }  
+	 if(settingNo==4)        // Band Bits
+		  {
+		  bandBits[band]=bandBits[band]+mouseScroll;
+		  mouseScroll=0;
+		  if(bandBits[band]<0) bandBits[band]=0;
+		  if(bandBits[band]>15) bandBits[band]=15;
+		  bbits=bandBits[band];
+		  setBandBits(bbits);
+		  displaySetting(settingNo);  
+		  }    
+	 if(settingNo==5)        // FFT Ref Level
+		  {
+		  FFTRef=FFTRef+mouseScroll;
+		  mouseScroll=0;
+		  if(FFTRef<-50) FFTRef=-50;
+		  if(FFTRef>0) FFTRef=0;
+		  setFFTRef(FFTRef);
+		  displaySetting(settingNo);  
+		  }                      		          
+}
+
+               
 
 void displaySetting(int se)
 {
@@ -1145,6 +1391,11 @@ void displaySetting(int se)
 		if(bbits==13)  sprintf(valStr,"1101"); 
 		if(bbits==14)  sprintf(valStr,"1110"); 
 		if(bbits==15)  sprintf(valStr,"1111"); 												  
+  displayStr(valStr);
+  }
+  if(se==5)
+  {
+  sprintf(valStr,"%d",FFTRef);
   displayStr(valStr);
   }
 }
@@ -1212,7 +1463,7 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
 		if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
 		if(strstr(variable,"squelch")) sscanf(value,"%d",&squelch);
-
+    if(strstr(variable,"FFTRef")) sscanf(value,"%d",&FFTRef);
 
 						
 	}
@@ -1285,6 +1536,7 @@ fprintf(conffile,"SSBMic %d\n",SSBMic);
 fprintf(conffile,"FMMic %d\n",FMMic);
 fprintf(conffile,"volume %d\n",volume);
 fprintf(conffile,"squelch %d\n",squelch);
+fprintf(conffile,"FFTRef %d\n",FFTRef);
 
 fclose(conffile);
 return 0;
