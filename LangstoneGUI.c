@@ -26,6 +26,8 @@ void initGUI();
 void sendFifo(char * s);
 void initFifo();
 void setPlutoFreq(long long rxfreq, long long txfreq);
+void PlutoTxEnable(int txon);
+void PlutoRxEnable(int rxon);
 void detectHw();
 int buttonTouched(int bx,int by);
 void setKey(int k);
@@ -38,6 +40,7 @@ void processGPIO(void);
 void initGPIO(void);
 int readConfig(void);
 int writeConfig(void);
+int duplex(void);
 void setMoni(int m);
 void setFFTRef(int ref);
 
@@ -228,7 +231,7 @@ void waterfall(){
   int level,level2;
   int ret;
  
-	if(((ptt || ptts) ==0) || (abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001 ) )    //if we are receiving or transmitting with an offset (duplex) then show the waterfall)
+	if(((ptt || ptts) ==0) || (duplex()==1) )    //if we are receiving or transmitting with an offset (duplex) then show the waterfall)
 	{  
 		  //check if data avilable to read
 		  ret = fread(&inbuf,sizeof(float),1,fftstream);
@@ -367,23 +370,71 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 	struct iio_device *phy;
    if(plutoPresent)
     {
-	ctx = iio_create_context_from_uri("ip:192.168.2.1");
-	if(ctx==NULL)
-	{
-	  plutoPresent=0;
-	  gotoXY(220,120);
-	  setForeColour(255,0,0);
-	  textSize=2;
-	  displayStr("PLUTO NOT DETECTED");
-	}
-	else
-	{ 
-	phy = iio_context_find_device(ctx, "ad9361-phy"); 
-	iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
-  iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq 
-	iio_context_destroy(ctx);	
-	}
-   }
+			ctx = iio_create_context_from_uri("ip:192.168.2.1");
+			if(ctx==NULL)
+			{
+			  plutoPresent=0;
+			  gotoXY(220,120);
+			  setForeColour(255,0,0);
+			  textSize=2;
+			  displayStr("PLUTO NOT DETECTED");
+			}
+			else
+			{ 
+			phy = iio_context_find_device(ctx, "ad9361-phy"); 
+			iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
+		  iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq
+			}
+			iio_context_destroy(ctx);	
+	  }
+	
+}
+
+
+void PlutoTxEnable(int txon)
+{
+	struct iio_context *ctx;
+	struct iio_device *phy;
+	
+  if(plutoPresent)
+    {
+      ctx = iio_create_context_from_uri("ip:192.168.2.1");
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+    	if(txon==0)
+    	  {
+    	  iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", true); //turn off TX LO
+				}
+			else
+				{
+				iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", false); //turn on TX LO
+				}
+			
+    	iio_context_destroy(ctx);
+		}
+
+}
+
+void PlutoRxEnable(int rxon)
+{
+	struct iio_context *ctx;
+	struct iio_device *phy;
+	
+  if(plutoPresent)
+    {
+      ctx = iio_create_context_from_uri("ip:192.168.2.1");
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+    	if(rxon==0)
+    	  {
+    	  iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", true); //turn off RX LO
+				}
+			else
+				{
+				iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", false); //turn on RX LO
+				}
+			
+    	iio_context_destroy(ctx);
+		}
+
 }
 
 
@@ -775,7 +826,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
     {
     if(settingsMode==0)
      	{
-     	if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001)
+     	if(duplex()==1)
         {
         if(moni==1) setMoni(0); else setMoni(1);
         }      
@@ -812,7 +863,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       else
         {
           sendDots=0;
-          setTx(ptt|ptts);
+          setTx(0);
           setKey(0);
           setMode(mode);
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
@@ -1015,6 +1066,11 @@ void setTx(int pt)
 	  {
 	  	digitalWrite(txPin,HIGH);
 	  	usleep(TXDELAY);
+	  	PlutoTxEnable(1);
+	  	if (duplex()==0)
+			{
+			PlutoRxEnable(0);
+			} 
 		  sendFifo("T");
 		  setForeColour(255,0,0);
 		  displayStr("Tx");  
@@ -1022,6 +1078,8 @@ void setTx(int pt)
 	else
 	  {
 		  sendFifo("R");
+		  PlutoTxEnable(0);
+		  PlutoRxEnable(1);
 		  setForeColour(0,255,0);
 		  displayStr("Rx");
 		  usleep(RXDELAY);
@@ -1122,7 +1180,7 @@ void setFreq(double fr)
     {
      displayStr("     "); 
     }
-  else if(abs(bandTxOffset[band]-bandRxOffset[band]) < 0.000001)
+  else if(duplex()==0)
     {
     displayStr("TXVTR");
     }
@@ -1133,7 +1191,7 @@ void setFreq(double fr)
  
    gotoXY(funcButtonsX+buttonSpaceX*4,funcButtonsY);
    setForeColour(0,255,0);
-   if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001)
+   if(duplex()==1)
     {
      displayButton("MONI");
     }  
@@ -1142,6 +1200,18 @@ void setFreq(double fr)
      displayButton("    ");
     }
      
+}
+
+int duplex(void)
+{
+if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001 )
+	{
+	return 1;
+	}
+else
+	{
+	return 0;
+	}
 }
 
 void setBandBits(int b)
