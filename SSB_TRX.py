@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Ssb Trx
-# Generated: Sat May  2 15:34:38 2020
+# Generated: Sat May  2 16:17:24 2020
 ##################################################
 
 from gnuradio import analog
@@ -19,7 +19,6 @@ from gnuradio.filter import firdes
 from optparse import OptionParser
 import os
 import errno
-
 
 class SSB_TRX(gr.top_block):
 
@@ -81,7 +80,7 @@ class SSB_TRX(gr.top_block):
         self.blocks_add_xx_0 = blocks.add_vff(1)
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
         	1, 44100, 200, 3000, 100, firdes.WIN_HAMMING, 6.76))
-        self.band_pass_filter_0_0 = filter.fir_filter_ccf(1, firdes.band_pass(
+        self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 44100, -3000+USB*3300, -300+USB*3300, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 44100, -3000+USB*3300+NCW*CW*250, -300+USB*3300-NCW*CW*1950, 100, firdes.WIN_HAMMING, 6.76))
@@ -148,7 +147,7 @@ class SSB_TRX(gr.top_block):
 
     def set_USB(self, USB):
         self.USB = USB
-        self.band_pass_filter_0_0.set_taps(firdes.band_pass(1, 44100, -3000+self.USB*3300, -300+self.USB*3300, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300, -300+self.USB*3300, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300+self.NCW*self.CW*250, -300+self.USB*3300-self.NCW*self.CW*1950, 100, firdes.WIN_HAMMING, 6.76))
 
     def get_SQL(self):
@@ -283,7 +282,7 @@ def docommands(tb):
               tb.set_MON(False)                                                 
            if line[0]=='O':
               value=int(line[1:])
-              tb.set_RxOffset(value)
+              tb.set_RxOffset(value)  
            if line[0]=='V':
               value=int(line[1:])
               tb.set_AFGain(value)

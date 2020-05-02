@@ -956,7 +956,7 @@
     </param>
     <param>
       <key>type</key>
-      <value>fir_filter_ccf</value>
+      <value>fir_filter_ccc</value>
     </param>
     <param>
       <key>_coordinate</key>
