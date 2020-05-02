@@ -37,7 +37,7 @@ class SSB_TRX(gr.top_block):
         self.MON = MON = False
         self.KEY = KEY = False
         self.FMMIC = FMMIC = 50
-        self.FM = FM = True
+        self.FM = FM = False
         self.CW = CW = False
         self.AFGain = AFGain = 20
 

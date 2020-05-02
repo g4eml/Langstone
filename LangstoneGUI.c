@@ -1095,10 +1095,7 @@ void setTx(int pt)
 	  	usleep(TXDELAY);
 	  	setHwTxFreq(freq);
 	  	PlutoTxEnable(1);
-	  	if (duplex()==0)
-			{
 			PlutoRxEnable(0);
-			} 
 		  sendFifo("T");
 		  setForeColour(255,0,0);
 		  displayStr("Tx");  
@@ -1242,7 +1239,7 @@ void setFreq(double fr)
 
 int duplex(void)
 {
-if(abs(bandTxOffset[band]-bandRxOffset[band]) > 0.000001 )
+if(abs(bandTxOffset[band]-bandRxOffset[band]) > 1 )
 	{
 	return 1;
 	}
