@@ -65,10 +65,7 @@ def docommands(tb):
               tb.set_MON(False)                                                 
            if line[0]=='O':
               value=int(line[1:])
-              tb.set_RxOffset(value)
-           if line[0]=='o':
-              value=int(line[1:])
-              tb.set_TxOffset(value)  
+              tb.set_RxOffset(value)  
            if line[0]=='V':
               value=int(line[1:])
               tb.set_AFGain(value)
