@@ -489,6 +489,7 @@ void sendFifo(char * s)
   fifofd=open("/tmp/langstonein",O_WRONLY | O_NONBLOCK);
   write(fifofd,fs,strlen(fs));
   close(fifofd);
+  delay(5);
 }
 
 void initGPIO(void)
@@ -1167,7 +1168,12 @@ void setFreq(double fr)
 	long long freqhz;
 	char digit[16];	
   
-  setHwRxFreq(fr);         //set hardware frequency
+  if(ptt | ptts) 
+  {
+  	setHwTxFreq(fr);				//set Hardware Tx frequency if we are transmitting
+	}
+
+	setHwRxFreq(fr);         // always set hardware Rx frequency
 	fr=fr+0.0000001;   // correction for rounding errors.
 	freqhz=fr*1000000;		
 	freqhz=freqhz+100000000000;     //force it to be 12 digits long
