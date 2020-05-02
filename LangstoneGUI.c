@@ -487,7 +487,7 @@ void sendFifo(char * s)
   char fs[50];
   strcpy(fs,s);
   strcat(fs,"\n");
-  fifofd=open("/tmp/langstonein",O_WRONLY | O_NONBLOCK);
+  fifofd=open("/tmp/langstonein",O_WRONLY);
   write(fifofd,fs,strlen(fs));
   close(fifofd);
   delay(5);
