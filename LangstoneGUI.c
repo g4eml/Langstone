@@ -1021,23 +1021,26 @@ if(k==0) sendFifo("k"); else sendFifo("K");
 
 void setMoni(int m)
 {
-if(m==1)
-  {
-   sendFifo("M");
-   moni=1;
-   gotoXY(moniX,moniY);
-   textSize=2;
-   setForeColour(0,255,0);
-   displayStr("MONI");
-  } 
-else
-  {
-   sendFifo("m");
-   moni=0;
-   gotoXY(moniX,moniY);
-   textSize=2;
-   displayStr("    ");
-  }
+if(settingsMode==0)
+	{
+	if(m==1)
+	  {
+	   sendFifo("M");
+	   moni=1;
+	   gotoXY(moniX,moniY);
+	   textSize=2;
+	   setForeColour(0,255,0);
+	   displayStr("MONI");
+	  } 
+	else
+	  {
+	   sendFifo("m");
+	   moni=0;
+	   gotoXY(moniX,moniY);
+	   textSize=2;
+	   displayStr("    ");
+	  }
+	}
 }
 
 void setMode(int md)
