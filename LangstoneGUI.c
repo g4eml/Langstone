@@ -43,7 +43,8 @@ void processGPIO(void);
 void initGPIO(void);
 int readConfig(void);
 int writeConfig(void);
-int duplex(void);
+int satMode(void);
+int txvtrMode(void);
 void setMoni(int m);
 void setFFTRef(int ref);
 
@@ -234,7 +235,7 @@ void waterfall(){
   int level,level2;
   int ret;
  
-	if(((ptt || ptts) ==0) || (duplex()==1) )    //if we are receiving or transmitting with an offset (duplex) then show the waterfall)
+	if(((ptt || ptts) ==0) || (satMode()==1) )    //if we are receiving or running split frequency then show the waterfall)
 	{  
 		  //check if data avilable to read
 		  ret = fread(&inbuf,sizeof(float),1,fftstream);
@@ -853,7 +854,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
     {
     if(settingsMode==0)
      	{
-     	if(duplex()==1)
+     	if(satMode()==1)
         {
         if(moni==1) setMoni(0); else setMoni(1);
         }      
@@ -1095,7 +1096,12 @@ void setTx(int pt)
 	  	usleep(TXDELAY);
 	  	setHwTxFreq(freq);
 	  	PlutoTxEnable(1);
-			PlutoRxEnable(0);
+	  	if(satMode()==0)
+	  	{
+	  		setHwRxFreq(freq+10.0);   						//offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
+	  		PlutoRxEnable(0);
+			}
+
 		  sendFifo("T");
 		  setForeColour(255,0,0);
 		  displayStr("Tx");  
@@ -1105,6 +1111,7 @@ void setTx(int pt)
 		  sendFifo("R");
 		  PlutoTxEnable(0);
 		  PlutoRxEnable(1);
+		  setHwRxFreq(freq);
 		  setForeColour(0,255,0);
 		  displayStr("Rx");
 		  usleep(RXDELAY);
@@ -1124,7 +1131,7 @@ void setHwRxFreq(double fr)
   
 	rxfreqhz=frRx*1000000;
   
-	rxoffsethz=(rxfreqhz % 500000)-250000;
+	rxoffsethz=(rxfreqhz % 100000)+50000;        //use just the +50Khz to +150Khz positive side of the sampled spectrum. This avoids the DC hump .
   
 	LOrxfreqhz=rxfreqhz-rxoffsethz;
   
@@ -1169,8 +1176,11 @@ void setFreq(double fr)
   {
   	setHwTxFreq(fr);				//set Hardware Tx frequency if we are transmitting
 	}
+	else
+	{
+	setHwRxFreq(fr);       //set Hardware Rx frequency if we are receiving
+	}
 
-	setHwRxFreq(fr);         // always set hardware Rx frequency
 	fr=fr+0.0000001;   // correction for rounding errors.
 	freqhz=fr*1000000;		
 	freqhz=freqhz+100000000000;     //force it to be 12 digits long
@@ -1211,22 +1221,22 @@ void setFreq(double fr)
   gotoXY(txvtrX,txvtrY);
   setForeColour(0,255,0);
   textSize=2;
-  if((abs(bandTxOffset[band])< 0.000001) & (abs(bandRxOffset[band])< 0.000001))
+  if( txvtrMode()==1)
     {
-     displayStr("     "); 
+     displayStr(" TXVTR "); 
     }
-  else if(duplex()==0)
+  else if(satMode()==1)
     {
-    displayStr("TXVTR");
+    displayStr("  SAT  ");
     }
   else
     {
-      displayStr(" SAT ");
+      displayStr("       ");
     } 
  
    gotoXY(funcButtonsX+buttonSpaceX*4,funcButtonsY);
    setForeColour(0,255,0);
-   if(duplex()==1)
+   if(satMode()==1)
     {
      displayButton("MONI");
     }  
@@ -1237,9 +1247,9 @@ void setFreq(double fr)
      
 }
 
-int duplex(void)
+int satMode(void)
 {
-if(abs(bandTxOffset[band]-bandRxOffset[band]) > 1 )
+if(abs(bandTxOffset[band]-bandRxOffset[band]) > 10 )      // if we have a differnt Rx and Tx offset then we must be in Sat mode. 
 	{
 	return 1;
 	}
@@ -1248,6 +1258,19 @@ else
 	return 0;
 	}
 }
+
+int txvtrMode(void)
+{
+if((abs(bandTxOffset[band]-bandRxOffset[band]) <1) & (abs(bandTxOffset[band]) >1 )  )       //if the tx and rx offset are the same and non zero then we are in Transverter mode
+	{
+	return 1;
+	}
+else
+	{
+	return 0;
+	}
+}
+
 
 void setBandBits(int b)
 {
