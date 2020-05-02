@@ -1021,8 +1021,6 @@ if(k==0) sendFifo("k"); else sendFifo("K");
 
 void setMoni(int m)
 {
-if(settingsMode==0)
-	{
 	if(m==1)
 	  {
 	   sendFifo("M");
@@ -1040,7 +1038,6 @@ if(settingsMode==0)
 	   textSize=2;
 	   displayStr("    ");
 	  }
-	}
 }
 
 void setMode(int md)
@@ -1239,14 +1236,17 @@ void setFreq(double fr)
  
    gotoXY(funcButtonsX+buttonSpaceX*4,funcButtonsY);
    setForeColour(0,255,0);
-   if(satMode()==1)
-    {
-     displayButton("MONI");
-    }  
-    else
-    {
-     displayButton("    ");
-    }
+   if(settingsMode==0)
+   {
+	   if(satMode()==1)
+	    {
+	     displayButton("MONI");
+	    }  
+	    else
+	    {
+	     displayButton("    ");
+	    }
+	  }
      
 }
 
