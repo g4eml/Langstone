@@ -25,7 +25,10 @@ void processMouse(int mbut);
 void initGUI();
 void sendFifo(char * s);
 void initFifo();
-void setPlutoFreq(long long rxfreq, long long txfreq);
+void setPlutoRxFreq(long long rxfreq);
+void setPlutoTxFreq(long long rxfreq);
+void setHwRxFreq(double fr);
+void setHwTxFreq(double fr);
 void PlutoTxEnable(int txon);
 void PlutoRxEnable(int rxon);
 void detectHw();
@@ -364,7 +367,7 @@ void detectHw()
 }
 
 
-void setPlutoFreq(long long rxfreq, long long txfreq)
+void setPlutoRxFreq(long long rxfreq)
 {
 	struct iio_context *ctx;
 	struct iio_device *phy;
@@ -383,13 +386,36 @@ void setPlutoFreq(long long rxfreq, long long txfreq)
 			{ 
 			phy = iio_context_find_device(ctx, "ad9361-phy"); 
 			iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
-		  iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq-10000); //Tx LO Freq
 			}
 			iio_context_destroy(ctx);	
 	  }
 	
 }
 
+void setPlutoTxFreq(long long txfreq)
+{
+	struct iio_context *ctx;
+	struct iio_device *phy;
+   if(plutoPresent)
+    {
+			ctx = iio_create_context_from_uri("ip:192.168.2.1");
+			if(ctx==NULL)
+			{
+			  plutoPresent=0;
+			  gotoXY(220,120);
+			  setForeColour(255,0,0);
+			  textSize=2;
+			  displayStr("PLUTO NOT DETECTED");
+			}
+			else
+			{ 
+			phy = iio_context_find_device(ctx, "ad9361-phy"); 
+		  iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq); //Tx LO Freq
+			}
+			iio_context_destroy(ctx);	
+	  }
+	
+}
 
 void PlutoTxEnable(int txon)
 {
@@ -1066,6 +1092,7 @@ void setTx(int pt)
 	  {
 	  	digitalWrite(txPin,HIGH);
 	  	usleep(TXDELAY);
+	  	setHwTxFreq(freq);
 	  	PlutoTxEnable(1);
 	  	if (duplex()==0)
 			{
@@ -1087,56 +1114,60 @@ void setTx(int pt)
 	  }
 }
 
-void setHwFreq(double fr)
+void setHwRxFreq(double fr)
 {
 	long long rxoffsethz;
-  long long txoffsethz; 
 	long long LOrxfreqhz;
-  long long LOtxfreqhz;
   long long rxfreqhz;
-  long long txfreqhz;
   double frRx;
   double frTx;
   
   frRx=fr-bandRxOffset[band];
-  frTx=fr-bandTxOffset[band];
   
 	rxfreqhz=frRx*1000000;
-  txfreqhz=frTx*1000000;
   
 	rxoffsethz=(rxfreqhz % 500000)-250000;
-  txoffsethz=(txfreqhz % 500000)-250000;
   
 	LOrxfreqhz=rxfreqhz-rxoffsethz;
-  LOtxfreqhz=txfreqhz-txoffsethz;
   
 	if((mode==2)|(mode==3))
     {
-     rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz
-     txoffsethz=txoffsethz-800;     
+     rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz    
     }
 	if(LOrxfreqhz!=lastLOhz)         
 	  {
-  	  setPlutoFreq(LOrxfreqhz,LOtxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
+  	  setPlutoRxFreq(LOrxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
   	  lastLOhz=LOrxfreqhz;
 	  }
 	
 	char offsetStr[32];
 	sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
 	sendFifo(offsetStr);
-	sprintf(offsetStr,"o%d",txoffsethz);   //send the Tx offset tuning value 
-  usleep(1000);
-
-	sendFifo(offsetStr);  
 }
 
+void setHwTxFreq(double fr)
+{
+	long long txfreqhz;
+  double frTx;
+  
+  frTx=fr-bandTxOffset[band];
+  
+	txfreqhz=frTx*1000000;
+    
+	if((mode==2)|(mode==3))
+    {
+     txfreqhxhz=txfreqhz-800;         //offset  for CW tone of 800 Hz    
+    }
+  
+  	  setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
+}
 
 void setFreq(double fr)
 {
 	long long freqhz;
 	char digit[16];	
   
-  setHwFreq(fr);         //set hardware frequency
+  setHwRxFreq(fr);         //set hardware frequency
 	fr=fr+0.0000001;   // correction for rounding errors.
 	freqhz=fr*1000000;		
 	freqhz=freqhz+100000000000;     //force it to be 12 digits long
