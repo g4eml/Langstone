@@ -1156,7 +1156,7 @@ void setHwTxFreq(double fr)
     
 	if((mode==2)|(mode==3))
     {
-     txfreqhxhz=txfreqhz-800;         //offset  for CW tone of 800 Hz    
+     txfreqhz=txfreqhz-800;         //offset  for CW tone of 800 Hz    
     }
   
   	  setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
