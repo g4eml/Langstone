@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Ssb Trx
-# Generated: Tue Nov 12 22:23:54 2019
+# Generated: Sun May  3 14:46:49 2020
 ##################################################
 
 from gnuradio import analog
@@ -14,9 +14,10 @@ from gnuradio import filter
 from gnuradio import gr
 from gnuradio import iio
 from gnuradio.eng_option import eng_option
-from gnuradio.filter import firdes
-from optparse import OptionParser
 from gnuradio.fft import logpwrfft
+from gnuradio.filter import firdes
+from grc_gnuradio import blks2 as grc_blks2
+from optparse import OptionParser
 import os
 import errno
 
@@ -28,10 +29,7 @@ class SSB_TRX(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        self.BaseFreq = BaseFreq = 1296250000
         self.USB = USB = True
-        self.TxOffset = TxOffset = 0
-        self.TxLO = TxLO = BaseFreq-10000
         self.SQL = SQL = 20
         self.RxOffset = RxOffset = 0
         self.PTT = PTT = False
@@ -41,6 +39,7 @@ class SSB_TRX(gr.top_block):
         self.KEY = KEY = False
         self.FMMIC = FMMIC = 50
         self.FM = FM = False
+        self.FFTEn = FFTEn = 0
         self.CW = CW = False
         self.AFGain = AFGain = 20
 
@@ -53,6 +52,8 @@ class SSB_TRX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
+        self.pluto_source_0 = iio.pluto_source('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, False, 0, '', True)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
         	sample_rate=44100,
         	fft_size=512,
@@ -61,15 +62,10 @@ class SSB_TRX(gr.top_block):
         	avg_alpha=0.9,
         	average=True,
         )
-        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_float*512, "/tmp/langstonefft", False)
-        self.blocks_file_sink_0.set_unbuffered(False)
-        self.pluto_source_0 = iio.pluto_source('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
-        self.pluto_sink_0 = iio.pluto_sink('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, False, 0, '', True)
         self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,20000,6000)), RxOffset, 529200)
+        self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_mute_xx_0 = blocks.mute_ff(bool(PTT and (not MON)))
-        self.blocks_multiply_xx_2 = blocks.multiply_vcc(1)
-        self.blocks_multiply_xx_1 = blocks.multiply_vcc(1)
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc((not FM, ))
         self.blocks_multiply_const_vxx_3 = blocks.multiply_const_vcc((FM, ))
@@ -79,22 +75,30 @@ class SSB_TRX(gr.top_block):
         self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_vff((FMMIC/10.0, ))
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_vff(((MicGain/10.0)*(not CW), ))
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_float*512, '/tmp/langstonefft', False)
+        self.blocks_file_sink_0.set_unbuffered(False)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
         self.blocks_add_xx_2 = blocks.add_vcc(1)
         self.blocks_add_xx_1 = blocks.add_vff(1)
         self.blocks_add_xx_0 = blocks.add_vff(1)
+        self.blks2_selector_0 = grc_blks2.selector(
+        	item_size=gr.sizeof_float*512,
+        	num_inputs=1,
+        	num_outputs=2,
+        	input_index=0,
+        	output_index=FFTEn,
+        )
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
         	1, 44100, 200, 3000, 100, firdes.WIN_HAMMING, 6.76))
-        self.band_pass_filter_0_0 = filter.fir_filter_ccf(1, firdes.band_pass(
-        	1, 44100, -3000+USB*3300+10000, -300+USB*3300+10000, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
+        	1, 44100, -3000+USB*3300, -300+USB*3300, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 44100, -3000+USB*3300+NCW*CW*250, -300+USB*3300-NCW*CW*1950, 100, firdes.WIN_HAMMING, 6.76))
         self.audio_source_0 = audio.source(44100, "hw:CARD=Device,DEV=0", True)
         self.audio_sink_0 = audio.sink(44100, "hw:CARD=Device,DEV=0", True)
         self.analog_simple_squelch_cc_0 = analog.simple_squelch_cc(-60+SQL, 1)
         self.analog_sig_source_x_1_0 = analog.sig_source_f(44100, analog.GR_COS_WAVE, 800, int(CW and KEY), 0)
-        self.analog_sig_source_x_1 = analog.sig_source_c(529200, analog.GR_COS_WAVE, TxOffset, 1, 0)
-        self.analog_sig_source_x_0 = analog.sig_source_c(44100, analog.GR_COS_WAVE, 10000, 1, 0)
+        self.analog_sig_source_x_0 = analog.sig_source_c(44100, analog.GR_COS_WAVE, 0, 1, 0)
         self.analog_nbfm_tx_0 = analog.nbfm_tx(
         	audio_rate=44100,
         	quad_rate=44100,
@@ -109,7 +113,7 @@ class SSB_TRX(gr.top_block):
         	max_dev=5e3,
           )
         self.analog_const_source_x_0 = analog.sig_source_f(0, analog.GR_CONST_WAVE, 0, 0, 0)
-        
+
 
 
         ##################################################
@@ -117,10 +121,8 @@ class SSB_TRX(gr.top_block):
         ##################################################
         self.connect((self.analog_const_source_x_0, 0), (self.blocks_float_to_complex_0, 1))
         self.connect((self.analog_nbfm_rx_0, 0), (self.blocks_multiply_const_vxx_2_0, 0))
-        self.connect((self.analog_nbfm_tx_0, 0), (self.blocks_multiply_xx_2, 0))
+        self.connect((self.analog_nbfm_tx_0, 0), (self.blocks_multiply_const_vxx_3, 0))
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0, 1))
-        self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_2, 1))
-        self.connect((self.analog_sig_source_x_1, 0), (self.blocks_multiply_xx_1, 1))
         self.connect((self.analog_sig_source_x_1_0, 0), (self.blocks_add_xx_0, 1))
         self.connect((self.analog_simple_squelch_cc_0, 0), (self.analog_nbfm_rx_0, 0))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0, 0))
@@ -128,6 +130,8 @@ class SSB_TRX(gr.top_block):
         self.connect((self.band_pass_filter_0, 0), (self.blocks_complex_to_real_0, 0))
         self.connect((self.band_pass_filter_0_0, 0), (self.blocks_multiply_const_vxx_4, 0))
         self.connect((self.band_pass_filter_1, 0), (self.analog_nbfm_tx_0, 0))
+        self.connect((self.blks2_selector_0, 1), (self.blocks_file_sink_0, 0))
+        self.connect((self.blks2_selector_0, 0), (self.blocks_null_sink_0, 0))
         self.connect((self.blocks_add_xx_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.blocks_add_xx_1, 0), (self.blocks_mute_xx_0, 0))
         self.connect((self.blocks_add_xx_2, 0), (self.rational_resampler_xxx_0, 0))
@@ -141,45 +145,22 @@ class SSB_TRX(gr.top_block):
         self.connect((self.blocks_multiply_const_vxx_3, 0), (self.blocks_add_xx_2, 0))
         self.connect((self.blocks_multiply_const_vxx_4, 0), (self.blocks_add_xx_2, 1))
         self.connect((self.blocks_multiply_xx_0, 0), (self.band_pass_filter_0_0, 0))
-        self.connect((self.blocks_multiply_xx_1, 0), (self.blocks_mute_xx_0_0, 0))
-        self.connect((self.blocks_multiply_xx_2, 0), (self.blocks_multiply_const_vxx_3, 0))
         self.connect((self.blocks_mute_xx_0, 0), (self.blocks_multiply_const_vxx_1, 0))
         self.connect((self.blocks_mute_xx_0_0, 0), (self.pluto_sink_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.analog_simple_squelch_cc_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.band_pass_filter_0, 0))
+        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))
+        self.connect((self.logpwrfft_x_0, 0), (self.blks2_selector_0, 0))
         self.connect((self.pluto_source_0, 0), (self.freq_xlating_fir_filter_xxx_0, 0))
-        self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_multiply_xx_1, 0))
-        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))  
-        self.connect((self.logpwrfft_x_0, 0), (self.blocks_file_sink_0, 0)) 
-
-    def get_BaseFreq(self):
-        return self.BaseFreq
-
-    def set_BaseFreq(self, BaseFreq):
-        self.BaseFreq = BaseFreq
-        self.set_TxLO(self.BaseFreq-10000)
+        self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_mute_xx_0_0, 0))
 
     def get_USB(self):
         return self.USB
 
     def set_USB(self, USB):
         self.USB = USB
-        self.band_pass_filter_0_0.set_taps(firdes.band_pass(1, 44100, -3000+self.USB*3300+10000, -300+self.USB*3300+10000, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300, -300+self.USB*3300, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300+self.NCW*self.CW*250, -300+self.USB*3300-self.NCW*self.CW*1950, 100, firdes.WIN_HAMMING, 6.76))
-
-    def get_TxOffset(self):
-        return self.TxOffset
-
-    def set_TxOffset(self, TxOffset):
-        self.TxOffset = TxOffset
-        self.analog_sig_source_x_1.set_frequency(self.TxOffset)
-
-    def get_TxLO(self):
-        return self.TxLO
-
-    def set_TxLO(self, TxLO):
-        self.TxLO = TxLO
-
 
     def get_SQL(self):
         return self.SQL
@@ -248,6 +229,13 @@ class SSB_TRX(gr.top_block):
         self.blocks_multiply_const_vxx_2_0.set_k((int(self.FM) *0.1, ))
         self.blocks_multiply_const_vxx_2.set_k((not self.FM, ))
 
+    def get_FFTEn(self):
+        return self.FFTEn
+
+    def set_FFTEn(self, FFTEn):
+        self.FFTEn = FFTEn
+        self.blks2_selector_0.set_output_index(int(self.FFTEn))
+
     def get_CW(self):
         return self.CW
 
@@ -310,13 +298,14 @@ def docommands(tb):
            if line=='M':
               tb.set_MON(True) 
            if line=='m':
-              tb.set_MON(False)                                                 
+              tb.set_MON(False)
+           if line=='P':
+              tb.set_FFTEn(1)
+           if line=='p':
+              tb.set_FFTEn(0)
            if line[0]=='O':
               value=int(line[1:])
-              tb.set_RxOffset(value)
-           if line[0]=='o':
-              value=int(line[1:])
-              tb.set_TxOffset(value)  
+              tb.set_RxOffset(value)  
            if line[0]=='V':
               value=int(line[1:])
               tb.set_AFGain(value)
@@ -332,6 +321,7 @@ def docommands(tb):
        except:
          break
 
+
 def main(top_block_cls=SSB_TRX, options=None):
 
     tb = top_block_cls()
@@ -339,6 +329,7 @@ def main(top_block_cls=SSB_TRX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
+
 
 if __name__ == '__main__':
     main()
