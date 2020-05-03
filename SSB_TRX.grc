@@ -155,6 +155,33 @@
     </param>
     <param>
       <key>_coordinate</key>
+      <value>(1432, 12)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>FFTEn</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
       <value>(1200, 12)</value>
     </param>
     <param>
@@ -1087,6 +1114,69 @@
     </param>
   </block>
   <block>
+    <key>blks2_selector</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(760, 480)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blks2_selector_0</value>
+    </param>
+    <param>
+      <key>input_index</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>num_inputs</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>num_outputs</key>
+      <value>2</value>
+    </param>
+    <param>
+      <key>output_index</key>
+      <value>FFTEn</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>float</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>512</value>
+    </param>
+  </block>
+  <block>
     <key>blocks_add_xx</key>
     <param>
       <key>alias</key>
@@ -1310,7 +1400,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(720, 472)</value>
+      <value>(952, 512)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1879,6 +1969,53 @@
     </param>
   </block>
   <block>
+    <key>blocks_null_sink</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>bus_conns</key>
+      <value>[[0,],]</value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(952, 444)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_null_sink_0</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>float</value>
+    </param>
+    <param>
+      <key>num_inputs</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>512</value>
+    </param>
+  </block>
+  <block>
     <key>freq_xlating_fir_filter_xxx</key>
     <param>
       <key>alias</key>
@@ -2284,6 +2421,18 @@
     <sink_key>0</sink_key>
   </connection>
   <connection>
+    <source_block_id>blks2_selector_0</source_block_id>
+    <sink_block_id>blocks_null_sink_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>blks2_selector_0</source_block_id>
+    <sink_block_id>blocks_file_sink_0</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
     <source_block_id>blocks_add_xx_0</source_block_id>
     <sink_block_id>blocks_float_to_complex_0</sink_block_id>
     <source_key>0</source_key>
@@ -2393,7 +2542,7 @@
   </connection>
   <connection>
     <source_block_id>logpwrfft_x_0</source_block_id>
-    <sink_block_id>blocks_file_sink_0</sink_block_id>
+    <sink_block_id>blks2_selector_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>

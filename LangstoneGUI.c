@@ -47,6 +47,8 @@ int satMode(void);
 int txvtrMode(void);
 void setMoni(int m);
 void setFFTRef(int ref);
+void initSDR(void);
+void setFFTPipe(int cntl);
 
 double freq;
 double freqInc=0.001;
@@ -138,12 +140,12 @@ int mousePresent;
 int touchPresent;
 int plutoPresent;
 
-#define pttPin 0     		// Wiring Pi pin number. Physical pin is 11
-#define keyPin 1     		//Wiring Pi pin number. Physical pin is 12
-#define txPin 29     		//Wiring Pi pin number. Physical pin is 40  		
+#define pttPin 0        // Wiring Pi pin number. Physical pin is 11
+#define keyPin 1        //Wiring Pi pin number. Physical pin is 12
+#define txPin 29        //Wiring Pi pin number. Physical pin is 40      
 #define bandPin1 31     //Wiring Pi pin number. Physical pin is 28
-#define bandPin2 24    	//Wiring Pi pin number. Physical pin is 35
-#define bandPin3 7    	//Wiring Pi pin number. Physical pin is 7
+#define bandPin2 24     //Wiring Pi pin number. Physical pin is 35
+#define bandPin3 7      //Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
 
 
@@ -165,6 +167,9 @@ int main(int argc, char* argv[])
 
 clock_t lastClock;
 
+  fftstream=fopen("/tmp/langstonefft","r");                 //Open FFT Stream from GNU Radio 
+  fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
+  
   lastClock=0;
   readConfig();
   detectHw();
@@ -174,16 +179,12 @@ clock_t lastClock;
   initGPIO();
   if(touchPresent) initTouch(touchPath);
   if(mousePresent) initMouse(mousePath);
-  initGUI();  
+  initGUI(); 
+  initSDR(); 
 
-  
-  fftstream=fopen("/tmp/langstonefft","r");
-  fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
+  setFFTPipe(1);            //Turn on FFT Stream from GNU RAdio
 
-	delay(500);
-	lastLOhz=0;
-	setFreq(freq);      //not sure why this is needed but first setfreq doesnt seem to register. suspect might be something to do with pipe delays.
-  
+
   while(1)
   {
   
@@ -231,90 +232,88 @@ clock_t lastClock;
 }
 
 
-void waterfall(){
+void waterfall()
+{
   int level,level2;
   int ret;
- 
-	if(((ptt || ptts) ==0) || (satMode()==1) )    //if we are receiving or running split frequency then show the waterfall)
-	{  
-		  //check if data avilable to read
-		  ret = fread(&inbuf,sizeof(float),1,fftstream);
-		  if(ret>0){    
-		
-		    //shift buffer
-		    for(int r=rows-1;r>0;r--){	
-		      for(int p=0;p<points;p++){	
-		        buf[p][r]=buf[p][r-1];
-		      }
-		    }
-		
-		    buf[0+points/2][0]=inbuf[0];    //use the read value
-		
-		    //Read in float values, shift centre and store in buffer 1st 'row'
-		    for(int p=1;p<points;p++){	
-		    fread(&inbuf,sizeof(float),1,fftstream);
-		      if(p<points/2){
-		        buf[p+points/2][0]=inbuf[0];
-		      }else{
-		        buf[p-points/2][0]=inbuf[0];
-		      }
-		    }
-		
-		    //RF level adjustment
-		
-		    int baselevel=FFTRef-50;
-		    float scaling = 255.0/(float)(FFTRef-baselevel);
-		
-		    //draw waterfall
-		    for(int r=0;r<rows;r++){	
-		      for(int p=0;p<points;p++){	
-		        //limit values displayed to range specified
-		        if (buf[p][r]<baselevel){buf[p][r]=baselevel;}
-		        if (buf[p][r]>FFTRef){buf[p][r]=FFTRef;}
-		
-		        //scale to 0-255
-		        level = (buf[p][r]-baselevel)*scaling;   
-		        setPixel(p+140,206+r,level,level,level);
-		      }
-		    }
-		
-		    //clear spectrum area
-		    for(int r=0;r<spectrum_rows+1;r++){	
-		      for(int p=0;p<points;p++){	 
-		        setPixel(p+140,186-r,0,0,0);
-		      }
-		    }
-		
-		    //draw spectrum line
-		    
-		    scaling = spectrum_rows/(float)(FFTRef-baselevel);
-		    for(int p=0;p<points-1;p++){	
-		        //limit values displayed to range specified
-		        if (buf[p][0]<baselevel){buf[p][0]=baselevel;}
-		        if (buf[p][0]>FFTRef){buf[p][0]=FFTRef;}
-		
-		        //scale to display height
-		        level = (buf[p][0]-baselevel)*scaling;   
-		        level2 = (buf[p+1][0]-baselevel)*scaling;
-		        drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
-		        if(p==points/2){
-		          drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
-		        }
-		      }
-		  }
-	 }
-	 else
-	 {
-	  ret = fread(&inbuf,sizeof(float),1,fftstream);
-		if(ret>0)
-		{
-		for(int p=1;p<points;p++)
-			{	
-			fread(&inbuf,sizeof(float),1,fftstream); 						//during transmission read and throw away the FFT samples. (FFT is unreliable when transmitting))
-			}
-		}   
-	 
-	 }	  
+  
+      //check if data avilable to read
+      ret = fread(&inbuf,sizeof(float),1,fftstream);
+      if(ret>0)
+    {    
+    
+        //shift buffer
+        for(int r=rows-1;r>0;r--)
+        {  
+          for(int p=0;p<points;p++)
+          {  
+            buf[p][r]=buf[p][r-1];
+          }
+        }
+    
+        buf[0+points/2][0]=inbuf[0];    //use the read value
+    
+        //Read in float values, shift centre and store in buffer 1st 'row'
+        for(int p=1;p<points;p++)
+        {  
+        fread(&inbuf,sizeof(float),1,fftstream);
+          if(p<points/2)
+          {
+            buf[p+points/2][0]=inbuf[0];
+          }else
+          {
+            buf[p-points/2][0]=inbuf[0];
+          }
+        }
+    
+        //RF level adjustment
+    
+        int baselevel=FFTRef-50;
+        float scaling = 255.0/(float)(FFTRef-baselevel);
+    
+        //draw waterfall
+        for(int r=0;r<rows;r++)
+        {  
+          for(int p=0;p<points;p++)
+          {  
+            //limit values displayed to range specified
+            if (buf[p][r]<baselevel) buf[p][r]=baselevel;
+            if (buf[p][r]>FFTRef) buf[p][r]=FFTRef;
+    
+            //scale to 0-255
+            level = (buf[p][r]-baselevel)*scaling;   
+            setPixel(p+140,206+r,level,level,level);
+          }
+        }
+    
+        //clear spectrum area
+        for(int r=0;r<spectrum_rows+1;r++)
+        { 
+          for(int p=0;p<points;p++)
+          {   
+            setPixel(p+140,186-r,0,0,0);
+          }
+        }
+    
+        //draw spectrum line
+        
+        scaling = spectrum_rows/(float)(FFTRef-baselevel);
+        for(int p=0;p<points-1;p++)
+        {  
+            //limit values displayed to range specified
+            if (buf[p][0]<baselevel) buf[p][0]=baselevel;
+            if (buf[p][0]>FFTRef) buf[p][0]=FFTRef;
+    
+            //scale to display height
+            level = (buf[p][0]-baselevel)*scaling;   
+            level2 = (buf[p+1][0]-baselevel)*scaling;
+            drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
+            if(p==points/2)
+            {
+              drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
+            }
+          }
+      }    
 }
 
 void setFFTRef(int ref)
@@ -324,143 +323,143 @@ void setFFTRef(int ref)
 
 void detectHw()
 {
-	FILE * fp;
-	char * ln=NULL;
-	size_t len=0;
-	ssize_t rd;
-	int p;
-	char handler[2][10];
-	char * found;
-	p=0;
-	mousePresent=0;
-	touchPresent=0;
-	fp=fopen("/proc/bus/input/devices","r");
-	 while ((rd=getline(&ln,&len,fp)!=-1))
-	  {
-	    if(ln[0]=='N')        //name of device
-	    {
-	      if(strstr(ln,"FT5406")!=NULL) p=1; else p=0;     //Found Raspberry Pi TouchScreen entry
-	    }
-	    
-	    if(ln[0]=='H')        //handlers
-	    {
-	       if(strstr(ln,"mouse")!=NULL)
-	       {
-	         found=strstr(ln,"event");
-	         strcpy(handler[p],found);
-	         handler[p][6]=0;
-	         if(p==0) 
-	          {
-	            sprintf(mousePath,"/dev/input/%s",handler[0]);
-	            mousePresent=1;
-	          }
-	         if(p==1) 
-	         {
-	           sprintf(touchPath,"/dev/input/%s",handler[1]);
-	           touchPresent=1;
-	         }
-	       }
-	    }   
-	  }
-	fclose(fp);
-	if(ln)  free(ln);
+  FILE * fp;
+  char * ln=NULL;
+  size_t len=0;
+  ssize_t rd;
+  int p;
+  char handler[2][10];
+  char * found;
+  p=0;
+  mousePresent=0;
+  touchPresent=0;
+  fp=fopen("/proc/bus/input/devices","r");
+   while ((rd=getline(&ln,&len,fp)!=-1))
+    {
+      if(ln[0]=='N')        //name of device
+      {
+        if(strstr(ln,"FT5406")!=NULL) p=1; else p=0;     //Found Raspberry Pi TouchScreen entry
+      }
+      
+      if(ln[0]=='H')        //handlers
+      {
+         if(strstr(ln,"mouse")!=NULL)
+         {
+           found=strstr(ln,"event");
+           strcpy(handler[p],found);
+           handler[p][6]=0;
+           if(p==0) 
+            {
+              sprintf(mousePath,"/dev/input/%s",handler[0]);
+              mousePresent=1;
+            }
+           if(p==1) 
+           {
+             sprintf(touchPath,"/dev/input/%s",handler[1]);
+             touchPresent=1;
+           }
+         }
+      }   
+    }
+  fclose(fp);
+  if(ln)  free(ln);
     plutoPresent=1;      //this will be reset by setPlutoFreq if Pluto is not present.
 }
 
 
 void setPlutoRxFreq(long long rxfreq)
 {
-	struct iio_context *ctx;
-	struct iio_device *phy;
+  struct iio_context *ctx;
+  struct iio_device *phy;
    if(plutoPresent)
     {
-			ctx = iio_create_context_from_uri("ip:192.168.2.1");
-			if(ctx==NULL)
-			{
-			  plutoPresent=0;
-			  gotoXY(220,120);
-			  setForeColour(255,0,0);
-			  textSize=2;
-			  displayStr("PLUTO NOT DETECTED");
-			}
-			else
-			{ 
-			phy = iio_context_find_device(ctx, "ad9361-phy"); 
-			iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
-			}
-			iio_context_destroy(ctx);	
-	  }
-	
+      ctx = iio_create_context_from_uri("ip:192.168.2.1");
+      if(ctx==NULL)
+      {
+        plutoPresent=0;
+        gotoXY(220,120);
+        setForeColour(255,0,0);
+        textSize=2;
+        displayStr("PLUTO NOT DETECTED");
+      }
+      else
+      { 
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+      iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
+      }
+      iio_context_destroy(ctx); 
+    }
+  
 }
 
 void setPlutoTxFreq(long long txfreq)
 {
-	struct iio_context *ctx;
-	struct iio_device *phy;
+  struct iio_context *ctx;
+  struct iio_device *phy;
    if(plutoPresent)
     {
-			ctx = iio_create_context_from_uri("ip:192.168.2.1");
-			if(ctx==NULL)
-			{
-			  plutoPresent=0;
-			  gotoXY(220,120);
-			  setForeColour(255,0,0);
-			  textSize=2;
-			  displayStr("PLUTO NOT DETECTED");
-			}
-			else
-			{ 
-			phy = iio_context_find_device(ctx, "ad9361-phy"); 
-		  iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq); //Tx LO Freq
-			}
-			iio_context_destroy(ctx);	
-	  }
-	
+      ctx = iio_create_context_from_uri("ip:192.168.2.1");
+      if(ctx==NULL)
+      {
+        plutoPresent=0;
+        gotoXY(220,120);
+        setForeColour(255,0,0);
+        textSize=2;
+        displayStr("PLUTO NOT DETECTED");
+      }
+      else
+      { 
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+      iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq); //Tx LO Freq
+      }
+      iio_context_destroy(ctx); 
+    }
+  
 }
 
 void PlutoTxEnable(int txon)
 {
-	struct iio_context *ctx;
-	struct iio_device *phy;
-	
+  struct iio_context *ctx;
+  struct iio_device *phy;
+  
   if(plutoPresent)
     {
       ctx = iio_create_context_from_uri("ip:192.168.2.1");
       phy = iio_context_find_device(ctx, "ad9361-phy"); 
-    	if(txon==0)
-    	  {
-    	  iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", true); //turn off TX LO
-				}
-			else
-				{
-				iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", false); //turn on TX LO
-				}
-			
-    	iio_context_destroy(ctx);
-		}
+      if(txon==0)
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", true); //turn off TX LO
+        }
+      else
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", false); //turn on TX LO
+        }
+      
+      iio_context_destroy(ctx);
+    }
 
 }
 
 void PlutoRxEnable(int rxon)
 {
-	struct iio_context *ctx;
-	struct iio_device *phy;
-	
+  struct iio_context *ctx;
+  struct iio_device *phy;
+  
   if(plutoPresent)
     {
       ctx = iio_create_context_from_uri("ip:192.168.2.1");
       phy = iio_context_find_device(ctx, "ad9361-phy"); 
-    	if(rxon==0)
-    	  {
-    	  iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", true); //turn off RX LO
-				}
-			else
-				{
-				iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", false); //turn on RX LO
-				}
-			
-    	iio_context_destroy(ctx);
-		}
+      if(rxon==0)
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", true); //turn off RX LO
+        }
+      else
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", false); //turn on RX LO
+        }
+      
+      iio_context_destroy(ctx);
+    }
 
 }
 
@@ -500,14 +499,14 @@ void initGPIO(void)
   pinMode(keyPin,INPUT);
   pinMode(txPin,OUTPUT);
   pinMode(bandPin1,OUTPUT); 
-	pinMode(bandPin2,OUTPUT);  
-	pinMode(bandPin3,OUTPUT);  
-	pinMode(bandPin4,OUTPUT);  
-	digitalWrite(txPin,LOW);
-	digitalWrite(bandPin1,LOW);	
-	digitalWrite(bandPin2,LOW);	
-	digitalWrite(bandPin3,LOW);	
-	digitalWrite(bandPin4,LOW);		 
+  pinMode(bandPin2,OUTPUT);  
+  pinMode(bandPin3,OUTPUT);  
+  pinMode(bandPin4,OUTPUT);  
+  digitalWrite(txPin,LOW);
+  digitalWrite(bandPin1,LOW); 
+  digitalWrite(bandPin2,LOW); 
+  digitalWrite(bandPin3,LOW); 
+  digitalWrite(bandPin4,LOW);    
   lastKey=1;
 }
 
@@ -532,10 +531,10 @@ void processGPIO(void)
       }
     v=digitalRead(keyPin);
     if(v!=lastKey)
-	{
-	setKey(!v);
-	lastKey=v;
-	}
+  {
+  setKey(!v);
+  lastKey=v;
+  }
 }
 
 
@@ -554,12 +553,12 @@ void sqlButtons(int show)
   displayButton("SQ+");
   gotoXY(sqlButtonsX,sqlButtonsY+buttonSpaceY);  
   displayButton("SQ-");
-	textSize=2;
-	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
-	displayStr("   ");
-	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
-	sprintf(sqlStr,"%d",squelch);
-	displayStr(sqlStr);
+  textSize=2;
+  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  displayStr("   ");
+  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  sprintf(sqlStr,"%d",squelch);
+  displayStr(sqlStr);
 }
 
 void initGUI()
@@ -590,27 +589,21 @@ void initGUI()
   freq=bandFreq[band];
   bbits=bandBits[band];
   setBandBits(bbits);
-  setMode(mode); 
-  setVolume(volume);
-  setSquelch(squelch);
-  setSSBMic(SSBMic);
-  setFMMic(FMMic);
-  setTx(ptt|ptts);
-  setFreqInc();
+
   
   if(mode==4) 
-  	{
-  	sqlButtons(1);
-		}
-	else
-		{
-		sqlButtons(0);
-		}
+    {
+    sqlButtons(1);
+    }
+  else
+    {
+    sqlButtons(0);
+    }
 
     //clear waterfall buffer.
         //shift buffer
-    for(int r=0;r<rows;r++){	
-      for(int p=0;p<points;p++){	
+    for(int r=0;r<rows;r++){  
+      for(int p=0;p<points;p++){  
         buf[p][r]=-100;
       }
     }
@@ -618,6 +611,17 @@ void initGUI()
 }
 
 
+void initSDR(void)
+{
+  setMode(mode); 
+  setVolume(volume);
+  setSquelch(squelch);
+  setSSBMic(SSBMic);
+  setFMMic(FMMic);
+  setFreqInc();
+  lastLOhz=0;
+  setFreq(freq);
+}
 
 void displayMenu()
 {
@@ -648,12 +652,12 @@ void processMouse(int mbut)
       if(freq > maxFreq) freq=maxFreq;
       setFreq(freq);
       return;      
-		}
-		else
-		{
-			changeSetting();
-			return;
-		}
+    }
+    else
+    {
+      changeSetting();
+      return;
+    }
 
     }
     
@@ -759,22 +763,22 @@ if(buttonTouched(volButtonsX,volButtonsY+buttonSpaceY)) //Vol-
 if(buttonTouched(sqlButtonsX,sqlButtonsY))    //sql+
     {
      if(mode==4)
-     	{
-      	squelch=squelch+1;
-      	if(squelch >maxsql) squelch=maxsql;
-      	setSquelch(squelch);
-     	}
+      {
+        squelch=squelch+1;
+        if(squelch >maxsql) squelch=maxsql;
+        setSquelch(squelch);
+      }
       return;
     }
 
 if(buttonTouched(sqlButtonsX,sqlButtonsY+buttonSpaceY)) //sql-
     {
      if(mode==4)
-	{
+  {
        squelch=squelch-1;
        if(squelch < 0) squelch=0;
        setSquelch(squelch);
-	}
+  }
       return;
     }
 
@@ -796,21 +800,21 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
       setFreq(freq);
       bbits=bandBits[band];
       setBandBits(bbits);
-      writeConfig();					//save all settings when changing band. 
+      writeConfig();          //save all settings when changing band. 
       return;
-		}
-		else
-		{
-			exitSettings();
-		  return; 
-		}
+    }
+    else
+    {
+      exitSettings();
+      return; 
+    }
       
         
     }      
 if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE or Blank
     {
      if(settingsMode==0)
-     	{
+      {
       mode=mode+1;
       if(mode==nummode) mode=0;
       setMode(mode);
@@ -819,13 +823,13 @@ if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE o
       else
       {
       return;
-			}
+      }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or NEXT
     {
      if(settingsMode==0)
-     	{
+      {
       return;
       }
       else
@@ -834,27 +838,27 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank 
       if(settingNo==numSettings) settingNo=0;
       displaySetting(settingNo);
       return;
-			}
+      }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or Blank
     {
      if(settingsMode==0)
-     	{
-     	startSettings();
+      {
+      startSettings();
       return;
       }
       else
       {
       return;
-			}
+      }
     }
        
 if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or PREV
     {
     if(settingsMode==0)
-     	{
-     	if(satMode()==1)
+      {
+      if(satMode()==1)
         {
         if(moni==1) setMoni(0); else setMoni(1);
         }      
@@ -866,16 +870,16 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
       if(settingNo<0) settingNo=numSettings-1;
       displaySetting(settingNo);
       return;
-			}
-			
+      }
+      
  
     }      
 
 if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Blank
     {
     if(settingsMode==0)
-     	{
-     	if(sendDots==0)
+      {
+      if(sendDots==0)
         {
           sendDots=1;
           setMode(2);
@@ -883,7 +887,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(255,0,0);
           displayButton("DOTS");  
-					ptts=1;
+          ptts=1;
           gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
           setForeColour(255,0,0);
           displayButton("PTT");       
@@ -897,7 +901,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(0,255,0);
           displayButton("DOTS");  
-					ptts=0;
+          ptts=0;
           gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
           setForeColour(0,255,0);
           displayButton("PTT");       
@@ -907,14 +911,14 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       else
       {
       return;
-			}
+      }
     } 
-		     
+         
 if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  or OFF
     {
     if(settingsMode==0)
-     	{
-     	if(ptts==0)
+      {
+      if(ptts==0)
         {
           ptts=1;
           setTx(ptt|ptts);
@@ -940,8 +944,8 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       sleep(5);
       system("sudo poweroff");                          
       return;
-			}
-			
+      }
+      
 
     }      
 
@@ -971,47 +975,47 @@ int buttonTouched(int bx,int by)
 
 void setVolume(int vol)
 {
-	char volStr[10];
-	sprintf(volStr,"V%d",vol);
-	sendFifo(volStr);
-	setForeColour(0,255,0);
-	textSize=2;
-	gotoXY(volButtonsX+30,volButtonsY-25);
-	displayStr("   ");
-	gotoXY(volButtonsX+30,volButtonsY-25);
-	sprintf(volStr,"%d",vol);
-	displayStr(volStr);
+  char volStr[10];
+  sprintf(volStr,"V%d",vol);
+  sendFifo(volStr);
+  setForeColour(0,255,0);
+  textSize=2;
+  gotoXY(volButtonsX+30,volButtonsY-25);
+  displayStr("   ");
+  gotoXY(volButtonsX+30,volButtonsY-25);
+  sprintf(volStr,"%d",vol);
+  displayStr(volStr);
 }
 
 void setSquelch(int sql)
 {
-	char sqlStr[10];
-	sprintf(sqlStr,"Z%d",sql);
-	sendFifo(sqlStr);
-	if(mode==4)
-	{
-	setForeColour(0,255,0);
-	textSize=2;
-	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
-	displayStr("   ");
-	gotoXY(sqlButtonsX+30,sqlButtonsY-25);
-	sprintf(sqlStr,"%d",sql);
-	displayStr(sqlStr);
-	}
+  char sqlStr[10];
+  sprintf(sqlStr,"Z%d",sql);
+  sendFifo(sqlStr);
+  if(mode==4)
+  {
+  setForeColour(0,255,0);
+  textSize=2;
+  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  displayStr("   ");
+  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  sprintf(sqlStr,"%d",sql);
+  displayStr(sqlStr);
+  }
 }
 
 void setSSBMic(int mic)
 {
-	char micStr[10];
-	sprintf(micStr,"G%d",mic);
-	sendFifo(micStr);
+  char micStr[10];
+  sprintf(micStr,"G%d",mic);
+  sendFifo(micStr);
 }
 
 void setFMMic(int mic)
 {
-	char micStr[10];
-	sprintf(micStr,"g%d",mic);
-	sendFifo(micStr);
+  char micStr[10];
+  sprintf(micStr,"g%d",mic);
+  sendFifo(micStr);
 }
 
 void setKey(int k)
@@ -1019,68 +1023,73 @@ void setKey(int k)
 if(k==0) sendFifo("k"); else sendFifo("K");
 }
 
+void setFFTPipe(int ctrl)
+{
+if(ctrl==0) sendFifo("p"); else sendFifo("P");
+}
+
 void setMoni(int m)
 {
-	if(m==1)
-	  {
-	   sendFifo("M");
-	   moni=1;
-	   gotoXY(moniX,moniY);
-	   textSize=2;
-	   setForeColour(0,255,0);
-	   displayStr("MONI");
-	  } 
-	else
-	  {
-	   sendFifo("m");
-	   moni=0;
-	   gotoXY(moniX,moniY);
-	   textSize=2;
-	   displayStr("    ");
-	  }
+  if(m==1)
+    {
+     sendFifo("M");
+     moni=1;
+     gotoXY(moniX,moniY);
+     textSize=2;
+     setForeColour(0,255,0);
+     displayStr("MONI");
+    } 
+  else
+    {
+     sendFifo("m");
+     moni=0;
+     gotoXY(moniX,moniY);
+     textSize=2;
+     displayStr("    ");
+    }
 }
 
 void setMode(int md)
 {
-	gotoXY(modeX,modeY);
-	setForeColour(255,255,0);
-	textSize=2;
-	displayStr(modename[md]);
-	if(md==0)
-	  {
-	  sendFifo("U");    //USB
+  gotoXY(modeX,modeY);
+  setForeColour(255,255,0);
+  textSize=2;
+  displayStr(modename[md]);
+  if(md==0)
+    {
+    sendFifo("U");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButtons(0);
-	  } 
-	
-	if(md==1)
-	  {
-	  sendFifo("L");    //USB
+    } 
+  
+  if(md==1)
+    {
+    sendFifo("L");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButtons(0);
-	  } 
-	
-	if(md==2)
-	  {
-	  sendFifo("C");    //CW
+    } 
+  
+  if(md==2)
+    {
+    sendFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sendFifo("W");    //wide CW Filter
     sqlButtons(0);
-	  } 
+    } 
     
-	if(md==3)
-	  {
-	  sendFifo("C");    //CW
+  if(md==3)
+    {
+    sendFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sendFifo("N");    //Narrow CW Filter
     sqlButtons(0);
-	  } 
- 	if(md==4)
-	  {
-	  sendFifo("F");    //FM
+    } 
+  if(md==4)
+    {
+    sendFifo("F");    //FM
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButtons(1);
-	  } 
+    } 
 
 
 
@@ -1088,104 +1097,106 @@ void setMode(int md)
 
 void setTx(int pt)
 {
-	gotoXY(txX,txY);
-	textSize=2;
-	if(pt)
-	  {
-	  	digitalWrite(txPin,HIGH);
-	  	usleep(TXDELAY);
-	  	setHwTxFreq(freq);
-	  	PlutoTxEnable(1);
-	  	if(satMode()==0)
-	  	{
-	  		setHwRxFreq(freq+10.0);   						//offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
-	  		PlutoRxEnable(0);
-			}
+  gotoXY(txX,txY);
+  textSize=2;
+  if(pt)
+    {
+      digitalWrite(txPin,HIGH);
+      usleep(TXDELAY);
+      setHwTxFreq(freq);
+      PlutoTxEnable(1);
+      if(satMode()==0)
+      {
+        setFFTPipe(0);                        //turn off the FFT stream
+        setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
+        PlutoRxEnable(0);
+      }
 
-		  sendFifo("T");
-		  setForeColour(255,0,0);
-		  displayStr("Tx");  
-	  }
-	else
-	  {
-		  sendFifo("R");
-		  PlutoTxEnable(0);
-		  PlutoRxEnable(1);
-		  setHwRxFreq(freq);
-		  setForeColour(0,255,0);
-		  displayStr("Rx");
-		  usleep(RXDELAY);
-		  digitalWrite(txPin,LOW);
-	  }
+      sendFifo("T");
+      setForeColour(255,0,0);
+      displayStr("Tx");  
+    }
+  else
+    {
+      sendFifo("R");
+      PlutoTxEnable(0);
+      PlutoRxEnable(1);
+      setFFTPipe(1);                //turn on the FFT Stream
+      setHwRxFreq(freq);
+      setForeColour(0,255,0);
+      displayStr("Rx");
+      usleep(RXDELAY);
+      digitalWrite(txPin,LOW);
+    }
 }
 
 void setHwRxFreq(double fr)
 {
-	long long rxoffsethz;
-	long long LOrxfreqhz;
+  long long rxoffsethz;
+  long long LOrxfreqhz;
   long long rxfreqhz;
   double frRx;
   double frTx;
   
   frRx=fr-bandRxOffset[band];
   
-	rxfreqhz=frRx*1000000;
+  rxfreqhz=frRx*1000000;
   
-	rxoffsethz=(rxfreqhz % 100000)+50000;        //use just the +50Khz to +150Khz positive side of the sampled spectrum. This avoids the DC hump .
+  rxoffsethz=(rxfreqhz % 100000)+50000;        //use just the +50Khz to +150Khz positive side of the sampled spectrum. This avoids the DC hump .
   
-	LOrxfreqhz=rxfreqhz-rxoffsethz;
+  LOrxfreqhz=rxfreqhz-rxoffsethz;
   
-	if((mode==2)|(mode==3))
+  if((mode==2)|(mode==3))
     {
      rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz    
     }
-	if(LOrxfreqhz!=lastLOhz)         
-	  {
-  	  setPlutoRxFreq(LOrxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
-  	  lastLOhz=LOrxfreqhz;
-	  }
-	
-	char offsetStr[32];
-	sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
-	sendFifo(offsetStr);
+  if(LOrxfreqhz!=lastLOhz)         
+    {
+      setPlutoRxFreq(LOrxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
+      lastLOhz=LOrxfreqhz;
+    }
+  
+  char offsetStr[32];
+  sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
+  sendFifo(offsetStr);
 }
 
 void setHwTxFreq(double fr)
 {
-	long long txfreqhz;
+  long long txfreqhz;
   double frTx;
   
   frTx=fr-bandTxOffset[band];
   
-	txfreqhz=frTx*1000000;
+  txfreqhz=frTx*1000000;
     
-	if((mode==2)|(mode==3))
+  if((mode==2)|(mode==3))
     {
      txfreqhz=txfreqhz-800;         //offset  for CW tone of 800 Hz    
     }
   
-  	  setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
+      setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
 }
 
 void setFreq(double fr)
 {
-	long long freqhz;
-	char digit[16];	
+  long long freqhz;
+  char digit[16]; 
   
   if(ptt | ptts) 
   {
-  	setHwTxFreq(fr);				//set Hardware Tx frequency if we are transmitting
-	}
-	else
-	{
-	setHwRxFreq(fr);       //set Hardware Rx frequency if we are receiving
-	}
+    setHwTxFreq(fr);        //set Hardware Tx frequency if we are transmitting
+  }
+  else
+  {
+  setHwRxFreq(fr);       //set Hardware Rx frequency if we are receiving
+  }
 
-	fr=fr+0.0000001;   // correction for rounding errors.
-	freqhz=fr*1000000;		
-	freqhz=freqhz+100000000000;     //force it to be 12 digits long
-	sprintf(digit,"%lld",freqhz);
-	
+  fr=fr+0.0000001;   // correction for rounding errors.
+  freqhz=fr*1000000;    
+  freqhz=freqhz+100000000000;     //force it to be 12 digits long
+  sprintf(digit,"%lld",freqhz);
+  
   gotoXY(freqDisplayX,freqDisplayY);
   setForeColour(0,0,255);
   textSize=6;
@@ -1201,21 +1212,21 @@ void setFreq(double fr)
   displayChar('.');
   displayChar(digit[9]);
   displayChar(digit[10]);
-	
+  
 // Underline the currently selected tuning digit
-	
-	for(int dtd=0;dtd<12;dtd++)
-	  {
-		  gotoXY(freqDisplayX+dtd*freqDisplayCharWidth+4,freqDisplayY+freqDisplayCharHeight+5);
-		  int bb = 0;
-		  if (dtd==tuneDigit) bb=255;
-		  for(int p=0; p < freqDisplayCharWidth; p++)
-		    {
-		      setPixel(currentX+p,currentY+1,0,0,bb);
-		      setPixel(currentX+p,currentY+2,0,0,bb);
-		      setPixel(currentX+p,currentY+3,0,0,bb);
-		    }
-	  }
+  
+  for(int dtd=0;dtd<12;dtd++)
+    {
+      gotoXY(freqDisplayX+dtd*freqDisplayCharWidth+4,freqDisplayY+freqDisplayCharHeight+5);
+      int bb = 0;
+      if (dtd==tuneDigit) bb=255;
+      for(int p=0; p < freqDisplayCharWidth; p++)
+        {
+          setPixel(currentX+p,currentY+1,0,0,bb);
+          setPixel(currentX+p,currentY+2,0,0,bb);
+          setPixel(currentX+p,currentY+3,0,0,bb);
+        }
+    }
 
 //set TXVTR or SAT indication if needed.
   gotoXY(txvtrX,txvtrY);
@@ -1238,80 +1249,80 @@ void setFreq(double fr)
    setForeColour(0,255,0);
    if(settingsMode==0)
    {
-	   if(satMode()==1)
-	    {
-	     displayButton("MONI");
-	    }  
-	    else
-	    {
-	     displayButton("    ");
-	    }
-	  }
+     if(satMode()==1)
+      {
+       displayButton("MONI");
+      }  
+      else
+      {
+       displayButton("    ");
+      }
+    }
      
 }
 
 int satMode(void)
 {
 if(abs(bandTxOffset[band]-bandRxOffset[band]) > 10 )      // if we have a differnt Rx and Tx offset then we must be in Sat mode. 
-	{
-	return 1;
-	}
+  {
+  return 1;
+  }
 else
-	{
-	return 0;
-	}
+  {
+  return 0;
+  }
 }
 
 int txvtrMode(void)
 {
 if((abs(bandTxOffset[band]-bandRxOffset[band]) <1) & (abs(bandTxOffset[band]) >1 )  )       //if the tx and rx offset are the same and non zero then we are in Transverter mode
-	{
-	return 1;
-	}
+  {
+  return 1;
+  }
 else
-	{
-	return 0;
-	}
+  {
+  return 0;
+  }
 }
 
 
 void setBandBits(int b)
 {
 if(b & 0x01) 
-		{
-		digitalWrite(bandPin1,HIGH);
-		}
+    {
+    digitalWrite(bandPin1,HIGH);
+    }
 else
-		{
-		digitalWrite(bandPin1,LOW);
-		}
-		
+    {
+    digitalWrite(bandPin1,LOW);
+    }
+    
 if(b & 0x02) 
-		{
-		digitalWrite(bandPin2,HIGH);
-		}
+    {
+    digitalWrite(bandPin2,HIGH);
+    }
 else
-		{
-		digitalWrite(bandPin2,LOW);
-		}		
+    {
+    digitalWrite(bandPin2,LOW);
+    }   
 
 if(b & 0x04) 
-		{
-		digitalWrite(bandPin3,HIGH);
-		}
+    {
+    digitalWrite(bandPin3,HIGH);
+    }
 else
-		{
-		digitalWrite(bandPin3,LOW);
-		}		
+    {
+    digitalWrite(bandPin3,LOW);
+    }   
 
 if(b & 0x08) 
-		{
-		digitalWrite(bandPin4,HIGH);
-		}
+    {
+    digitalWrite(bandPin4,HIGH);
+    }
 else
-		{
-		digitalWrite(bandPin4,LOW);
-		}		
+    {
+    digitalWrite(bandPin4,LOW);
+    }   
 }
 
 
@@ -1344,60 +1355,60 @@ void exitSettings(void)
 
 void changeSetting(void)
 {
-	if(settingNo==0)        //SSB Mic Gain
-		  {
-		  SSBMic=SSBMic+mouseScroll;
-		  mouseScroll=0;
-		  if(SSBMic<0) SSBMic=0;
-		  if(SSBMic>maxSSBMic) SSBMic=maxSSBMic;
-		  setSSBMic(SSBMic);
-		  displaySetting(settingNo);
-		  }
+  if(settingNo==0)        //SSB Mic Gain
+      {
+      SSBMic=SSBMic+mouseScroll;
+      mouseScroll=0;
+      if(SSBMic<0) SSBMic=0;
+      if(SSBMic>maxSSBMic) SSBMic=maxSSBMic;
+      setSSBMic(SSBMic);
+      displaySetting(settingNo);
+      }
    if(settingNo==1)        // FM Mic Gain
-		  {
-		  FMMic=FMMic+mouseScroll;
-		  mouseScroll=0;
-		  if(FMMic<0) FMMic=0;
-		  if(FMMic>maxFMMic) FMMic=maxFMMic;
-		  setFMMic(FMMic);
-		  displaySetting(settingNo);
-		  }
-	 if(settingNo==2)        //Transverter Rx Offset 
-		  {
-		    bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
-		    displaySetting(settingNo);
-		    freq=freq+mouseScroll*freqInc;
-		    if(freq>maxFreq) freq=maxFreq;
-		    if(freq<minFreq) freq=minFreq;
-		    mouseScroll=0;
-		    setFreq(freq);
-		  } 
-	 if(settingNo==3)        //Transverter Tx Offset
-		  {
-		    bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
-		    displaySetting(settingNo);
-		    mouseScroll=0;
-		    setFreq(freq);
-		  }  
-	 if(settingNo==4)        // Band Bits
-		  {
-		  bandBits[band]=bandBits[band]+mouseScroll;
-		  mouseScroll=0;
-		  if(bandBits[band]<0) bandBits[band]=0;
-		  if(bandBits[band]>15) bandBits[band]=15;
-		  bbits=bandBits[band];
-		  setBandBits(bbits);
-		  displaySetting(settingNo);  
-		  }    
-	 if(settingNo==5)        // FFT Ref Level
-		  {
-		  FFTRef=FFTRef+mouseScroll;
-		  mouseScroll=0;
-		  if(FFTRef<-50) FFTRef=-50;
-		  if(FFTRef>0) FFTRef=0;
-		  setFFTRef(FFTRef);
-		  displaySetting(settingNo);  
-		  }                      		          
+      {
+      FMMic=FMMic+mouseScroll;
+      mouseScroll=0;
+      if(FMMic<0) FMMic=0;
+      if(FMMic>maxFMMic) FMMic=maxFMMic;
+      setFMMic(FMMic);
+      displaySetting(settingNo);
+      }
+   if(settingNo==2)        //Transverter Rx Offset 
+      {
+        bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
+        displaySetting(settingNo);
+        freq=freq+mouseScroll*freqInc;
+        if(freq>maxFreq) freq=maxFreq;
+        if(freq<minFreq) freq=minFreq;
+        mouseScroll=0;
+        setFreq(freq);
+      } 
+   if(settingNo==3)        //Transverter Tx Offset
+      {
+        bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
+        displaySetting(settingNo);
+        mouseScroll=0;
+        setFreq(freq);
+      }  
+   if(settingNo==4)        // Band Bits
+      {
+      bandBits[band]=bandBits[band]+mouseScroll;
+      mouseScroll=0;
+      if(bandBits[band]<0) bandBits[band]=0;
+      if(bandBits[band]>15) bandBits[band]=15;
+      bbits=bandBits[band];
+      setBandBits(bbits);
+      displaySetting(settingNo);  
+      }    
+   if(settingNo==5)        // FFT Ref Level
+      {
+      FFTRef=FFTRef+mouseScroll;
+      mouseScroll=0;
+      if(FFTRef<-50) FFTRef=-50;
+      if(FFTRef>0) FFTRef=0;
+      setFFTRef(FFTRef);
+      displaySetting(settingNo);  
+      }                                   
 }
 
                
@@ -1433,24 +1444,24 @@ void displaySetting(int se)
   displayStr(valStr);
   }
   
-	if(se==4)
+  if(se==4)
   {
     if(bbits==0)  sprintf(valStr,"0000"); 
     if(bbits==1)  sprintf(valStr,"0001");
-		if(bbits==2)  sprintf(valStr,"0010"); 
-		if(bbits==3)  sprintf(valStr,"0011"); 
-		if(bbits==4)  sprintf(valStr,"0100"); 
-		if(bbits==5)  sprintf(valStr,"0101"); 
-		if(bbits==6)  sprintf(valStr,"0110"); 
-		if(bbits==7)  sprintf(valStr,"0111"); 
-		if(bbits==8)  sprintf(valStr,"1000"); 
-	  if(bbits==9)  sprintf(valStr,"1001"); 
+    if(bbits==2)  sprintf(valStr,"0010"); 
+    if(bbits==3)  sprintf(valStr,"0011"); 
+    if(bbits==4)  sprintf(valStr,"0100"); 
+    if(bbits==5)  sprintf(valStr,"0101"); 
+    if(bbits==6)  sprintf(valStr,"0110"); 
+    if(bbits==7)  sprintf(valStr,"0111"); 
+    if(bbits==8)  sprintf(valStr,"1000"); 
+    if(bbits==9)  sprintf(valStr,"1001"); 
     if(bbits==10)  sprintf(valStr,"1010");
-		if(bbits==11)  sprintf(valStr,"1011"); 
-		if(bbits==12)  sprintf(valStr,"1100"); 
-		if(bbits==13)  sprintf(valStr,"1101"); 
-		if(bbits==14)  sprintf(valStr,"1110"); 
-		if(bbits==15)  sprintf(valStr,"1111"); 												  
+    if(bbits==11)  sprintf(valStr,"1011"); 
+    if(bbits==12)  sprintf(valStr,"1100"); 
+    if(bbits==13)  sprintf(valStr,"1101"); 
+    if(bbits==14)  sprintf(valStr,"1110"); 
+    if(bbits==15)  sprintf(valStr,"1111");                          
   displayStr(valStr);
   }
   if(se==5)
@@ -1469,64 +1480,64 @@ char value[20];
 conffile=fopen("/home/pi/Langstone/Langstone.conf","r");
 
 if(conffile==NULL)
-	{
-		return -1;
-	}
+  {
+    return -1;
+  }
 
 while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
-	{
-		if(strstr(variable,"bandFreq0")) sscanf(value,"%lf",&bandFreq[0]);
-		if(strstr(variable,"bandTxOffset0")) sscanf(value,"%lf",&bandTxOffset[0]);
-		if(strstr(variable,"bandRxOffset0")) sscanf(value,"%lf",&bandRxOffset[0]);
-		if(strstr(variable,"bandBits0")) sscanf(value,"%d",&bandBits[0]);	
-		if(strstr(variable,"bandFreq1")) sscanf(value,"%lf",&bandFreq[1]);
-		if(strstr(variable,"bandTXOffset1")) sscanf(value,"%lf",&bandTxOffset[1]);	
-		if(strstr(variable,"bandRxOffset1")) sscanf(value,"%lf",&bandRxOffset[1]);
-		if(strstr(variable,"bandBits1")) sscanf(value,"%d",&bandBits[1]);	
-		if(strstr(variable,"bandFreq2")) sscanf(value,"%lf",&bandFreq[2]);
-		if(strstr(variable,"bandTxOffset2")) sscanf(value,"%lf",&bandTxOffset[2]);	
-		if(strstr(variable,"bandRxOffset2")) sscanf(value,"%lf",&bandRxOffset[2]);
-		if(strstr(variable,"bandBits2")) sscanf(value,"%d",&bandBits[2]);	
-		if(strstr(variable,"bandFreq3")) sscanf(value,"%lf",&bandFreq[3]);
-		if(strstr(variable,"bandTxOffset3")) sscanf(value,"%lf",&bandTxOffset[3]);	
-		if(strstr(variable,"bandRxOffset3")) sscanf(value,"%lf",&bandRxOffset[3]);
-		if(strstr(variable,"bandBits3")) sscanf(value,"%d",&bandBits[3]);	
-		if(strstr(variable,"bandFreq4")) sscanf(value,"%lf",&bandFreq[4]);
-		if(strstr(variable,"bandTxOffset4")) sscanf(value,"%lf",&bandTxOffset[4]);	
-		if(strstr(variable,"bandRxOffset4")) sscanf(value,"%lf",&bandRxOffset[4]);
-		if(strstr(variable,"bandBits4")) sscanf(value,"%d",&bandBits[4]);	
-		if(strstr(variable,"bandFreq5")) sscanf(value,"%lf",&bandFreq[5]);
-		if(strstr(variable,"bandTxOffset5")) sscanf(value,"%lf",&bandTxOffset[5]);	
-		if(strstr(variable,"bandRxOffset5")) sscanf(value,"%lf",&bandRxOffset[5]);
-		if(strstr(variable,"bandBits5")) sscanf(value,"%d",&bandBits[5]);	
-		if(strstr(variable,"bandFreq6")) sscanf(value,"%lf",&bandFreq[6]);
-		if(strstr(variable,"bandTxOffset6")) sscanf(value,"%lf",&bandTxOffset[6]);	
-		if(strstr(variable,"bandRxOffset6")) sscanf(value,"%lf",&bandRxOffset[6]);
-		if(strstr(variable,"bandBits6")) sscanf(value,"%d",&bandBits[6]);	
-		if(strstr(variable,"bandFreq7")) sscanf(value,"%lf",&bandFreq[7]);
-		if(strstr(variable,"bandTxffset7")) sscanf(value,"%lf",&bandTxOffset[7]);	
-		if(strstr(variable,"bandRxOffset7")) sscanf(value,"%lf",&bandRxOffset[7]);
-		if(strstr(variable,"bandBits7")) sscanf(value,"%d",&bandBits[7]);	
-		if(strstr(variable,"bandFreq8")) sscanf(value,"%lf",&bandFreq[8]);
-		if(strstr(variable,"bandTxOffset8")) sscanf(value,"%lf",&bandTxOffset[8]);	
-		if(strstr(variable,"bandRxOffset8")) sscanf(value,"%lf",&bandRxOffset[8]);
-		if(strstr(variable,"bandBits8")) sscanf(value,"%d",&bandBits[8]);	
-		if(strstr(variable,"bandFreq9")) sscanf(value,"%lf",&bandFreq[9]);
-		if(strstr(variable,"bandTxOffset9")) sscanf(value,"%lf",&bandTxOffset[9]);	
-		if(strstr(variable,"bandRxOffset9")) sscanf(value,"%lf",&bandRxOffset[9]);
-		if(strstr(variable,"bandBits9")) sscanf(value,"%d",&bandBits[9]);	
+  {
+    if(strstr(variable,"bandFreq0")) sscanf(value,"%lf",&bandFreq[0]);
+    if(strstr(variable,"bandTxOffset0")) sscanf(value,"%lf",&bandTxOffset[0]);
+    if(strstr(variable,"bandRxOffset0")) sscanf(value,"%lf",&bandRxOffset[0]);
+    if(strstr(variable,"bandBits0")) sscanf(value,"%d",&bandBits[0]); 
+    if(strstr(variable,"bandFreq1")) sscanf(value,"%lf",&bandFreq[1]);
+    if(strstr(variable,"bandTXOffset1")) sscanf(value,"%lf",&bandTxOffset[1]);  
+    if(strstr(variable,"bandRxOffset1")) sscanf(value,"%lf",&bandRxOffset[1]);
+    if(strstr(variable,"bandBits1")) sscanf(value,"%d",&bandBits[1]); 
+    if(strstr(variable,"bandFreq2")) sscanf(value,"%lf",&bandFreq[2]);
+    if(strstr(variable,"bandTxOffset2")) sscanf(value,"%lf",&bandTxOffset[2]);  
+    if(strstr(variable,"bandRxOffset2")) sscanf(value,"%lf",&bandRxOffset[2]);
+    if(strstr(variable,"bandBits2")) sscanf(value,"%d",&bandBits[2]); 
+    if(strstr(variable,"bandFreq3")) sscanf(value,"%lf",&bandFreq[3]);
+    if(strstr(variable,"bandTxOffset3")) sscanf(value,"%lf",&bandTxOffset[3]);  
+    if(strstr(variable,"bandRxOffset3")) sscanf(value,"%lf",&bandRxOffset[3]);
+    if(strstr(variable,"bandBits3")) sscanf(value,"%d",&bandBits[3]); 
+    if(strstr(variable,"bandFreq4")) sscanf(value,"%lf",&bandFreq[4]);
+    if(strstr(variable,"bandTxOffset4")) sscanf(value,"%lf",&bandTxOffset[4]);  
+    if(strstr(variable,"bandRxOffset4")) sscanf(value,"%lf",&bandRxOffset[4]);
+    if(strstr(variable,"bandBits4")) sscanf(value,"%d",&bandBits[4]); 
+    if(strstr(variable,"bandFreq5")) sscanf(value,"%lf",&bandFreq[5]);
+    if(strstr(variable,"bandTxOffset5")) sscanf(value,"%lf",&bandTxOffset[5]);  
+    if(strstr(variable,"bandRxOffset5")) sscanf(value,"%lf",&bandRxOffset[5]);
+    if(strstr(variable,"bandBits5")) sscanf(value,"%d",&bandBits[5]); 
+    if(strstr(variable,"bandFreq6")) sscanf(value,"%lf",&bandFreq[6]);
+    if(strstr(variable,"bandTxOffset6")) sscanf(value,"%lf",&bandTxOffset[6]);  
+    if(strstr(variable,"bandRxOffset6")) sscanf(value,"%lf",&bandRxOffset[6]);
+    if(strstr(variable,"bandBits6")) sscanf(value,"%d",&bandBits[6]); 
+    if(strstr(variable,"bandFreq7")) sscanf(value,"%lf",&bandFreq[7]);
+    if(strstr(variable,"bandTxffset7")) sscanf(value,"%lf",&bandTxOffset[7]); 
+    if(strstr(variable,"bandRxOffset7")) sscanf(value,"%lf",&bandRxOffset[7]);
+    if(strstr(variable,"bandBits7")) sscanf(value,"%d",&bandBits[7]); 
+    if(strstr(variable,"bandFreq8")) sscanf(value,"%lf",&bandFreq[8]);
+    if(strstr(variable,"bandTxOffset8")) sscanf(value,"%lf",&bandTxOffset[8]);  
+    if(strstr(variable,"bandRxOffset8")) sscanf(value,"%lf",&bandRxOffset[8]);
+    if(strstr(variable,"bandBits8")) sscanf(value,"%d",&bandBits[8]); 
+    if(strstr(variable,"bandFreq9")) sscanf(value,"%lf",&bandFreq[9]);
+    if(strstr(variable,"bandTxOffset9")) sscanf(value,"%lf",&bandTxOffset[9]);  
+    if(strstr(variable,"bandRxOffset9")) sscanf(value,"%lf",&bandRxOffset[9]);
+    if(strstr(variable,"bandBits9")) sscanf(value,"%d",&bandBits[9]); 
 
-		if(strstr(variable,"currentBand")) sscanf(value,"%d",&band);
-		if(strstr(variable,"tuneDigit")) sscanf(value,"%d",&tuneDigit);		
-		if(strstr(variable,"mode")) sscanf(value,"%d",&mode);
-		if(strstr(variable,"SSBMic")) sscanf(value,"%d",&SSBMic);
+    if(strstr(variable,"currentBand")) sscanf(value,"%d",&band);
+    if(strstr(variable,"tuneDigit")) sscanf(value,"%d",&tuneDigit);   
+    if(strstr(variable,"mode")) sscanf(value,"%d",&mode);
+    if(strstr(variable,"SSBMic")) sscanf(value,"%d",&SSBMic);
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
-		if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
-		if(strstr(variable,"squelch")) sscanf(value,"%d",&squelch);
+    if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
+    if(strstr(variable,"squelch")) sscanf(value,"%d",&squelch);
     if(strstr(variable,"FFTRef")) sscanf(value,"%d",&FFTRef);
 
-						
-	}
+            
+  }
 
 fclose(conffile);
 return 0;
@@ -1544,9 +1555,9 @@ int value;
 conffile=fopen("/home/pi/Langstone/Langstone.conf","w");
 
 if(conffile==NULL)
-	{
-		return -1;
-	}
+  {
+    return -1;
+  }
 
 fprintf(conffile,"bandFreq0 %lf\n",bandFreq[0]);
 fprintf(conffile,"bandTxOffset0 %lf\n",bandTxOffset[0]);

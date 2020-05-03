@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Ssb Trx
-# Generated: Sat May  2 16:17:24 2020
+# Generated: Sun May  3 14:46:49 2020
 ##################################################
 
 from gnuradio import analog
@@ -16,6 +16,7 @@ from gnuradio import iio
 from gnuradio.eng_option import eng_option
 from gnuradio.fft import logpwrfft
 from gnuradio.filter import firdes
+from grc_gnuradio import blks2 as grc_blks2
 from optparse import OptionParser
 import os
 import errno
@@ -38,6 +39,7 @@ class SSB_TRX(gr.top_block):
         self.KEY = KEY = False
         self.FMMIC = FMMIC = 50
         self.FM = FM = False
+        self.FFTEn = FFTEn = 0
         self.CW = CW = False
         self.AFGain = AFGain = 20
 
@@ -61,6 +63,7 @@ class SSB_TRX(gr.top_block):
         	average=True,
         )
         self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,20000,6000)), RxOffset, 529200)
+        self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_mute_xx_0 = blocks.mute_ff(bool(PTT and (not MON)))
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
@@ -78,6 +81,13 @@ class SSB_TRX(gr.top_block):
         self.blocks_add_xx_2 = blocks.add_vcc(1)
         self.blocks_add_xx_1 = blocks.add_vff(1)
         self.blocks_add_xx_0 = blocks.add_vff(1)
+        self.blks2_selector_0 = grc_blks2.selector(
+        	item_size=gr.sizeof_float*512,
+        	num_inputs=1,
+        	num_outputs=2,
+        	input_index=0,
+        	output_index=FFTEn,
+        )
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
         	1, 44100, 200, 3000, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
@@ -120,6 +130,8 @@ class SSB_TRX(gr.top_block):
         self.connect((self.band_pass_filter_0, 0), (self.blocks_complex_to_real_0, 0))
         self.connect((self.band_pass_filter_0_0, 0), (self.blocks_multiply_const_vxx_4, 0))
         self.connect((self.band_pass_filter_1, 0), (self.analog_nbfm_tx_0, 0))
+        self.connect((self.blks2_selector_0, 1), (self.blocks_file_sink_0, 0))
+        self.connect((self.blks2_selector_0, 0), (self.blocks_null_sink_0, 0))
         self.connect((self.blocks_add_xx_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.blocks_add_xx_1, 0), (self.blocks_mute_xx_0, 0))
         self.connect((self.blocks_add_xx_2, 0), (self.rational_resampler_xxx_0, 0))
@@ -138,7 +150,7 @@ class SSB_TRX(gr.top_block):
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.analog_simple_squelch_cc_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.band_pass_filter_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))
-        self.connect((self.logpwrfft_x_0, 0), (self.blocks_file_sink_0, 0))
+        self.connect((self.logpwrfft_x_0, 0), (self.blks2_selector_0, 0))
         self.connect((self.pluto_source_0, 0), (self.freq_xlating_fir_filter_xxx_0, 0))
         self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_mute_xx_0_0, 0))
 
@@ -217,6 +229,13 @@ class SSB_TRX(gr.top_block):
         self.blocks_multiply_const_vxx_2_0.set_k((int(self.FM) *0.1, ))
         self.blocks_multiply_const_vxx_2.set_k((not self.FM, ))
 
+    def get_FFTEn(self):
+        return self.FFTEn
+
+    def set_FFTEn(self, FFTEn):
+        self.FFTEn = FFTEn
+        self.blks2_selector_0.set_output_index(int(self.FFTEn))
+
     def get_CW(self):
         return self.CW
 
@@ -279,7 +298,11 @@ def docommands(tb):
            if line=='M':
               tb.set_MON(True) 
            if line=='m':
-              tb.set_MON(False)                                                 
+              tb.set_MON(False)
+           if line=='P':
+              tb.set_FFTEn(1)
+           if line=='p':
+              tb.set_FFTEn(0)
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  
@@ -306,6 +329,7 @@ def main(top_block_cls=SSB_TRX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
+
 
 if __name__ == '__main__':
     main()
