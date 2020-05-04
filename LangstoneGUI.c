@@ -347,8 +347,8 @@ void waterfall()
           }
           if (mode==4)
           {
-           bwBarStart=-70;
-           bwBarEnd=70;
+           bwBarStart=-87;
+           bwBarEnd=87;
            centreShift=0;          
           }
           int p=points/2;

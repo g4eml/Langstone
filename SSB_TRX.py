@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Ssb Trx
-# Generated: Sun May  3 14:46:49 2020
+# Generated: Mon May  4 17:28:39 2020
 ##################################################
 
 from gnuradio import analog
@@ -30,7 +30,7 @@ class SSB_TRX(gr.top_block):
         # Variables
         ##################################################
         self.USB = USB = True
-        self.SQL = SQL = 20
+        self.SQL = SQL = 50
         self.RxOffset = RxOffset = 0
         self.PTT = PTT = False
         self.NCW = NCW = False
@@ -52,8 +52,8 @@ class SSB_TRX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
-        self.pluto_source_0 = iio.pluto_source('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
-        self.pluto_sink_0 = iio.pluto_sink('ip:192.168.2.1', 1296200000, 529200, 2000000, 0x800, False, 0, '', True)
+        self.pluto_source_0 = iio.pluto_source('ip:192.168.2.1', 1000000000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink('ip:192.168.2.1', 1000000000, 529200, 2000000, 0x800, False, 0, '', True)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
         	sample_rate=44100,
         	fft_size=512,
@@ -69,9 +69,9 @@ class SSB_TRX(gr.top_block):
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc((not FM, ))
         self.blocks_multiply_const_vxx_3 = blocks.multiply_const_vcc((FM, ))
-        self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((int(FM) *0.1, ))
+        self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((int(FM) *0.01, ))
         self.blocks_multiply_const_vxx_2 = blocks.multiply_const_vff((not FM, ))
-        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff((AFGain/10.0, ))
+        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff((AFGain, ))
         self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_vff((FMMIC/10.0, ))
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_vff(((MicGain/10.0)*(not CW), ))
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
@@ -93,12 +93,12 @@ class SSB_TRX(gr.top_block):
         self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 44100, -3000+USB*3300, -300+USB*3300, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
-        	1, 44100, -3000+USB*3300+NCW*CW*250, -300+USB*3300-NCW*CW*1950, 100, firdes.WIN_HAMMING, 6.76))
+        	1, 44100, ((-3000+USB*3300+NCW*CW*250)*(1-FM)) + (-7500 * FM), ((-300+USB*3300-NCW*CW*1950)* (1-FM)) + (7500 * FM), 100, firdes.WIN_HAMMING, 6.76))
         self.audio_source_0 = audio.source(44100, "hw:CARD=Device,DEV=0", True)
         self.audio_sink_0 = audio.sink(44100, "hw:CARD=Device,DEV=0", True)
-        self.analog_simple_squelch_cc_0 = analog.simple_squelch_cc(-60+SQL, 1)
         self.analog_sig_source_x_1_0 = analog.sig_source_f(44100, analog.GR_COS_WAVE, 800, int(CW and KEY), 0)
         self.analog_sig_source_x_0 = analog.sig_source_c(44100, analog.GR_COS_WAVE, 0, 1, 0)
+        self.analog_pwr_squelch_xx_0 = analog.pwr_squelch_cc(SQL-100, 0.001, 0, False)
         self.analog_nbfm_tx_0 = analog.nbfm_tx(
         	audio_rate=44100,
         	quad_rate=44100,
@@ -122,11 +122,12 @@ class SSB_TRX(gr.top_block):
         self.connect((self.analog_const_source_x_0, 0), (self.blocks_float_to_complex_0, 1))
         self.connect((self.analog_nbfm_rx_0, 0), (self.blocks_multiply_const_vxx_2_0, 0))
         self.connect((self.analog_nbfm_tx_0, 0), (self.blocks_multiply_const_vxx_3, 0))
+        self.connect((self.analog_pwr_squelch_xx_0, 0), (self.analog_nbfm_rx_0, 0))
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0, 1))
         self.connect((self.analog_sig_source_x_1_0, 0), (self.blocks_add_xx_0, 1))
-        self.connect((self.analog_simple_squelch_cc_0, 0), (self.analog_nbfm_rx_0, 0))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0, 0))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0_0, 0))
+        self.connect((self.band_pass_filter_0, 0), (self.analog_pwr_squelch_xx_0, 0))
         self.connect((self.band_pass_filter_0, 0), (self.blocks_complex_to_real_0, 0))
         self.connect((self.band_pass_filter_0_0, 0), (self.blocks_multiply_const_vxx_4, 0))
         self.connect((self.band_pass_filter_1, 0), (self.analog_nbfm_tx_0, 0))
@@ -147,7 +148,6 @@ class SSB_TRX(gr.top_block):
         self.connect((self.blocks_multiply_xx_0, 0), (self.band_pass_filter_0_0, 0))
         self.connect((self.blocks_mute_xx_0, 0), (self.blocks_multiply_const_vxx_1, 0))
         self.connect((self.blocks_mute_xx_0_0, 0), (self.pluto_sink_0, 0))
-        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.analog_simple_squelch_cc_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.band_pass_filter_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))
         self.connect((self.logpwrfft_x_0, 0), (self.blks2_selector_0, 0))
@@ -160,14 +160,14 @@ class SSB_TRX(gr.top_block):
     def set_USB(self, USB):
         self.USB = USB
         self.band_pass_filter_0_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300, -300+self.USB*3300, 100, firdes.WIN_HAMMING, 6.76))
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300+self.NCW*self.CW*250, -300+self.USB*3300-self.NCW*self.CW*1950, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
 
     def get_SQL(self):
         return self.SQL
 
     def set_SQL(self, SQL):
         self.SQL = SQL
-        self.analog_simple_squelch_cc_0.set_threshold(-60+self.SQL)
+        self.analog_pwr_squelch_xx_0.set_threshold(self.SQL-100)
 
     def get_RxOffset(self):
         return self.RxOffset
@@ -189,7 +189,7 @@ class SSB_TRX(gr.top_block):
 
     def set_NCW(self, NCW):
         self.NCW = NCW
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300+self.NCW*self.CW*250, -300+self.USB*3300-self.NCW*self.CW*1950, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
 
     def get_MicGain(self):
         return self.MicGain
@@ -226,8 +226,9 @@ class SSB_TRX(gr.top_block):
         self.FM = FM
         self.blocks_multiply_const_vxx_4.set_k((not self.FM, ))
         self.blocks_multiply_const_vxx_3.set_k((self.FM, ))
-        self.blocks_multiply_const_vxx_2_0.set_k((int(self.FM) *0.1, ))
+        self.blocks_multiply_const_vxx_2_0.set_k((int(self.FM) *0.01, ))
         self.blocks_multiply_const_vxx_2.set_k((not self.FM, ))
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
 
     def get_FFTEn(self):
         return self.FFTEn
@@ -242,7 +243,7 @@ class SSB_TRX(gr.top_block):
     def set_CW(self, CW):
         self.CW = CW
         self.blocks_multiply_const_vxx_0.set_k(((self.MicGain/10.0)*(not self.CW), ))
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300+self.NCW*self.CW*250, -300+self.USB*3300-self.NCW*self.CW*1950, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
         self.analog_sig_source_x_1_0.set_amplitude(int(self.CW and self.KEY))
 
     def get_AFGain(self):
@@ -250,7 +251,7 @@ class SSB_TRX(gr.top_block):
 
     def set_AFGain(self, AFGain):
         self.AFGain = AFGain
-        self.blocks_multiply_const_vxx_1.set_k((self.AFGain/10.0, ))
+        self.blocks_multiply_const_vxx_1.set_k((self.AFGain, ))
 
 def docommands(tb):
   try:
@@ -298,7 +299,7 @@ def docommands(tb):
            if line=='M':
               tb.set_MON(True) 
            if line=='m':
-              tb.set_MON(False)
+              tb.set_MON(False)  
            if line=='P':
               tb.set_FFTEn(1)
            if line=='p':
@@ -320,7 +321,6 @@ def docommands(tb):
               tb.set_SQL(value)                    
        except:
          break
-
 
 def main(top_block_cls=SSB_TRX, options=None):
 
