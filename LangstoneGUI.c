@@ -168,6 +168,7 @@ int spectrum_rows=50;
 
 
 
+
 int main(int argc, char* argv[])
 {
 
@@ -242,6 +243,9 @@ void waterfall()
 {
   int level,level2;
   int ret;
+  int bwBarStart=3;
+  int bwBarEnd=34;
+  int centreShift=0;
   
       //check if data avilable to read
       ret = fread(&inbuf,sizeof(float),1,fftstream);
@@ -314,12 +318,47 @@ void waterfall()
             level = (buf[p][0]-baselevel)*scaling;   
             level2 = (buf[p+1][0]-baselevel)*scaling;
             drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
-            if(p==points/2)
-            {
-              drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
-            }
+        }
+          
+          //draw Bandwidth indicator
+          if (mode==0)
+          {
+           bwBarStart=3;
+           bwBarEnd=34;
+           centreShift=0;
           }
-      }    
+          if (mode==1)
+          {
+           bwBarStart=-34;
+           bwBarEnd=-3;
+           centreShift=0;          
+          }
+          if (mode==2)
+          {
+           bwBarStart=3;
+           bwBarEnd=34;
+           centreShift=9;
+          }
+          if (mode==3)
+          {
+           bwBarStart=6;
+           bwBarEnd=12;
+           centreShift=9;          
+          }
+          if (mode==4)
+          {
+           bwBarStart=-70;
+           bwBarEnd=70;
+           centreShift=0;          
+          }
+          int p=points/2;
+
+          drawLine(p+140+bwBarStart, 186-spectrum_rows+5, p+140+bwBarStart, 186-spectrum_rows,255,140,0);
+          drawLine(p+140+bwBarStart, 186-spectrum_rows, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);
+          drawLine(p+140+bwBarEnd, 186-spectrum_rows+5, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);  
+          //draw centre line (displayed frequency)
+          drawLine(p+140+centreShift, 186-10, p+140+centreShift, 186-spectrum_rows,255,0,0);   
+   }       
 }
 
 void setFFTRef(int ref)
