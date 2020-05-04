@@ -37,8 +37,6 @@ void setKey(int k);
 void displayMenu(void);
 void displaySetting(int se);
 void changeSetting(void);
-void startSettings(void);
-void exitSettings(void);
 void processGPIO(void);
 void initGPIO(void);
 int readConfig(void);
@@ -49,6 +47,10 @@ void setMoni(int m);
 void setFFTRef(int ref);
 void initSDR(void);
 void setFFTPipe(int cntl);
+void waterfall(void);
+void init_fft_Fifo();
+void setRit(int rit);
+void setInputMode(int n);
 
 double freq;
 double freqInc=0.001;
@@ -71,17 +73,17 @@ char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
 
 #define numSettings 6
 int settingNo=0;
-int settingsMode=0;
+int inputMode=0;
 char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","FFT Ref = "};
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
-#define volButtonsX 660
-#define volButtonsY 250
-#define sqlButtonsX 30
-#define sqlButtonsY 250
-#define tuneButtonsY 35
-#define tuneButtonsX 680
+#define volButtonX 660
+#define volButtonY 300
+#define sqlButtonX 30
+#define sqlButtonY 300
+#define ritButtonX 670
+#define ritButtonY 60
 #define funcButtonsY 429
 #define funcButtonsX 30
 #define buttonHeight 50
@@ -122,6 +124,10 @@ int volume=20;
 int squelch=20;
 #define maxsql 100
 
+int rit=0;
+#define minrit -1000
+#define maxrit 1000
+
 int SSBMic=50;
 #define maxSSBMic 100
 
@@ -150,9 +156,8 @@ int plutoPresent;
 
 
 
-//robs
-void waterfall(void);
-void init_fft_Fifo();
+//robs Waterfall
+
 float inbuf[2];
 FILE *fftstream;
 float buf[512][150];
@@ -160,6 +165,8 @@ int points=512;
 int rows=150;
 int FFTRef = -30;
 int spectrum_rows=50;
+
+
 
 
 int main(int argc, char* argv[])
@@ -236,6 +243,9 @@ void waterfall()
 {
   int level,level2;
   int ret;
+  int bwBarStart=3;
+  int bwBarEnd=34;
+  int centreShift=0;
   
       //check if data avilable to read
       ret = fread(&inbuf,sizeof(float),1,fftstream);
@@ -308,12 +318,47 @@ void waterfall()
             level = (buf[p][0]-baselevel)*scaling;   
             level2 = (buf[p+1][0]-baselevel)*scaling;
             drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
-            if(p==points/2)
-            {
-              drawLine(p+140, 186-10, p+140, 186-spectrum_rows,255,0,0);
-            }
+        }
+          
+          //draw Bandwidth indicator
+          if (mode==0)
+          {
+           bwBarStart=3;
+           bwBarEnd=34;
+           centreShift=0;
           }
-      }    
+          if (mode==1)
+          {
+           bwBarStart=-34;
+           bwBarEnd=-3;
+           centreShift=0;          
+          }
+          if (mode==2)
+          {
+           bwBarStart=3;
+           bwBarEnd=34;
+           centreShift=9;
+          }
+          if (mode==3)
+          {
+           bwBarStart=6;
+           bwBarEnd=12;
+           centreShift=9;          
+          }
+          if (mode==4)
+          {
+           bwBarStart=-87;
+           bwBarEnd=87;
+           centreShift=0;          
+          }
+          int p=points/2;
+
+          drawLine(p+140+bwBarStart, 186-spectrum_rows+5, p+140+bwBarStart, 186-spectrum_rows,255,140,0);
+          drawLine(p+140+bwBarStart, 186-spectrum_rows, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);
+          drawLine(p+140+bwBarEnd, 186-spectrum_rows+5, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);  
+          //draw centre line (displayed frequency)
+          drawLine(p+140+centreShift, 186-10, p+140+centreShift, 186-spectrum_rows,255,0,0);   
+   }       
 }
 
 void setFFTRef(int ref)
@@ -538,10 +583,10 @@ void processGPIO(void)
 }
 
 
-void sqlButtons(int show)
+void sqlButton(int show)
 {
  char sqlStr[5]; 
-  gotoXY(sqlButtonsX,sqlButtonsY);
+  gotoXY(sqlButtonX,sqlButtonY);
   if(show==1)
     {
       setForeColour(0,255,0);
@@ -550,39 +595,62 @@ void sqlButtons(int show)
     {
       setForeColour(0,0,0);
     }
-  displayButton("SQ+");
-  gotoXY(sqlButtonsX,sqlButtonsY+buttonSpaceY);  
-  displayButton("SQ-");
+  displayButton("SQL");
   textSize=2;
-  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  gotoXY(sqlButtonX+30,sqlButtonY-25);
   displayStr("   ");
-  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  gotoXY(sqlButtonX+30,sqlButtonY-25);
   sprintf(sqlStr,"%d",squelch);
   displayStr(sqlStr);
+}
+
+void ritButton(int show)
+{
+ char ritStr[5]; 
+ int to;
+  if(show==1)
+    {
+      setForeColour(0,255,0);
+    }
+  else
+    {
+      setForeColour(0,0,0);
+      gotoXY(ritButtonX,ritButtonY+buttonSpaceY);
+      displayButton("Zero"); 
+    }
+  gotoXY(ritButtonX,ritButtonY);
+  displayButton("RIT");
+  textSize=2;
+  to=0;
+  if(abs(rit)>0) to=8;
+  if(abs(rit)>9) to=16;
+  if(abs(rit)>99) to=24;
+  if(abs(rit)>999) to=32;
+  gotoXY(ritButtonX,ritButtonY-25);
+  displayStr("         ");
+  gotoXY(ritButtonX+38-to,ritButtonY-25);
+  if (rit==0)
+  {
+  sprintf(ritStr,"0");
+  }
+  else
+  {
+    sprintf(ritStr,"%+d",rit);
+  }
+  displayStr(ritStr);
+
 }
 
 void initGUI()
 {
   clearScreen();
 
-//tuning buttons  (Only shown if mouse not present)
-  if(!mousePresent)
-   {
-    gotoXY(tuneButtonsX,tuneButtonsY);
-    setForeColour(0,255,0);
-    displayButton("+");
-    gotoXY(tuneButtonsX,tuneButtonsY+buttonSpaceY);
-    displayButton("-");
-   }
 
-
-// Volume Buttons
-  gotoXY(volButtonsX,volButtonsY);
+// Volume Button
+  gotoXY(volButtonX,volButtonY);
   setForeColour(0,255,0);
-  displayButton("Vol+");
-  gotoXY(volButtonsX,volButtonsY+buttonSpaceY);  
-  displayButton("Vol-");
-
+  displayButton("Vol");
+ 
 
  //bottom row of buttons
   displayMenu();
@@ -593,11 +661,11 @@ void initGUI()
   
   if(mode==4) 
     {
-    sqlButtons(1);
+    sqlButton(1);
     }
   else
     {
-    sqlButtons(0);
+    sqlButton(0);
     }
 
     //clear waterfall buffer.
@@ -616,6 +684,7 @@ void initSDR(void)
   setMode(mode); 
   setVolume(volume);
   setSquelch(squelch);
+  setRit(0);
   setSSBMic(SSBMic);
   setFMMic(FMMic);
   setFreqInc();
@@ -644,21 +713,47 @@ void processMouse(int mbut)
 {
   if(mbut==128)       //scroll whell turned 
     {
-    if(settingsMode==0)
-    {
-      freq=freq+(mouseScroll*freqInc);
-      mouseScroll=0;
-      if(freq < minFreq) freq=minFreq;
-      if(freq > maxFreq) freq=maxFreq;
-      setFreq(freq);
-      return;      
-    }
-    else
-    {
-      changeSetting();
-      return;
-    }
-
+      if(inputMode==0)
+      {
+        freq=freq+(mouseScroll*freqInc);
+        mouseScroll=0;
+        if(freq < minFreq) freq=minFreq;
+        if(freq > maxFreq) freq=maxFreq;
+        setFreq(freq);
+        return;      
+      }
+      if(inputMode==1)
+      {
+        changeSetting();
+        return;
+      }
+      if(inputMode==2)
+      {
+        volume=volume+mouseScroll;
+        mouseScroll=0;
+        if(volume < 0) volume=0;
+        if(volume > maxvol) volume=maxvol;
+        setVolume(volume);
+        return;      
+      }    
+      if(inputMode==3)
+      {
+        squelch=squelch+mouseScroll;
+        mouseScroll=0;
+        if(squelch < 0) squelch=0;
+        if(squelch > maxsql) squelch=maxsql;
+        setSquelch(squelch);
+        return;      
+      }   
+      if(inputMode==4)
+      {
+        rit=rit+mouseScroll*10;
+        mouseScroll=0;
+        if(rit < minrit) rit=minrit;
+        if(rit > maxrit) rit=maxrit;
+        setRit(rit);
+        return;      
+      }     
     }
     
   if(mbut==1+128)      //Left Mouse Button down
@@ -683,16 +778,12 @@ void processMouse(int mbut)
     
   if(mbut==4+128)      //Extra Button down
     {
-      volume=volume-1;
-      if(volume < 0) volume=0;
-      setVolume(volume);       
+ 
     }   
     
   if(mbut==5+128)      //Side Button down
     {
-      volume=volume+1;
-      if(volume >maxvol) volume=maxvol;
-      setVolume(volume);    
+ 
     }
   
     
@@ -719,79 +810,77 @@ void setFreqInc()
 void processTouch()
 { 
 
-//  Up and down Tuning Buttons
-
-if(buttonTouched(tuneButtonsX,tuneButtonsY))      //Up   
-   {
-      freq=freq+freqInc;
-      if(freq > maxFreq) freq=maxFreq;
-      setFreq(freq);
-      return;
-   }
-      
-if(buttonTouched(tuneButtonsX,tuneButtonsY+buttonSpaceY))     //Down
-    {
-      freq=freq-freqInc;
-      if(freq < minFreq) freq=minFreq;
-      setFreq(freq);
-      return;
-    }    
 
    
-// Volume up and down Buttons   
+// Volume Button   
 
 
-if(buttonTouched(volButtonsX,volButtonsY))    //Vol+
+if(buttonTouched(volButtonX,volButtonY))    //Vol
     {
-      volume=volume+1;
-      if(volume >maxvol) volume=maxvol;
-      setVolume(volume);
+      if(inputMode==2)
+        {
+        setInputMode(0);
+        }
+      else
+        {
+        setInputMode(2);
+        }
       return;
     }
-
-if(buttonTouched(volButtonsX,volButtonsY+buttonSpaceY)) //Vol-
-    {
-       volume=volume-1;
-       if(volume < 0) volume=0;
-       setVolume(volume);
-       return;
-    }
-
-// Squelch up and down Buttons   
+                                                        
 
 
-if(buttonTouched(sqlButtonsX,sqlButtonsY))    //sql+
+// Squelch Button   
+
+
+if(buttonTouched(sqlButtonX,sqlButtonY))    //sql
     {
      if(mode==4)
-      {
-        squelch=squelch+1;
-        if(squelch >maxsql) squelch=maxsql;
-        setSquelch(squelch);
+     {
+      if(inputMode==3)
+        {
+        setInputMode(0);
+        }
+      else
+        {
+        setInputMode(3);
+        }
+      return;
       }
-      return;
     }
 
-if(buttonTouched(sqlButtonsX,sqlButtonsY+buttonSpaceY)) //sql-
+
+//RIT Button
+
+if(buttonTouched(ritButtonX,ritButtonY))    //rit
     {
-     if(mode==4)
-  {
-       squelch=squelch-1;
-       if(squelch < 0) squelch=0;
-       setSquelch(squelch);
-  }
+     if(mode!=4)
+     {
+      if(inputMode==4)
+        {
+        setInputMode(0);
+        }
+      else
+        {
+        setInputMode(4);
+        }
       return;
+      }
     }
 
+//RIT Zero Button
 
-
-
-
+if(buttonTouched(ritButtonX,ritButtonY+buttonSpaceY))    //rit zero
+    {
+     setRit(0);
+     setInputMode(0);
+    }
 //Function Buttons
 
 
 if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     {
-    if(settingsMode==0)
+    if(inputMode==0)
     {
       bandFreq[band]=freq;
       band=band+1;
@@ -805,7 +894,7 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     }
     else
     {
-      exitSettings();
+      setInputMode(0);
       return; 
     }
       
@@ -813,7 +902,7 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     }      
 if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE or Blank
     {
-     if(settingsMode==0)
+     if(inputMode==0)
       {
       mode=mode+1;
       if(mode==nummode) mode=0;
@@ -822,41 +911,47 @@ if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE o
       }
       else
       {
+      setInputMode(0);
       return;
       }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or NEXT
     {
-     if(settingsMode==0)
+     if(inputMode==0)
       {
       return;
       }
-      else
+      else if(inputMode==1)
       {
       settingNo=settingNo+1;
       if(settingNo==numSettings) settingNo=0;
       displaySetting(settingNo);
       return;
       }
+      else
+      {
+      setInputMode(0);
+      }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or Blank
     {
-     if(settingsMode==0)
+     if(inputMode==0)
       {
-      startSettings();
+      setInputMode(1);
       return;
       }
       else
       {
+      setInputMode(0);
       return;
       }
     }
        
 if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or PREV
     {
-    if(settingsMode==0)
+    if(inputMode==0)
       {
       if(satMode()==1)
         {
@@ -864,12 +959,16 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
         }      
       return;
       }
-      else
+      else  if (inputMode==1)
       {
       settingNo=settingNo-1;
       if(settingNo<0) settingNo=numSettings-1;
       displaySetting(settingNo);
       return;
+      }
+      else
+      {
+      setInputMode(0);
       }
       
  
@@ -877,7 +976,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
 
 if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Blank
     {
-    if(settingsMode==0)
+    if(inputMode==0)
       {
       if(sendDots==0)
         {
@@ -910,13 +1009,14 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       }
       else
       {
+      setInputMode(0);
       return;
       }
     } 
          
 if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  or OFF
     {
-    if(settingsMode==0)
+    if(inputMode==0)
       {
       if(ptts==0)
         {
@@ -936,7 +1036,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
         }
       return;
       }
-      else
+      else if (inputMode==1)
       {
       sendFifo("Q");       //kill the SDR
       writeConfig();
@@ -944,6 +1044,10 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       sleep(5);
       system("sudo poweroff");                          
       return;
+      }
+      else
+      {
+      setInputMode(0);
       }
       
 
@@ -956,6 +1060,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
 
 if((touchY>freqDisplayY) & (touchY < freqDisplayY+freqDisplayCharHeight) & (touchX>freqDisplayX) & (touchX < freqDisplayX+12*freqDisplayCharWidth))   
   {
+    setInputMode(0);
     int tx=touchX-freqDisplayX;
     tx=tx/freqDisplayCharWidth;
     tuneDigit=tx;
@@ -980,9 +1085,9 @@ void setVolume(int vol)
   sendFifo(volStr);
   setForeColour(0,255,0);
   textSize=2;
-  gotoXY(volButtonsX+30,volButtonsY-25);
+  gotoXY(volButtonX+30,volButtonY-25);
   displayStr("   ");
-  gotoXY(volButtonsX+30,volButtonsY-25);
+  gotoXY(volButtonX+30,volButtonY-25);
   sprintf(volStr,"%d",vol);
   displayStr(volStr);
 }
@@ -996,13 +1101,118 @@ void setSquelch(int sql)
   {
   setForeColour(0,255,0);
   textSize=2;
-  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  gotoXY(sqlButtonX+30,sqlButtonY-25);
   displayStr("   ");
-  gotoXY(sqlButtonsX+30,sqlButtonsY-25);
+  gotoXY(sqlButtonX+30,sqlButtonY-25);
   sprintf(sqlStr,"%d",sql);
   displayStr(sqlStr);
   }
 }
+
+void setInputMode(int m)
+
+{
+if(inputMode==1)
+  {
+  gotoXY(settingX,settingY);
+  setForeColour(255,255,255);
+  displayStr("                                ");
+  writeConfig();
+  displayMenu();
+  }
+if(inputMode==2)
+  {
+    gotoXY(volButtonX,volButtonY);
+    setForeColour(0,255,0);
+    displayButton("Vol");
+  }
+if(inputMode==3)
+  {
+    gotoXY(sqlButtonX,sqlButtonY);
+    setForeColour(0,255,0);
+    displayButton("SQL"); 
+  }
+if(inputMode==4)
+  {
+    gotoXY(ritButtonX,ritButtonY);
+    setForeColour(0,255,0);
+    displayButton("RIT");
+    gotoXY(ritButtonX,ritButtonY+buttonSpaceY);
+    setForeColour(0,0,0);
+    displayButton("Zero");
+  }
+  
+inputMode=m;
+
+if(inputMode==1)
+  {
+    gotoXY(funcButtonsX,funcButtonsY);
+    setForeColour(0,255,0);
+    displayButton("MENU");
+    displayButton(" ");
+    displayButton("NEXT");
+    displayButton(" ");
+    displayButton("PREV");
+    displayButton(" ");
+    setForeColour(255,0,0);
+    displayButton("OFF");
+    mouseScroll=0;
+    displaySetting(settingNo); 
+  }
+if(inputMode==2)
+  {
+    gotoXY(volButtonX,volButtonY);
+    setForeColour(255,0,0);
+    displayButton("Vol");
+  }
+if(inputMode==3)
+  {
+    gotoXY(sqlButtonX,sqlButtonY);
+    setForeColour(255,0,0);
+    displayButton("SQL"); 
+  }
+if(inputMode==4)
+  {
+    gotoXY(ritButtonX,ritButtonY);
+    setForeColour(255,0,0);
+    displayButton("RIT");
+    gotoXY(ritButtonX,ritButtonY+buttonSpaceY);
+    setForeColour(255,0,0);
+    displayButton("Zero");
+  }
+
+}
+
+void setRit(int ri)
+{
+  char ritStr[10];
+  int to;
+  if(mode!=4)
+  {
+  rit=ri;
+  setForeColour(0,255,0);
+  textSize=2;
+  to=0;
+  if(abs(rit)>0) to=8;
+  if(abs(rit)>9) to=16;
+  if(abs(rit)>99) to=24;
+  if(abs(rit)>999) to=32; 
+  gotoXY(ritButtonX,ritButtonY-25);
+  displayStr("         ");
+  gotoXY(ritButtonX+38-to,ritButtonY-25);
+  if (rit==0)
+  {
+  sprintf(ritStr,"0");
+  }
+  else
+  {
+    sprintf(ritStr,"%+d",rit);
+  }
+  displayStr(ritStr);
+  setFreq(freq);
+  }
+}
+
 
 void setSSBMic(int mic)
 {
@@ -1059,14 +1269,18 @@ void setMode(int md)
     {
     sendFifo("U");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sqlButtons(0);
+    sqlButton(0);
+    ritButton(1);
+    setRit(0);
     } 
   
   if(md==1)
     {
     sendFifo("L");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sqlButtons(0);
+    sqlButton(0);
+    ritButton(1);
+    setRit(0);
     } 
   
   if(md==2)
@@ -1074,7 +1288,9 @@ void setMode(int md)
     sendFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sendFifo("W");    //wide CW Filter
-    sqlButtons(0);
+    sqlButton(0);
+    ritButton(1);
+    setRit(0);
     } 
     
   if(md==3)
@@ -1082,13 +1298,17 @@ void setMode(int md)
     sendFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sendFifo("N");    //Narrow CW Filter
-    sqlButtons(0);
+    sqlButton(0);
+    ritButton(1);
+    setRit(0);
     } 
   if(md==4)
     {
     sendFifo("F");    //FM
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sqlButtons(1);
+    sqlButton(1);
+    ritButton(0);
+    setRit(0);
     } 
 
 
@@ -1145,7 +1365,7 @@ void setHwRxFreq(double fr)
   rxoffsethz=(rxfreqhz % 100000)+50000;        //use just the +50Khz to +150Khz positive side of the sampled spectrum. This avoids the DC hump .
   
   LOrxfreqhz=rxfreqhz-rxoffsethz;
-  
+  rxoffsethz=rxoffsethz+rit;
   if((mode==2)|(mode==3))
     {
      rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz    
@@ -1247,7 +1467,7 @@ void setFreq(double fr)
  
    gotoXY(funcButtonsX+buttonSpaceX*4,funcButtonsY);
    setForeColour(0,255,0);
-   if(settingsMode==0)
+   if(inputMode==0)
    {
      if(satMode()==1)
       {
@@ -1325,33 +1545,6 @@ else
     }   
 }
 
-
-void startSettings(void)
-{ 
-  gotoXY(funcButtonsX,funcButtonsY);
-  setForeColour(0,255,0);
-  displayButton("MENU");
-  displayButton(" ");
-  displayButton("NEXT");
-  displayButton(" ");
-  displayButton("PREV");
-  displayButton(" ");
-  setForeColour(255,0,0);
-  displayButton("OFF");
-  mouseScroll=0;
-  displaySetting(settingNo); 
-  settingsMode=1;
-}
-
-void exitSettings(void)
-{
-  gotoXY(settingX,settingY);
-  setForeColour(255,255,255);
-  displayStr("                                ");
-  writeConfig();
-  displayMenu();
-  settingsMode=0;
-}
 
 void changeSetting(void)
 {
