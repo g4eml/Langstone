@@ -62,13 +62,14 @@ def docommands(tb):
            if line=='M':
               tb.set_MON(True) 
            if line=='m':
-              tb.set_MON(False)                                                 
+              tb.set_MON(False)  
+           if line=='P':
+              tb.set_FFTEn(1)
+           if line=='p':
+              tb.set_FFTEn(0)
            if line[0]=='O':
               value=int(line[1:])
-              tb.set_RxOffset(value)
-           if line[0]=='o':
-              value=int(line[1:])
-              tb.set_TxOffset(value)  
+              tb.set_RxOffset(value)  
            if line[0]=='V':
               value=int(line[1:])
               tb.set_AFGain(value)

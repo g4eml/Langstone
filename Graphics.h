@@ -36,6 +36,7 @@ void setForeColour(int R,int G,int B);
 void setBackColour(int R,int G,int B);
 void displayStr(char*s);
 void displayButton(char*s);
+void drawLine(int x0, int y0, int x1, int y1,int r,int g,int b);
 
 void displayStr(char*s)
 {
@@ -145,6 +146,21 @@ if((x<800)&(y<480))
   	memset(fbp+p+3,0x80,1);  //A
   }
 
+}
+
+void drawLine(int x0, int y0, int x1, int y1,int r,int g,int b) {
+ 
+  int dx = abs(x1-x0), sx = x0<x1 ? 1 : -1;
+  int dy = abs(y1-y0), sy = y0<y1 ? 1 : -1; 
+  int err = (dx>dy ? dx : -dy)/2, e2;
+ 
+  for(;;){
+    setPixel(x0,y0,r,g,b);
+    if (x0==x1 && y0==y1) break;
+    e2 = err;
+    if (e2 >-dx) { err -= dy; x0 += sx; }
+    if (e2 < dy) { err += dx; y0 += sy; }
+  }
 }
 
 void setLargePixel(int x, int y, int size, int R, int G, int B)
