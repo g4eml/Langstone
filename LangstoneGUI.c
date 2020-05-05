@@ -51,7 +51,7 @@ void waterfall(void);
 void init_fft_Fifo();
 void setRit(int rit);
 void setInputMode(int n);
-void gen_palette(void);
+void gen_palette(char colours[][3],int num_grads);
 
 
 double freq;
@@ -191,8 +191,8 @@ clock_t lastClock;
   if(mousePresent) initMouse(mousePath);
   initGUI(); 
   initSDR(); 
-
-  gen_palette();
+  //              RGB Vals   Black >  Blue  >  Green  >  Yellow   >   Red     4 gradients    //number of gradients is varaible
+  gen_palette((char [][3]){ {0,0,0},{0,0,255},{0,255,0},{255,255,0},{255,0,0}},4);
 
   setFFTPipe(1);            //Turn on FFT Stream from GNU RAdio
 
@@ -244,30 +244,27 @@ clock_t lastClock;
   }
 }
 
-void gen_palette(){
+void gen_palette(char colours[][3], int num_grads){
   //allocate some memory, size of palette
   palette = malloc(sizeof(char)*256*3);
 
-                  //   Black   Blue      Green     Yellow       Red
-  char steps[5][3] = {{0,0,0},{0,0,255},{0,255,0},{255,255,0},{255,0,0}};
-
   int diff[3];
-  float scale=255/(5-1);
+  float scale=256/(num_grads);
   int pos=0;
 
-  for(int i=0;i<4;i++){
+  for(int i=0;i<num_grads;i++){
       //get differences in colours for current gradient
-      diff[0]=(steps[i+1][0]-steps[i][0])/(scale-1);
-      diff[1]=(steps[i+1][1]-steps[i][1])/(scale-1);
-      diff[2]=(steps[i+1][2]-steps[i][2])/(scale-1);
+      diff[0]=(colours[i+1][0]-colours[i][0])/(scale-1);
+      diff[1]=(colours[i+1][1]-colours[i][1])/(scale-1);
+      diff[2]=(colours[i+1][2]-colours[i][2])/(scale-1);
       //fprintf(stdout,"diff 0:%i 1:%i 2:%i\n",diff[0],diff[1],diff[2]);
 
       //create the palette built up of multiple gradients
       for(int n=0;n<scale;n++){
-          palette[pos*3+2]=steps[i][0]+(n*diff[0]);
-          palette[pos*3+1]=steps[i][1]+(n*diff[1]);
-          palette[pos*3]=steps[i][2]+(n*diff[2]);
-         // fprintf(stdout,"n:%i r:%i g:%i b:%i\n",pos,palette[pos*3+2],palette[pos*3+1],palette[pos*3]);
+          palette[pos*3+2]=colours[i][0]+(n*diff[0]);
+          palette[pos*3+1]=colours[i][1]+(n*diff[1]);
+          palette[pos*3]=colours[i][2]+(n*diff[2]);
+          //fprintf(stdout,"n:%i r:%i g:%i b:%i\n",pos,palette[pos*3+2],palette[pos*3+1],palette[pos*3]);
           pos++;
       }
 
