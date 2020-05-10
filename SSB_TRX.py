@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Ssb Trx
-# Generated: Sun May 10 21:09:30 2020
+# Generated: Sun May 10 21:25:56 2020
 ##################################################
 
 from gnuradio import analog
@@ -91,7 +91,7 @@ class SSB_TRX(gr.top_block):
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
         	1, 44100, 200, 3000, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
-        	1, 44100, -3000+USB*3300, -300+USB*3300, 100, firdes.WIN_HAMMING, 6.76))
+        	1, 44100, -3000+USB*3300+CW*250, -300+USB*3300-CW*1950, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 44100, ((-3000+USB*3300+NCW*CW*250)*(1-FM)) + (-7500 * FM), ((-300+USB*3300-NCW*CW*1950)* (1-FM)) + (7500 * FM), 100, firdes.WIN_HAMMING, 6.76))
         self.audio_source_0 = audio.source(44100, "hw:CARD=Device,DEV=0", False)
@@ -165,7 +165,7 @@ class SSB_TRX(gr.top_block):
 
     def set_USB(self, USB):
         self.USB = USB
-        self.band_pass_filter_0_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300, -300+self.USB*3300, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300+self.CW*250, -300+self.USB*3300-self.CW*1950, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
 
     def get_SQL(self):
@@ -249,6 +249,7 @@ class SSB_TRX(gr.top_block):
     def set_CW(self, CW):
         self.CW = CW
         self.blocks_multiply_const_vxx_0.set_k(((self.MicGain/10.0)*(not self.CW), ))
+        self.band_pass_filter_0_0.set_taps(firdes.complex_band_pass(1, 44100, -3000+self.USB*3300+self.CW*250, -300+self.USB*3300-self.CW*1950, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
         self.analog_sig_source_x_1_0.set_amplitude(int(self.CW and self.KEY))
 
@@ -258,6 +259,7 @@ class SSB_TRX(gr.top_block):
     def set_AFGain(self, AFGain):
         self.AFGain = AFGain
         self.blocks_multiply_const_vxx_1.set_k((self.AFGain/100.0, ))
+
 def docommands(tb):
   try:
     os.mkfifo("/tmp/langstonein")
@@ -335,7 +337,6 @@ def main(top_block_cls=SSB_TRX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
-
 
 if __name__ == '__main__':
     main()

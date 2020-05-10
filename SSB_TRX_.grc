@@ -1137,7 +1137,7 @@
     </param>
     <param>
       <key>high_cutoff_freq</key>
-      <value>-300+USB*3300</value>
+      <value>-300+USB*3300-CW*1950</value>
     </param>
     <param>
       <key>id</key>
@@ -1149,7 +1149,7 @@
     </param>
     <param>
       <key>low_cutoff_freq</key>
-      <value>-3000+USB*3300</value>
+      <value>-3000+USB*3300+CW*250</value>
     </param>
     <param>
       <key>maxoutbuf</key>
