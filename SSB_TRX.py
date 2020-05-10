@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Ssb Trx
-# Generated: Tue May  5 21:40:33 2020
+# Generated: Sun May 10 21:09:30 2020
 ##################################################
 
 from gnuradio import analog
@@ -94,8 +94,8 @@ class SSB_TRX(gr.top_block):
         	1, 44100, -3000+USB*3300, -300+USB*3300, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 44100, ((-3000+USB*3300+NCW*CW*250)*(1-FM)) + (-7500 * FM), ((-300+USB*3300-NCW*CW*1950)* (1-FM)) + (7500 * FM), 100, firdes.WIN_HAMMING, 6.76))
-        self.audio_source_0 = audio.source(44100, "hw:CARD=Device,DEV=0", True)
-        self.audio_sink_0 = audio.sink(44100, "hw:CARD=Device,DEV=0", True)
+        self.audio_source_0 = audio.source(44100, "hw:CARD=Device,DEV=0", False)
+        self.audio_sink_0 = audio.sink(44100, "hw:CARD=Device,DEV=0", False)
         self.analog_sig_source_x_1_0 = analog.sig_source_f(44100, analog.GR_COS_WAVE, 800, int(CW and KEY), 0)
         self.analog_sig_source_x_0 = analog.sig_source_c(44100, analog.GR_COS_WAVE, 0, 1, 0)
         self.analog_pwr_squelch_xx_0 = analog.pwr_squelch_cc(SQL-100, 0.001, 0, False)
@@ -103,7 +103,7 @@ class SSB_TRX(gr.top_block):
         	audio_rate=44100,
         	quad_rate=44100,
         	tau=75e-6,
-        	max_dev=5e3,
+        	max_dev=3000,
         	fh=-1,
                 )
         self.analog_nbfm_rx_0 = analog.nbfm_rx(
@@ -113,8 +113,10 @@ class SSB_TRX(gr.top_block):
         	max_dev=5e3,
           )
         self.analog_const_source_x_0 = analog.sig_source_f(0, analog.GR_CONST_WAVE, 0, 0, 0)
+        self.analog_agc2_xx_1 = analog.agc2_cc(1e-1, 1e-1, 1.3, 1.0)
+        self.analog_agc2_xx_1.set_max_gain(10)
         self.analog_agc2_xx_0 = analog.agc2_ff(1e-1, 1e-1, 0.1, 1)
-        self.analog_agc2_xx_0.set_max_gain(10)
+        self.analog_agc2_xx_0.set_max_gain(1000)
 
 
 
@@ -122,6 +124,7 @@ class SSB_TRX(gr.top_block):
         # Connections
         ##################################################
         self.connect((self.analog_agc2_xx_0, 0), (self.blocks_add_xx_1, 0))
+        self.connect((self.analog_agc2_xx_1, 0), (self.band_pass_filter_0_0, 0))
         self.connect((self.analog_const_source_x_0, 0), (self.blocks_float_to_complex_0, 1))
         self.connect((self.analog_nbfm_rx_0, 0), (self.blocks_multiply_const_vxx_2_0, 0))
         self.connect((self.analog_nbfm_tx_0, 0), (self.blocks_multiply_const_vxx_3, 0))
@@ -148,7 +151,7 @@ class SSB_TRX(gr.top_block):
         self.connect((self.blocks_multiply_const_vxx_2_0, 0), (self.blocks_add_xx_1, 1))
         self.connect((self.blocks_multiply_const_vxx_3, 0), (self.blocks_add_xx_2, 0))
         self.connect((self.blocks_multiply_const_vxx_4, 0), (self.blocks_add_xx_2, 1))
-        self.connect((self.blocks_multiply_xx_0, 0), (self.band_pass_filter_0_0, 0))
+        self.connect((self.blocks_multiply_xx_0, 0), (self.analog_agc2_xx_1, 0))
         self.connect((self.blocks_mute_xx_0, 0), (self.blocks_multiply_const_vxx_1, 0))
         self.connect((self.blocks_mute_xx_0_0, 0), (self.pluto_sink_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.band_pass_filter_0, 0))
@@ -255,7 +258,6 @@ class SSB_TRX(gr.top_block):
     def set_AFGain(self, AFGain):
         self.AFGain = AFGain
         self.blocks_multiply_const_vxx_1.set_k((self.AFGain/100.0, ))
-
 def docommands(tb):
   try:
     os.mkfifo("/tmp/langstonein")
@@ -333,6 +335,7 @@ def main(top_block_cls=SSB_TRX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
+
 
 if __name__ == '__main__':
     main()
