@@ -47,6 +47,7 @@ The software consists of two parts. The SDR itself uses a python GNURadio Flowgr
 The preferred installation method only needs a Windows PC connected to the same (internet-connected) network as your Raspberry Pi.  Do not connect a keyboard or HDMI display directly to your Raspberry Pi.
 
 - First download the 2020-02-13 release of Raspbian Buster Lite on to your Windows PC from here  https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2020-02-14/2020-02-13-raspbian-buster-lite.zip
+
 (This version is known to work. Newer versions should also work and may speed up the installation but have not yet been tested) 
 
 - Unzip the image and then transfer it to a Micro-SD Card using Win32diskimager https://sourceforge.net/projects/win32diskimager/
