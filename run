@@ -5,26 +5,32 @@ rm /tmp/langstonefft
 fi
 mkfifo /tmp/langstonefft
 
-if test -e /tmp/langstonein ;then
-rm /tmp/langstonein
+if test -e /tmp/langstoneTx ;then
+rm /tmp/langstoneTx
 fi
-mkfifo /tmp/langstonein
+mkfifo /tmp/langstoneTx
+
+if test -e /tmp/langstoneRx ;then
+rm /tmp/langstoneRx
+fi
+mkfifo /tmp/langstoneRx
 
 
-if !(ps -ax |grep -v grep| grep -q SSB_TRX.py) then
+if !(ps -ax |grep -v grep| grep -q Lang_TX.py) then
 	sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
 	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
 	sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
 	sudo raspi-gpio set 17,18 ip pu
 	sleep 10
-	python /home/pi/Langstone/SSB_TRX.py > /tmp/LangstoneTRX.log 2>&1 &
+	python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
+        python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
 	sleep 10
-	if (ps -ax | grep -v grep| grep -q SSB_TRX.py)then
+	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
 		/home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1 &
 	else
 		clear
-		echo ERROR:- SSB_TRX.py failed to start.
-		cat /tmp/LangstoneTRX.log
+		echo ERROR:- Lang_TX.py failed to start.
+		cat /tmp/LangstoneTX.log
 	fi
 else
 	echo Langstone is already running. Use ./stop first.

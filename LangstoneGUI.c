@@ -26,8 +26,9 @@ void setBandBits(int b);
 void processTouch();
 void processMouse(int mbut);
 void initGUI();
-void sendFifo(char * s);
-void initFifo();
+void sendTxFifo(char * s);
+void sendRxFifo(char * s);
+void initFifos();
 void setPlutoRxFreq(long long rxfreq);
 void setPlutoTxFreq(long long rxfreq);
 void setHwRxFreq(double fr);
@@ -192,7 +193,7 @@ clock_t lastClock;
   lastClock=0;
   readConfig();
   detectHw();
-  initFifo();
+  initFifos();
   init_fft_Fifo();
   initScreen();
   initGPIO();
@@ -563,11 +564,16 @@ void PlutoRxEnable(int rxon)
 
 
 
-void initFifo()
+void initFifos()
 {
- if(access("/tmp/langstonein",F_OK)==-1)   //does fifo exist already?
+ if(access("/tmp/langstoneTx",F_OK)==-1)   //does tx fifo exist already?
     {
-        mkfifo("/tmp/langstonein", 0666);
+        mkfifo("/tmp/langstoneTx", 0666);
+    }
+    
+ if(access("/tmp/langstoneRx",F_OK)==-1)   //does rx fifo exist already?
+    {
+        mkfifo("/tmp/langstoneRx", 0666);
     }
 }
 
@@ -579,12 +585,23 @@ void init_fft_Fifo()
     }
 }
 
-void sendFifo(char * s)
+void sendTxFifo(char * s)
 {
   char fs[50];
   strcpy(fs,s);
   strcat(fs,"\n");
-  fifofd=open("/tmp/langstonein",O_WRONLY);
+  fifofd=open("/tmp/langstoneTx",O_WRONLY);
+  write(fifofd,fs,strlen(fs));
+  close(fifofd);
+  delay(5);
+}
+
+void sendRxFifo(char * s)
+{
+  char fs[50];
+  strcpy(fs,s);
+  strcat(fs,"\n");
+  fifofd=open("/tmp/langstoneRx",O_WRONLY);
   write(fifofd,fs,strlen(fs));
   close(fifofd);
   delay(5);
@@ -1087,7 +1104,8 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       }
       else if (inputMode==1)
       {
-      sendFifo("Q");       //kill the SDR
+      sendTxFifo("Q");       //kill the SDR Tx
+      sendRxFifo("Q");       //kill the SDR Rx
       writeConfig();
       system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
       sleep(5);
@@ -1143,7 +1161,7 @@ void setVolume(int vol)
 {
   char volStr[10];
   sprintf(volStr,"V%d",vol);
-  sendFifo(volStr);
+  sendRxFifo(volStr);
   setForeColour(0,255,0);
   textSize=2;
   gotoXY(volButtonX+30,volButtonY-25);
@@ -1157,7 +1175,7 @@ void setSquelch(int sql)
 {
   char sqlStr[10];
   sprintf(sqlStr,"Z%d",sql);
-  sendFifo(sqlStr);
+  sendRxFifo(sqlStr);
   if(mode==4)
   {
   setForeColour(0,255,0);
@@ -1279,45 +1297,24 @@ void setSSBMic(int mic)
 {
   char micStr[10];
   sprintf(micStr,"G%d",mic);
-  sendFifo(micStr);
+  sendTxFifo(micStr);
 }
 
 void setFMMic(int mic)
 {
   char micStr[10];
   sprintf(micStr,"g%d",mic);
-  sendFifo(micStr);
+  sendTxFifo(micStr);
 }
 
 void setKey(int k)
 {
-if(k==0) sendFifo("k"); else sendFifo("K");
+if(k==0) sendTxFifo("k"); else sendTxFifo("K");
 }
 
 void setFFTPipe(int ctrl)
 {
-if(ctrl==0) sendFifo("p"); else sendFifo("P");
-}
-
-void setMoni(int m)
-{
-  if(m==1)
-    {
-     sendFifo("M");
-     moni=1;
-     gotoXY(moniX,moniY);
-     textSize=2;
-     setForeColour(0,255,0);
-     displayStr("MONI");
-    } 
-  else
-    {
-     sendFifo("m");
-     moni=0;
-     gotoXY(moniX,moniY);
-     textSize=2;
-     displayStr("    ");
-    }
+if(ctrl==0) sendRxFifo("p"); else sendRxFifo("P");
 }
 
 void setMode(int md)
@@ -1328,7 +1325,8 @@ void setMode(int md)
   displayStr(modename[md]);
   if(md==0)
     {
-    sendFifo("U");    //USB
+    sendTxFifo("U");    //USB
+    sendRxFifo("U");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1337,7 +1335,8 @@ void setMode(int md)
   
   if(md==1)
     {
-    sendFifo("L");    //USB
+    sendTxFifo("L");    //USB
+    sendRxFifo("L");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1346,9 +1345,11 @@ void setMode(int md)
   
   if(md==2)
     {
-    sendFifo("C");    //CW
+    sendTxFifo("C");    //CW
+    sendRxFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendFifo("W");    //wide CW Filter
+    sendTxFifo("W");    //wide CW Filter
+    sendRxFifo("W");    //wide CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
@@ -1356,16 +1357,19 @@ void setMode(int md)
     
   if(md==3)
     {
-    sendFifo("C");    //CW
+    sendTxFifo("C");    //CW
+    sendRxFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendFifo("N");    //Narrow CW Filter
+    sendTxFifo("N");    //Narrow CW Filter
+    sendRxFifo("N");    //Narrow CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
   if(md==4)
     {
-    sendFifo("F");    //FM
+    sendTxFifo("F");    //FM
+    sendRxFifo("F");    //FM
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(1);
     ritButton(0);
@@ -1388,18 +1392,18 @@ void setTx(int pt)
       PlutoTxEnable(1);
       if(satMode()==0)
       {
-        setFFTPipe(0);                        //turn off the FFT stream
-        setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
-        PlutoRxEnable(0);
+//        setFFTPipe(0);                        //turn off the FFT stream
+//        setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
+//        PlutoRxEnable(0);
       }
 
-      sendFifo("T");
+      sendTxFifo("T");
       setForeColour(255,0,0);
       displayStr("Tx");  
     }
   else
     {
-      sendFifo("R");
+      sendTxFifo("R");
       PlutoTxEnable(0);
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
@@ -1439,7 +1443,7 @@ void setHwRxFreq(double fr)
   
   char offsetStr[32];
   sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
-  sendFifo(offsetStr);
+  sendRxFifo(offsetStr);
 }
 
 void setHwTxFreq(double fr)
@@ -1566,6 +1570,9 @@ else
   }
 }
 
+void setMoni(int m)
+{
+}
 
 void setBandBits(int b)
 {
