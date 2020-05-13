@@ -1060,13 +1060,13 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       else
         {
           sendDots=0;
+          ptts=0;
           setTx(0);
           setKey(0);
           setMode(mode);
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(0,255,0);
           displayButton("DOTS");  
-          ptts=0;
           gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
           setForeColour(0,255,0);
           displayButton("PTT");       
@@ -1390,13 +1390,13 @@ void setTx(int pt)
       usleep(TXDELAY);
       setHwTxFreq(freq);
       PlutoTxEnable(1);
+      if (moni==0) sendRxFifo("M");                        //mute the receiver
       if(satMode()==0)
       {
-//        setFFTPipe(0);                        //turn off the FFT stream
-//        setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
-//        PlutoRxEnable(0);
+        setFFTPipe(0);                        //turn off the FFT stream
+        setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
+        PlutoRxEnable(0);
       }
-
       sendTxFifo("T");
       setForeColour(255,0,0);
       displayStr("Tx");  
@@ -1404,6 +1404,7 @@ void setTx(int pt)
   else
     {
       sendTxFifo("R");
+      sendRxFifo("m");                  //unmute the receiver
       PlutoTxEnable(0);
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
@@ -1537,10 +1538,12 @@ void setFreq(double fr)
      if(satMode()==1)
       {
        displayButton("MONI");
+       setMoni(moni);
       }  
       else
       {
        displayButton("    ");
+       setMoni(0);
       }
     }
      
@@ -1572,6 +1575,23 @@ else
 
 void setMoni(int m)
 {
+  if(m==1)
+    {
+     sendRxFifo("m");
+     moni=1;
+     gotoXY(moniX,moniY);
+     textSize=2;
+     setForeColour(0,255,0);
+     displayStr("MONI");
+    } 
+  else
+    {
+     if (ptt | ptts) sendRxFifo("M");
+     moni=0;
+     gotoXY(moniX,moniY);
+     textSize=2;
+     displayStr("    ");
+    }
 }
 
 void setBandBits(int b)

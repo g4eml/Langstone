@@ -55,6 +55,10 @@ def docommands(tb):
               tb.set_FFTEn(1)
            if line=='p':
               tb.set_FFTEn(0)
+           if line=='M':
+              tb.set_Mute(1)
+           if line=='m':
+              tb.set_Mute(0)
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  

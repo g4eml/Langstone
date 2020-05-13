@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Rx
-# Generated: Tue May 12 20:47:51 2020
+# Generated: Wed May 13 20:41:14 2020
 ##################################################
 
 from gnuradio import analog
@@ -33,6 +33,7 @@ class Lang_RX(gr.top_block):
         self.SQL = SQL = 50
         self.RxOffset = RxOffset = 0
         self.NCW = NCW = False
+        self.Mute = Mute = False
         self.FM = FM = False
         self.FFTEn = FFTEn = 0
         self.CW = CW = False
@@ -54,7 +55,7 @@ class Lang_RX(gr.top_block):
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((int(FM), ))
         self.blocks_multiply_const_vxx_2 = blocks.multiply_const_vff((not FM, ))
-        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff((AFGain/100.0, ))
+        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff(((AFGain/100.0) *  (not Mute), ))
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_float*512, '/tmp/langstonefft', False)
         self.blocks_file_sink_0.set_unbuffered(False)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
@@ -129,6 +130,13 @@ class Lang_RX(gr.top_block):
         self.NCW = NCW
         self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
 
+    def get_Mute(self):
+        return self.Mute
+
+    def set_Mute(self, Mute):
+        self.Mute = Mute
+        self.blocks_multiply_const_vxx_1.set_k(((self.AFGain/100.0) *  (not self.Mute), ))
+
     def get_FM(self):
         return self.FM
 
@@ -157,7 +165,7 @@ class Lang_RX(gr.top_block):
 
     def set_AFGain(self, AFGain):
         self.AFGain = AFGain
-        self.blocks_multiply_const_vxx_1.set_k((self.AFGain/100.0, ))
+        self.blocks_multiply_const_vxx_1.set_k(((self.AFGain/100.0) *  (not self.Mute), ))
 
 def docommands(tb):
   try:
@@ -198,6 +206,10 @@ def docommands(tb):
               tb.set_FFTEn(1)
            if line=='p':
               tb.set_FFTEn(0)
+           if line=='M':
+              tb.set_Mute(1)
+           if line=='m':
+              tb.set_Mute(0)
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  
