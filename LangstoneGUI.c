@@ -758,6 +758,7 @@ void initSDR(void)
   setFreqInc();
   lastLOhz=0;
   setFreq(freq);
+  setTx(0);
 }
 
 void displayMenu()
