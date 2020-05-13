@@ -204,7 +204,11 @@ def docommands(tb):
               tb.set_MicGain(value) 
            if line[0]=='g':
               value=int(line[1:])
-              tb.set_FMMIC(value)             
+              tb.set_FMMIC(value) 
+           if line=='H':
+              tb.lock()
+           if line=='h':
+              tb.unlock()                     
        except:
          break
 

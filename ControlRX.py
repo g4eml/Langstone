@@ -67,7 +67,11 @@ def docommands(tb):
               tb.set_AFGain(value)
            if line[0]=='Z':
               value=int(line[1:])
-              tb.set_SQL(value)                    
+              tb.set_SQL(value) 
+           if line=='H':
+              tb.lock()
+           if line=='h':
+              tb.unlock()                            
        except:
          break
 

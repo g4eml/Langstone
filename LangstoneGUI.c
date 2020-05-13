@@ -1396,7 +1396,9 @@ void setTx(int pt)
         setFFTPipe(0);                        //turn off the FFT stream
         setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
         PlutoRxEnable(0);
+        sendRxFifo("H");                      //freeze the receive Flowgraph 
       }
+      sendTxFifo("h");                        //unfreeze the Tx Flowgraph
       sendTxFifo("T");
       setForeColour(255,0,0);
       displayStr("Tx");  
@@ -1404,6 +1406,8 @@ void setTx(int pt)
   else
     {
       sendTxFifo("R");
+      sendTxFifo("H");                  //freeze the Tx Flowgraph
+      sendRxFifo("h");                  //unfreeze the Rx Flowgraph
       sendRxFifo("m");                  //unmute the receiver
       PlutoTxEnable(0);
       PlutoRxEnable(1);
