@@ -5,7 +5,8 @@ Log into the Pi using ssh the same way that you did to build the software.
 
 Type 'ps -ax' to get a list of the running programs. 
 
-You should be able to find the two programs needed in the list. They will be called home/pi/Langstone/SSB-TRX.py   and  home/pi/Langstone/GUI
+You should be able to find the three programs needed in the list. 
+They will be called home/pi/Langstone/Lang_TX.py , home/pi/Langstone/Lang_RX.py  and  home/pi/Langstone/GUI
 
 If the transceiver is not running then one of these will probably be missing. 
 
@@ -17,15 +18,18 @@ Repeat this to kill both programs.
 
 Try ps -ax again to make sure both programs have been killed
 
-try starting the GNURadio Program manually
+try starting the GNURadio Rx Program manually
  
 cd ~/Langstone
-python SSB_TRX.py &
+python Lang_RX.py &
 
 You should see a couple of INFO lines about the Audio Source and Audio Sync and a line  len(audio_taps) = 213
 The LED on your USB Audio Dongle should start flashing 
 
 Any other error messages should give a clue as to what is wrong. 
+
+Then Start the Tx Program.
+python Lang_TX.py &
 
 If this works then start the GUI with the command
 
