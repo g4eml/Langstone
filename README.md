@@ -40,7 +40,7 @@ It is easy to modify a cheap mouse by disconnecting the existing switches and wi
 
 Microphone input and headphone output uses the USB audio device. (a couple of pounds on Ebay)
 
-The software consists of two parts. The SDR itself uses a python GNURadio Flowgraph which can be created on a PC running GNUradio companion. This Python program is manually edited to adding the code from ControlTRX.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
+The software consists of three parts. The SDR itself uses two python GNURadio Flowgraphs (Lang_TX.py and Lang_RX.py)which can be created on a PC running GNUradio companion. These Python programs are then manually edited by adding the code from ControlTX.py and ControlRx.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
 
 
 
