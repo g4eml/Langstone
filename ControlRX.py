@@ -1,6 +1,6 @@
 
 ##################################################
-# Piped Commands Control Thread for Hayling Transceiver
+# Piped Commands Rx Control Thread for Hayling Transceiver
 # Author: G4EML
 # Needs to be manually added into Gnu Radio Flowgraph
 ##################################################
@@ -18,14 +18,14 @@ import errno
 #######################################################
 def docommands(tb):
   try:
-    os.mkfifo("/tmp/langstonein")
+    os.mkfifo("/tmp/langstoneRx")
   except OSError as oe:
     if oe.errno != errno.EEXIST:
       raise    
   ex=False
   lastbase=0
   while not ex:
-    fifoin=open("/tmp/langstonein",'r')
+    fifoin=open("/tmp/langstoneRx",'r')
     while True:
        try:
         with fifoin as filein:
@@ -33,10 +33,6 @@ def docommands(tb):
            line=line.strip()
            if line=='Q':
               ex=True        
-           if line=='R':
-              tb.set_PTT(False) 
-           if line=='T':
-              tb.set_PTT(True)
            if line=='U':
               tb.set_USB(True)
               tb.set_FM(False)
@@ -55,33 +51,27 @@ def docommands(tb):
               tb.set_NCW(True)
            if line=='W':
               tb.set_NCW(False) 
-           if line=='K':
-              tb.set_KEY(True) 
-           if line=='k':
-              tb.set_KEY(False)    
-           if line=='M':
-              tb.set_MON(True) 
-           if line=='m':
-              tb.set_MON(False)  
            if line=='P':
               tb.set_FFTEn(1)
            if line=='p':
               tb.set_FFTEn(0)
+           if line=='M':
+              tb.set_Mute(1)
+           if line=='m':
+              tb.set_Mute(0)
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  
            if line[0]=='V':
               value=int(line[1:])
               tb.set_AFGain(value)
-           if line[0]=='G':
-              value=int(line[1:])
-              tb.set_MicGain(value) 
-           if line[0]=='g':
-              value=int(line[1:])
-              tb.set_FMMIC(value)   
            if line[0]=='Z':
               value=int(line[1:])
-              tb.set_SQL(value)                    
+              tb.set_SQL(value) 
+           if line=='H':
+              tb.lock()
+           if line=='h':
+              tb.unlock()                            
        except:
          break
 

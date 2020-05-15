@@ -26,8 +26,9 @@ void setBandBits(int b);
 void processTouch();
 void processMouse(int mbut);
 void initGUI();
-void sendFifo(char * s);
-void initFifo();
+void sendTxFifo(char * s);
+void sendRxFifo(char * s);
+void initFifos();
 void setPlutoRxFreq(long long rxfreq);
 void setPlutoTxFreq(long long rxfreq);
 void setHwRxFreq(double fr);
@@ -56,6 +57,7 @@ void setInputMode(int n);
 void gen_palette(char colours[][3],int num_grads);
 void setPlutoTxAtt(int att);
 void setBand(int b);
+void setPlutoGpo(int p);
 
 double freq;
 double freqInc=0.001;
@@ -165,7 +167,7 @@ int plutoPresent;
 #define bandPin3 7      //Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
 
-
+int plutoGpo=0;
 
 //robs Waterfall
 
@@ -192,7 +194,7 @@ clock_t lastClock;
   lastClock=0;
   readConfig();
   detectHw();
-  initFifo();
+  initFifos();
   init_fft_Fifo();
   initScreen();
   initGPIO();
@@ -561,13 +563,37 @@ void PlutoRxEnable(int rxon)
 
 }
 
-
-
-void initFifo()
+void setPlutoGpo(int p)
 {
- if(access("/tmp/langstonein",F_OK)==-1)   //does fifo exist already?
+  struct iio_context *ctx;
+  struct iio_device *phy;
+  char pins[10]; 
+   
+  sprintf(pins,"0x27 0x%x0",p);
+  pins[9]=0;
+
+  if(plutoPresent)
     {
-        mkfifo("/tmp/langstonein", 0666);
+      ctx = iio_create_context_from_uri(PLUTOIP);
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+      iio_device_debug_attr_write(phy,"direct_reg_access",pins);
+      iio_context_destroy(ctx);
+    }
+
+
+}
+
+
+void initFifos()
+{
+ if(access("/tmp/langstoneTx",F_OK)==-1)   //does tx fifo exist already?
+    {
+        mkfifo("/tmp/langstoneTx", 0666);
+    }
+    
+ if(access("/tmp/langstoneRx",F_OK)==-1)   //does rx fifo exist already?
+    {
+        mkfifo("/tmp/langstoneRx", 0666);
     }
 }
 
@@ -579,12 +605,23 @@ void init_fft_Fifo()
     }
 }
 
-void sendFifo(char * s)
+void sendTxFifo(char * s)
 {
   char fs[50];
   strcpy(fs,s);
   strcat(fs,"\n");
-  fifofd=open("/tmp/langstonein",O_WRONLY);
+  fifofd=open("/tmp/langstoneTx",O_WRONLY);
+  write(fifofd,fs,strlen(fs));
+  close(fifofd);
+  delay(5);
+}
+
+void sendRxFifo(char * s)
+{
+  char fs[50];
+  strcpy(fs,s);
+  strcat(fs,"\n");
+  fifofd=open("/tmp/langstoneRx",O_WRONLY);
   write(fifofd,fs,strlen(fs));
   close(fifofd);
   delay(5);
@@ -741,6 +778,7 @@ void initSDR(void)
   setFreqInc();
   lastLOhz=0;
   setFreq(freq);
+  setTx(0);
 }
 
 void displayMenu()
@@ -1043,13 +1081,13 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       else
         {
           sendDots=0;
+          ptts=0;
           setTx(0);
           setKey(0);
           setMode(mode);
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(0,255,0);
           displayButton("DOTS");  
-          ptts=0;
           gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
           setForeColour(0,255,0);
           displayButton("PTT");       
@@ -1087,7 +1125,8 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       }
       else if (inputMode==1)
       {
-      sendFifo("Q");       //kill the SDR
+      sendTxFifo("Q");       //kill the SDR Tx
+      sendRxFifo("Q");       //kill the SDR Rx
       writeConfig();
       system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
       sleep(5);
@@ -1143,7 +1182,7 @@ void setVolume(int vol)
 {
   char volStr[10];
   sprintf(volStr,"V%d",vol);
-  sendFifo(volStr);
+  sendRxFifo(volStr);
   setForeColour(0,255,0);
   textSize=2;
   gotoXY(volButtonX+30,volButtonY-25);
@@ -1157,7 +1196,7 @@ void setSquelch(int sql)
 {
   char sqlStr[10];
   sprintf(sqlStr,"Z%d",sql);
-  sendFifo(sqlStr);
+  sendRxFifo(sqlStr);
   if(mode==4)
   {
   setForeColour(0,255,0);
@@ -1279,45 +1318,24 @@ void setSSBMic(int mic)
 {
   char micStr[10];
   sprintf(micStr,"G%d",mic);
-  sendFifo(micStr);
+  sendTxFifo(micStr);
 }
 
 void setFMMic(int mic)
 {
   char micStr[10];
   sprintf(micStr,"g%d",mic);
-  sendFifo(micStr);
+  sendTxFifo(micStr);
 }
 
 void setKey(int k)
 {
-if(k==0) sendFifo("k"); else sendFifo("K");
+if(k==0) sendTxFifo("k"); else sendTxFifo("K");
 }
 
 void setFFTPipe(int ctrl)
 {
-if(ctrl==0) sendFifo("p"); else sendFifo("P");
-}
-
-void setMoni(int m)
-{
-  if(m==1)
-    {
-     sendFifo("M");
-     moni=1;
-     gotoXY(moniX,moniY);
-     textSize=2;
-     setForeColour(0,255,0);
-     displayStr("MONI");
-    } 
-  else
-    {
-     sendFifo("m");
-     moni=0;
-     gotoXY(moniX,moniY);
-     textSize=2;
-     displayStr("    ");
-    }
+if(ctrl==0) sendRxFifo("p"); else sendRxFifo("P");
 }
 
 void setMode(int md)
@@ -1328,7 +1346,8 @@ void setMode(int md)
   displayStr(modename[md]);
   if(md==0)
     {
-    sendFifo("U");    //USB
+    sendTxFifo("U");    //USB
+    sendRxFifo("U");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1337,7 +1356,8 @@ void setMode(int md)
   
   if(md==1)
     {
-    sendFifo("L");    //USB
+    sendTxFifo("L");    //USB
+    sendRxFifo("L");    //USB
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1346,9 +1366,11 @@ void setMode(int md)
   
   if(md==2)
     {
-    sendFifo("C");    //CW
+    sendTxFifo("C");    //CW
+    sendRxFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendFifo("W");    //wide CW Filter
+    sendTxFifo("W");    //wide CW Filter
+    sendRxFifo("W");    //wide CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
@@ -1356,16 +1378,19 @@ void setMode(int md)
     
   if(md==3)
     {
-    sendFifo("C");    //CW
+    sendTxFifo("C");    //CW
+    sendRxFifo("C");    //CW
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendFifo("N");    //Narrow CW Filter
+    sendTxFifo("N");    //Narrow CW Filter
+    sendRxFifo("N");    //Narrow CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
   if(md==4)
     {
-    sendFifo("F");    //FM
+    sendTxFifo("F");    //FM
+    sendRxFifo("F");    //FM
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(1);
     ritButton(0);
@@ -1383,23 +1408,30 @@ void setTx(int pt)
   if(pt)
     {
       digitalWrite(txPin,HIGH);
+      plutoGpo=plutoGpo | 0x10;
+      setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
       setHwTxFreq(freq);
       PlutoTxEnable(1);
+      if (moni==0) sendRxFifo("M");                        //mute the receiver
       if(satMode()==0)
       {
         setFFTPipe(0);                        //turn off the FFT stream
         setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
         PlutoRxEnable(0);
+        sendRxFifo("H");                      //freeze the receive Flowgraph 
       }
-
-      sendFifo("T");
+      sendTxFifo("h");                        //unfreeze the Tx Flowgraph
+      sendTxFifo("T");
       setForeColour(255,0,0);
       displayStr("Tx");  
     }
   else
     {
-      sendFifo("R");
+      sendTxFifo("R");
+      sendTxFifo("H");                  //freeze the Tx Flowgraph
+      sendRxFifo("h");                  //unfreeze the Rx Flowgraph
+      sendRxFifo("m");                  //unmute the receiver
       PlutoTxEnable(0);
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
@@ -1408,6 +1440,8 @@ void setTx(int pt)
       displayStr("Rx");
       usleep(RXDELAY);
       digitalWrite(txPin,LOW);
+      plutoGpo=plutoGpo & 0xEF;
+      setPlutoGpo(plutoGpo);                               //clear the Pluto GPO Pin 
     }
 }
 
@@ -1439,7 +1473,7 @@ void setHwRxFreq(double fr)
   
   char offsetStr[32];
   sprintf(offsetStr,"O%d",rxoffsethz);   //send the rx offset tuning value 
-  sendFifo(offsetStr);
+  sendRxFifo(offsetStr);
 }
 
 void setHwTxFreq(double fr)
@@ -1533,10 +1567,12 @@ void setFreq(double fr)
      if(satMode()==1)
       {
        displayButton("MONI");
+       setMoni(moni);
       }  
       else
       {
        displayButton("    ");
+       setMoni(0);
       }
     }
      
@@ -1566,34 +1602,60 @@ else
   }
 }
 
+void setMoni(int m)
+{
+  if(m==1)
+    {
+     sendRxFifo("m");
+     moni=1;
+     gotoXY(moniX,moniY);
+     textSize=2;
+     setForeColour(0,255,0);
+     displayStr("MONI");
+    } 
+  else
+    {
+     if (ptt | ptts) sendRxFifo("M");
+     moni=0;
+     gotoXY(moniX,moniY);
+     textSize=2;
+     displayStr("    ");
+    }
+}
 
 void setBandBits(int b)
 {
 if(b & 0x01) 
     {
     digitalWrite(bandPin1,HIGH);
+    plutoGpo=plutoGpo | 0x20;
     }
 else
     {
     digitalWrite(bandPin1,LOW);
+    plutoGpo=plutoGpo & 0xDF;
     }
     
 if(b & 0x02) 
     {
     digitalWrite(bandPin2,HIGH);
+    plutoGpo=plutoGpo | 0x40;
     }
 else
     {
     digitalWrite(bandPin2,LOW);
+    plutoGpo=plutoGpo & 0xBF;
     }   
 
 if(b & 0x04) 
     {
     digitalWrite(bandPin3,HIGH);
+    plutoGpo=plutoGpo | 0x80;
     }
 else
     {
     digitalWrite(bandPin3,LOW);
+    plutoGpo=plutoGpo & 0x7F;
     }   
 
 if(b & 0x08) 
@@ -1604,6 +1666,9 @@ else
     {
     digitalWrite(bandPin4,LOW);
     }   
+
+setPlutoGpo(plutoGpo);
+
 }
 
 
