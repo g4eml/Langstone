@@ -72,15 +72,18 @@ chmod +x install.sh
 
 The initial build can take some time, however it does not need any user input, so go and make a cup of coffee and keep an eye on the touchscreen.  When the build is finished the Pi will reboot and start-up with the Langstone Transceiver. If it does not appear to be working see the file 'Debugging Notes.txt' for some things to look at.
 
-# Upgrading the software. 
+# Updating the Software. 
 
-If you have a running Langstone you can upgrade by doing the following. 
+If you have a running Langstone you can update by doing the following. 
 
-Log into the Pi using SSh as described above. 
+Log into the Pi using SSH as described above. 
 
 cd Langstone
+
 ./stop
+
 ./update
+
 ./run
 
 
