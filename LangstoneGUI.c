@@ -57,6 +57,7 @@ void setInputMode(int n);
 void gen_palette(char colours[][3],int num_grads);
 void setPlutoTxAtt(int att);
 void setBand(int b);
+void setPlutoGpo(int p);
 
 double freq;
 double freqInc=0.001;
@@ -166,7 +167,7 @@ int plutoPresent;
 #define bandPin3 7      //Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
 
-
+int plutoGpo=0;
 
 //robs Waterfall
 
@@ -562,6 +563,24 @@ void PlutoRxEnable(int rxon)
 
 }
 
+void setPlutoGpo(int p)
+{
+  struct iio_context *ctx;
+  struct iio_device *phy;
+  char pins[9]; 
+   
+  sprintf(pins,"0x27 0x%x0",p);
+  
+  if(plutoPresent)
+    {
+      ctx = iio_create_context_from_uri(PLUTOIP);
+      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+      iio_device_attr_write(phy,"direct_reg_access",pins);
+      iio_context_destroy(ctx);
+    }
+
+
+}
 
 
 void initFifos()
@@ -1388,6 +1407,8 @@ void setTx(int pt)
   if(pt)
     {
       digitalWrite(txPin,HIGH);
+      plutoGpo=plutoGpo | 0x10;
+      setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
       setHwTxFreq(freq);
       PlutoTxEnable(1);
@@ -1418,6 +1439,8 @@ void setTx(int pt)
       displayStr("Rx");
       usleep(RXDELAY);
       digitalWrite(txPin,LOW);
+      plutoGpo=plutoGpo & 0xEF;
+      setPlutoGpo(plutoGpo);                               //clear the Pluto GPO Pin 
     }
 }
 
@@ -1604,28 +1627,34 @@ void setBandBits(int b)
 if(b & 0x01) 
     {
     digitalWrite(bandPin1,HIGH);
+    plutoGpo=plutoGpo | 0x20;
     }
 else
     {
     digitalWrite(bandPin1,LOW);
+    plutoGpo=plutoGpo & 0xDF;
     }
     
 if(b & 0x02) 
     {
     digitalWrite(bandPin2,HIGH);
+    plutoGpo=plutoGpo | 0x40;
     }
 else
     {
     digitalWrite(bandPin2,LOW);
+    plutoGpo=plutoGpo & 0xBF;
     }   
 
 if(b & 0x04) 
     {
     digitalWrite(bandPin3,HIGH);
+    plutoGpo=plutoGpo | 0x80;
     }
 else
     {
     digitalWrite(bandPin3,LOW);
+    plutoGpo=plutoGpo & 0x7F;
     }   
 
 if(b & 0x08) 
@@ -1636,6 +1665,9 @@ else
     {
     digitalWrite(bandPin4,LOW);
     }   
+
+setPlutoGpo(plutoGpo);
+
 }
 
 
