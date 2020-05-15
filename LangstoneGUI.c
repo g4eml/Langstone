@@ -567,15 +567,16 @@ void setPlutoGpo(int p)
 {
   struct iio_context *ctx;
   struct iio_device *phy;
-  char pins[9]; 
+  char pins[10]; 
    
   sprintf(pins,"0x27 0x%x0",p);
-  
+  pins[9]=0;
+
   if(plutoPresent)
     {
       ctx = iio_create_context_from_uri(PLUTOIP);
       phy = iio_context_find_device(ctx, "ad9361-phy"); 
-      iio_device_attr_write(phy,"direct_reg_access",pins);
+      iio_device_debug_attr_write(phy,"direct_reg_access",pins);
       iio_context_destroy(ctx);
     }
 
