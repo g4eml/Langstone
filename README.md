@@ -26,7 +26,7 @@ Currently only one set of hardware is supported:-
 
 - 4 Band select Outputs on pins 31, 24, 7 and 6. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
 
-- The TX output and first three of the Band Select outputs are also available on the Internal Pluto GPO connector. The main use for these is for when the Pluto is remotely mounted. Care must be taken as these pins are low voltage. They will need to be buffered before use. 
+- The TX output and first three of the Band Select outputs are also available on the Internal Pluto GPO connector. GPO0 is the Tx Output, GPO1-3 are the Band Select outputs.The main use for these is for when the Pluto is remotely mounted. Care must be taken as these pins are low voltage. They will need to be buffered before use. 
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
