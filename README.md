@@ -26,6 +26,8 @@ Currently only one set of hardware is supported:-
 
 - 4 Band select Outputs on pins 31, 24, 7 and 6. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
 
+- The TX output and first three of the Band Select outputs are also available on the Internal Pluto GPO connector. GPO0 is the Tx Output, GPO1-3 are the Band Select outputs.The main use for these is for when the Pluto is remotely mounted. Care must be taken as these pins are low voltage. They will need to be buffered before use. 
+
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
 All control is done using the touchscreen and mouse.
@@ -38,7 +40,7 @@ It is easy to modify a cheap mouse by disconnecting the existing switches and wi
 
 Microphone input and headphone output uses the USB audio device. (a couple of pounds on Ebay)
 
-The software consists of two parts. The SDR itself uses a python GNURadio Flowgraph which can be created on a PC running GNUradio companion. This Python program is manually edited to adding the code from ControlTRX.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
+The software consists of three parts. The SDR itself uses two python GNURadio Flowgraphs (Lang_TX.py and Lang_RX.py)which can be created on a PC running GNUradio companion. These Python programs are then manually edited by adding the code from ControlTX.py and ControlRx.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
 
 
 
@@ -69,5 +71,19 @@ chmod +x install.sh
 ```
 
 The initial build can take some time, however it does not need any user input, so go and make a cup of coffee and keep an eye on the touchscreen.  When the build is finished the Pi will reboot and start-up with the Langstone Transceiver. If it does not appear to be working see the file 'Debugging Notes.txt' for some things to look at.
+
+# Updating the Software. 
+
+If you have a running Langstone you can update by doing the following. 
+
+Log into the Pi using SSH as described above. 
+
+cd Langstone
+
+./stop
+
+./update
+
+./run
 
 

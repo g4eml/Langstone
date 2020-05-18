@@ -26,7 +26,7 @@ if !(ps -ax |grep -v grep| grep -q Lang_TX.py) then
         python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
 	sleep 10
 	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
-		/home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1 &
+		/home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1
 	else
 		clear
 		echo ERROR:- Lang_TX.py failed to start.
