@@ -451,7 +451,7 @@ void detectHw()
   fclose(fp);
   if(ln)  free(ln);
   
-  if ((fp = fopen("/home/pi/portsdown/test.txt", "r")))
+  if ((fp = fopen("/home/pi/rpidatv/bin/rpidatvgui", "r")))
   {
     fclose(fp);
     portsdownPresent=1;
