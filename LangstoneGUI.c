@@ -1134,6 +1134,8 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       }
       else if (inputMode==1)
       {
+      sendTxFifo("h");        //unlock the Tx so that it can exit
+      sendRxFifo("h");        //and unlock the Rx just in case
       sendTxFifo("Q");       //kill the SDR Tx
       sendRxFifo("Q");       //kill the SDR Rx
       writeConfig();
@@ -1146,6 +1148,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
          }
       else
          {
+         clearScreen();
          exit(0);
          }
       
