@@ -1,5 +1,4 @@
 #!/bin/bash
-git stash
 git pull
 if test -f "runonce.sh" ; then
 ./runonce.sh
