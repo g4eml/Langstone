@@ -45,7 +45,7 @@ class Lang_TX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
-        self.pluto_sink_0 = iio.pluto_sink('ip:192.168.2.1', 1000000000, 529200, 2000000, 0x800, False, 0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink('ip:pluto.local', 1000000000, 529200, 2000000, 0x800, False, 0, '', True)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc((not FM, ))

@@ -21,12 +21,28 @@ if !(ps -ax |grep -v grep| grep -q Lang_TX.py) then
 	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
 	sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
 	sudo raspi-gpio set 17,18 ip pu
-	sleep 10
-	python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
-        python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
-	sleep 10
+
+   
+ retry=0
+ until [ ${retry} -ge 3 ]
+do
+	(iio_info -n pluto.local 2>/dev/null | grep -q PlutoSDR) && break
+	retry=$[${retry}+1]
+	sleep 1
+done
+
+if [ ${retry} -ge 3 ]; then
+  clear
+  echo "Pluto Failed to Respond at pluto.local"
+  echo "Check Connection and Power"
+  exit 1
+fi
+   
+   
+  python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
+  python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
 	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
-		/home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1
+	  /home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1
 	else
 		clear
 		echo ERROR:- Lang_TX.py failed to start.
