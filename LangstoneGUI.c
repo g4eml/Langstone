@@ -12,7 +12,7 @@
 #include "Mouse.h"
 
 
-#define PLUTOIP "ip:192.168.2.1"
+#define PLUTOIP "ip:pluto.local"
 
 void setFreq(double fr);
 void setFreqInc();
@@ -158,6 +158,7 @@ char touchPath[20];
 int mousePresent;
 int touchPresent;
 int plutoPresent;
+int portsdownPresent;
 
 #define pttPin 0        // Wiring Pi pin number. Physical pin is 11
 #define keyPin 1        //Wiring Pi pin number. Physical pin is 12
@@ -418,6 +419,7 @@ void detectHw()
   p=0;
   mousePresent=0;
   touchPresent=0;
+  portsdownPresent=0;
   fp=fopen("/proc/bus/input/devices","r");
    while ((rd=getline(&ln,&len,fp)!=-1))
     {
@@ -448,6 +450,13 @@ void detectHw()
     }
   fclose(fp);
   if(ln)  free(ln);
+  
+  if ((fp = fopen("/home/pi/rpidatv/bin/rpidatvgui", "r")))
+  {
+    fclose(fp);
+    portsdownPresent=1;
+  }
+  
     plutoPresent=1;      //this will be reset by setPlutoFreq if Pluto is not present.
 }
 
@@ -1125,13 +1134,24 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       }
       else if (inputMode==1)
       {
+      sendTxFifo("h");        //unlock the Tx so that it can exit
+      sendRxFifo("h");        //and unlock the Rx just in case
       sendTxFifo("Q");       //kill the SDR Tx
       sendRxFifo("Q");       //kill the SDR Rx
       writeConfig();
-      system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
-      sleep(5);
-      system("sudo poweroff");                          
-      return;
+      if (portsdownPresent==0)
+         {
+         system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
+         sleep(5);
+         system("sudo poweroff");                          
+         return;
+         }
+      else
+         {
+         clearScreen();
+         exit(0);
+         }
+      
       }
       else
       {
@@ -1255,7 +1275,15 @@ if(inputMode==1)
     displayButton("PREV");
     displayButton(" ");
     setForeColour(255,0,0);
-    displayButton("OFF");
+    if (portsdownPresent==0)
+    {
+        displayButton("OFF");
+    }
+    else
+    {
+        displayButton("EXIT");
+    }
+
     mouseScroll=0;
     displaySetting(settingNo); 
   }

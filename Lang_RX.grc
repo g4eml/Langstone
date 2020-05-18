@@ -1193,7 +1193,7 @@
     </param>
     <param>
       <key>uri</key>
-      <value>ip:192.168.2.1</value>
+      <value>ip:pluto.local</value>
     </param>
     <param>
       <key>_enabled</key>

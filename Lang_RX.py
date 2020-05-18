@@ -42,7 +42,7 @@ class Lang_RX(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.pluto_source_0 = iio.pluto_source('ip:192.168.2.1', 1000000000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
+        self.pluto_source_0 = iio.pluto_source('ip:pluto.local', 1000000000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
         	sample_rate=44100,
         	fft_size=512,
