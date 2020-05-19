@@ -251,7 +251,11 @@ clock_t lastClock;
           }
       } 
     waterfall();
-    while(clock() < (lastClock + CLOCKS_PER_SEC/100));        //delay until the next iteration at 100 per second
+    while(clock() < (lastClock + CLOCKS_PER_SEC/100))                //delay until the next iteration at 100 per second
+    {
+    usleep(1);
+    }
+  
     lastClock=clock();
   }
 }
