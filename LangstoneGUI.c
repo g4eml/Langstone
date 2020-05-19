@@ -82,11 +82,17 @@ int bbits=0;
 #define nummode 5
 int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
+enum {USB,LSB,CW,CWN,FM};
 
 #define numSettings 7
-int settingNo=0;
-int inputMode=0;
+
 char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","FFT Ref = ","Tx Att = "};
+enum {SSB_MIC,FM_MIC,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT};
+int settingNo=SSB_MIC;
+
+enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
+int inputMode=FREQ;
+
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -126,7 +132,7 @@ int fifofd;
 int sendDots=0;
 int dotCount=0;
 
-#define configDelay 500                              ///delay before config is written after tuning.
+#define configDelay 500                              ///delay before config is written after tuning (5 Seconds)
 int configCounter=configDelay;
 
 long long lastLOhz;
@@ -255,7 +261,7 @@ int main(int argc, char* argv[])
       } 
     waterfall();
 
-    if(configCounter>0)
+    if(configCounter>0)                                       //save the config after 5 seconds of inactivity.
     {
       configCounter=configCounter-1;
       if(configCounter==0)
@@ -266,7 +272,7 @@ int main(int argc, char* argv[])
     }
     
     
-    while(currentTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second 
+    while(currentTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second (10ms)
     {
     usleep(100);
     }
@@ -388,31 +394,31 @@ void waterfall()
         }
           
           //draw Bandwidth indicator
-          if (mode==0)
+          if (mode==USB)
           {
            bwBarStart=3;
            bwBarEnd=34;
            centreShift=0;
           }
-          if (mode==1)
+          if (mode==LSB)
           {
            bwBarStart=-34;
            bwBarEnd=-3;
            centreShift=0;          
           }
-          if (mode==2)
+          if (mode==CW)
           {
            bwBarStart=3;
            bwBarEnd=34;
            centreShift=9;
           }
-          if (mode==3)
+          if (mode==CWN)
           {
            bwBarStart=6;
            bwBarEnd=12;
            centreShift=9;          
           }
-          if (mode==4)
+          if (mode==FM)
           {
            bwBarStart=-87;
            bwBarEnd=87;
@@ -474,7 +480,7 @@ void detectHw()
   fclose(fp);
   if(ln)  free(ln);
   
-  if ((fp = fopen("/home/pi/rpidatv/bin/rpidatvgui", "r")))
+  if ((fp = fopen("/home/pi/rpidatv/bin/rpidatvgui", "r")))                      //test to see if Portsdown file is present. If so we change the exit behaviour. 
   {
     fclose(fp);
     portsdownPresent=1;
@@ -778,7 +784,7 @@ void initGUI()
   displayMenu();
   setBand(band);
   
-  if(mode==4) 
+  if(mode==FM) 
     {
     sqlButton(1);
     }
@@ -834,7 +840,7 @@ void processMouse(int mbut)
 {
   if(mbut==128)       //scroll whell turned 
     {
-      if(inputMode==0)
+      if(inputMode==FREQ)
       {
         freq=freq+(mouseScroll*freqInc);
         mouseScroll=0;
@@ -843,12 +849,12 @@ void processMouse(int mbut)
         setFreq(freq);
         return;      
       }
-      if(inputMode==1)
+      if(inputMode==SETTINGS)
       {
         changeSetting();
         return;
       }
-      if(inputMode==2)
+      if(inputMode==VOLUME)
       {
         volume=volume+mouseScroll;
         mouseScroll=0;
@@ -857,7 +863,7 @@ void processMouse(int mbut)
         setVolume(volume);
         return;      
       }    
-      if(inputMode==3)
+      if(inputMode==SQUELCH)
       {
         squelch=squelch+mouseScroll;
         mouseScroll=0;
@@ -867,7 +873,7 @@ void processMouse(int mbut)
         setSquelch(squelch);
         return;      
       }   
-      if(inputMode==4)
+      if(inputMode==RIT)
       {
         rit=rit+mouseScroll*10;
         mouseScroll=0;
@@ -939,13 +945,13 @@ void processTouch()
 
 if(buttonTouched(volButtonX,volButtonY))    //Vol
     {
-      if(inputMode==2)
+      if(inputMode==VOLUME)
         {
-        setInputMode(0);
+        setInputMode(FREQ);
         }
       else
         {
-        setInputMode(2);
+        setInputMode(VOLUME);
         }
       return;
     }
@@ -957,15 +963,15 @@ if(buttonTouched(volButtonX,volButtonY))    //Vol
 
 if(buttonTouched(sqlButtonX,sqlButtonY))    //sql
     {
-     if(mode==4)
+     if(mode==FM)
      {
-      if(inputMode==3)
+      if(inputMode==SQUELCH)
         {
-        setInputMode(0);
+        setInputMode(FREQ);
         }
       else
         {
-        setInputMode(3);
+        setInputMode(SQUELCH);
         }
       return;
       }
@@ -978,13 +984,13 @@ if(buttonTouched(ritButtonX,ritButtonY))    //rit
     {
      if(mode!=4)
      {
-      if(inputMode==4)
+      if(inputMode==RIT)
         {
-        setInputMode(0);
+        setInputMode(FREQ);
         }
       else
         {
-        setInputMode(4);
+        setInputMode(RIT);
         }
       return;
       }
@@ -995,14 +1001,14 @@ if(buttonTouched(ritButtonX,ritButtonY))    //rit
 if(buttonTouched(ritButtonX,ritButtonY+buttonSpaceY))    //rit zero
     {
      setRit(0);
-     setInputMode(0);
+     setInputMode(FREQ);
     }
 //Function Buttons
 
 
 if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
     {
       bandFreq[band]=freq;
       writeConfig();
@@ -1013,7 +1019,7 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     }
     else
     {
-      setInputMode(0);
+      setInputMode(FREQ);
       return; 
     }
       
@@ -1021,7 +1027,7 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     }      
 if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE or Blank
     {
-     if(inputMode==0)
+     if(inputMode==FREQ)
       {
       mode=mode+1;
       if(mode==nummode) mode=0;
@@ -1030,18 +1036,18 @@ if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE o
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       return;
       }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or NEXT
     {
-     if(inputMode==0)
+     if(inputMode==FREQ)
       {
       return;
       }
-      else if(inputMode==1)
+      else if(inputMode==SETTINGS)
       {
       settingNo=settingNo+1;
       if(settingNo==numSettings) settingNo=0;
@@ -1050,27 +1056,27 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank 
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or Blank
     {
-     if(inputMode==0)
+     if(inputMode==FREQ)
       {
-      setInputMode(1);
+      setInputMode(SETTINGS);
       return;
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       return;
       }
     }
        
 if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or PREV
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
       {
       if(satMode()==1)
         {
@@ -1078,7 +1084,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
         }      
       return;
       }
-      else  if (inputMode==1)
+      else  if (inputMode==SETTINGS)
       {
       settingNo=settingNo-1;
       if(settingNo<0) settingNo=numSettings-1;
@@ -1087,7 +1093,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       }
       
  
@@ -1095,7 +1101,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
 
 if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Blank
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
       {
       if(sendDots==0)
         {
@@ -1128,14 +1134,14 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       return;
       }
     } 
          
 if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  or OFF
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
       {
       if(ptts==0)
         {
@@ -1155,7 +1161,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
         }
       return;
       }
-      else if (inputMode==1)
+      else if (inputMode==SETTINGS)
       {
       sendTxFifo("h");        //unlock the Tx so that it can exit
       sendRxFifo("h");        //and unlock the Rx just in case
@@ -1178,7 +1184,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       }
       
 
@@ -1191,7 +1197,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
 
 if((touchY>freqDisplayY) & (touchY < freqDisplayY+freqDisplayCharHeight) & (touchX>freqDisplayX) & (touchX < freqDisplayX+12*freqDisplayCharWidth))   
   {
-    setInputMode(0);
+    setInputMode(FREQ);
     int tx=touchX-freqDisplayX;
     tx=tx/freqDisplayCharWidth;
     tuneDigit=tx;
@@ -1242,7 +1248,7 @@ void setSquelch(int sql)
   char sqlStr[10];
   sprintf(sqlStr,"Z%d",sql);
   sendRxFifo(sqlStr);
-  if(mode==4)
+  if(mode==FM)
   {
   setForeColour(0,255,0);
   textSize=2;
@@ -1258,7 +1264,7 @@ void setSquelch(int sql)
 void setInputMode(int m)
 
 {
-if(inputMode==1)
+if(inputMode==SETTINGS)
   {
   gotoXY(settingX,settingY);
   setForeColour(255,255,255);
@@ -1266,19 +1272,19 @@ if(inputMode==1)
   writeConfig();
   displayMenu();
   }
-if(inputMode==2)
+if(inputMode==VOLUME)
   {
     gotoXY(volButtonX,volButtonY);
     setForeColour(0,255,0);
     displayButton("Vol");
   }
-if(inputMode==3)
+if(inputMode==SQUELCH)
   {
     gotoXY(sqlButtonX,sqlButtonY);
     setForeColour(0,255,0);
     displayButton("SQL"); 
   }
-if(inputMode==4)
+if(inputMode==RIT)
   {
     gotoXY(ritButtonX,ritButtonY);
     setForeColour(0,255,0);
@@ -1290,7 +1296,7 @@ if(inputMode==4)
   
 inputMode=m;
 
-if(inputMode==1)
+if(inputMode==SETTINGS)
   {
     gotoXY(funcButtonsX,funcButtonsY);
     setForeColour(0,255,0);
@@ -1313,19 +1319,19 @@ if(inputMode==1)
     mouseScroll=0;
     displaySetting(settingNo); 
   }
-if(inputMode==2)
+if(inputMode==VOLUME)
   {
     gotoXY(volButtonX,volButtonY);
     setForeColour(255,0,0);
     displayButton("Vol");
   }
-if(inputMode==3)
+if(inputMode==SQUELCH)
   {
     gotoXY(sqlButtonX,sqlButtonY);
     setForeColour(255,0,0);
     displayButton("SQL"); 
   }
-if(inputMode==4)
+if(inputMode==RIT)
   {
     gotoXY(ritButtonX,ritButtonY);
     setForeColour(255,0,0);
@@ -1515,7 +1521,7 @@ void setHwRxFreq(double fr)
   
   LOrxfreqhz=rxfreqhz-rxoffsethz;
   rxoffsethz=rxoffsethz+rit;
-  if((mode==2)|(mode==3))
+  if((mode==CW)|(mode==CWN))
     {
      rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz    
     }
@@ -1539,7 +1545,7 @@ void setHwTxFreq(double fr)
   
   txfreqhz=frTx*1000000;
     
-  if((mode==2)|(mode==3))
+  if((mode==CW)|(mode==CWN))
     {
      txfreqhz=txfreqhz-800;         //offset  for CW tone of 800 Hz    
     }
@@ -1616,7 +1622,7 @@ void setFreq(double fr)
  
    gotoXY(funcButtonsX+buttonSpaceX*4,funcButtonsY);
    setForeColour(0,255,0);
-   if(inputMode==0)
+   if(inputMode==FREQ)
    {
      if(satMode()==1)
       {
@@ -1729,7 +1735,7 @@ setPlutoGpo(plutoGpo);
 
 void changeSetting(void)
 {
-  if(settingNo==0)        //SSB Mic Gain
+  if(settingNo==SSB_MIC)        //SSB Mic Gain
       {
       SSBMic=SSBMic+mouseScroll;
       mouseScroll=0;
@@ -1738,7 +1744,7 @@ void changeSetting(void)
       setSSBMic(SSBMic);
       displaySetting(settingNo);
       }
-   if(settingNo==1)        // FM Mic Gain
+   if(settingNo==FM_MIC)        // FM Mic Gain
       {
       FMMic=FMMic+mouseScroll;
       mouseScroll=0;
@@ -1747,7 +1753,7 @@ void changeSetting(void)
       setFMMic(FMMic);
       displaySetting(settingNo);
       }
-   if(settingNo==2)        //Transverter Rx Offset 
+   if(settingNo==RX_OFFSET)        //Transverter Rx Offset 
       {
         bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
         displaySetting(settingNo);
@@ -1757,14 +1763,14 @@ void changeSetting(void)
         mouseScroll=0;
         setFreq(freq);
       } 
-   if(settingNo==3)        //Transverter Tx Offset
+   if(settingNo==TX_OFFSET)        //Transverter Tx Offset
       {
         bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
         displaySetting(settingNo);
         mouseScroll=0;
         setFreq(freq);
       }  
-   if(settingNo==4)        // Band Bits
+   if(settingNo==BAND_BITS)        // Band Bits
       {
       bandBits[band]=bandBits[band]+mouseScroll;
       mouseScroll=0;
@@ -1774,7 +1780,7 @@ void changeSetting(void)
       setBandBits(bbits);
       displaySetting(settingNo);  
       }    
-   if(settingNo==5)        // FFT Ref Level
+   if(settingNo==FFT_REF)        // FFT Ref Level
       {
       FFTRef=FFTRef+mouseScroll;
       mouseScroll=0;
@@ -1783,7 +1789,7 @@ void changeSetting(void)
       bandFFTRef[band]=FFTRef;
       displaySetting(settingNo);  
       }    
-    if(settingNo==6)        // Tx Attenuator
+    if(settingNo==TX_ATT)        // Tx Attenuator
       {
       TxAtt=TxAtt+mouseScroll;
       mouseScroll=0;
