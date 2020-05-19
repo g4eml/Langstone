@@ -58,6 +58,7 @@ void gen_palette(char colours[][3],int num_grads);
 void setPlutoTxAtt(int att);
 void setBand(int b);
 void setPlutoGpo(int p);
+long long currentTimeMs(void);
 
 double freq;
 double freqInc=0.001;
@@ -125,7 +126,12 @@ int fifofd;
 int sendDots=0;
 int dotCount=0;
 
+#define configDelay 500                              ///delay before config is written after tuning.
+int configCounter=configDelay;
+
 long long lastLOhz;
+
+long long lastClock;
 
 int lastKey=1;
 
@@ -186,9 +192,6 @@ unsigned char * palette;
 
 int main(int argc, char* argv[])
 {
-
-clock_t lastClock;
-
   fftstream=fopen("/tmp/langstonefft","r");                 //Open FFT Stream from GNU Radio 
   fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
   
@@ -251,13 +254,31 @@ clock_t lastClock;
           }
       } 
     waterfall();
-    while(clock() < (lastClock + CLOCKS_PER_SEC/100))                //delay until the next iteration at 100 per second
+
+    if(configCounter>0)
     {
-    usleep(1);
+      configCounter=configCounter-1;
+      if(configCounter==0)
+        {
+        bandFreq[band]=freq;
+        writeConfig();
+        }
     }
-  
-    lastClock=clock();
+    
+    
+    while(currentTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second 
+    {
+    usleep(100);
+    }
+    lastClock=currentTimeMs();
   }
+}
+
+long long currentTimeMs(void)
+{
+struct timeval tt;
+gettimeofday(&tt,NULL);
+return ((tt.tv_sec*1000) + (tt.tv_usec/1000));
 }
 
 void gen_palette(char colours[][3], int num_grads){
@@ -273,14 +294,12 @@ void gen_palette(char colours[][3], int num_grads){
       diff[0]=(colours[i+1][0]-colours[i][0])/(scale-1);
       diff[1]=(colours[i+1][1]-colours[i][1])/(scale-1);
       diff[2]=(colours[i+1][2]-colours[i][2])/(scale-1);
-      //fprintf(stdout,"diff 0:%i 1:%i 2:%i\n",diff[0],diff[1],diff[2]);
 
       //create the palette built up of multiple gradients
       for(int n=0;n<scale;n++){
           palette[pos*3+2]=colours[i][0]+(n*diff[0]);
           palette[pos*3+1]=colours[i][1]+(n*diff[1]);
           palette[pos*3]=colours[i][2]+(n*diff[2]);
-          //fprintf(stdout,"n:%i r:%i g:%i b:%i\n",pos,palette[pos*3+2],palette[pos*3+1],palette[pos*3]);
           pos++;
       }
 
@@ -1214,6 +1233,8 @@ void setVolume(int vol)
   gotoXY(volButtonX+30,volButtonY-25);
   sprintf(volStr,"%d",vol);
   displayStr(volStr);
+  
+  configCounter-configDelay;
 }
 
 void setSquelch(int sql)
@@ -1230,6 +1251,7 @@ void setSquelch(int sql)
   gotoXY(sqlButtonX+30,sqlButtonY-25);
   sprintf(sqlStr,"%d",sql);
   displayStr(sqlStr);
+  configCounter=configDelay;
   }
 }
 
@@ -1430,7 +1452,7 @@ void setMode(int md)
     } 
 
 
-
+configCounter=configDelay;
 }
 
 void setTx(int pt)
@@ -1607,7 +1629,8 @@ void setFreq(double fr)
        setMoni(0);
       }
     }
-     
+ 
+ configCounter=configDelay;                       //write config after this amount of inactivity    
 }
 
 int satMode(void)
