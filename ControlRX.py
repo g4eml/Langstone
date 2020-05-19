@@ -32,46 +32,38 @@ def docommands(tb):
          for line in filein:
            line=line.strip()
            if line=='Q':
-              ex=True        
-           if line=='U':
-              tb.set_USB(True)
-              tb.set_FM(False)
-              tb.set_CW(False)              
-           if line=='L':
-              tb.set_USB(False)
-              tb.set_FM(False)
-              tb.set_CW(False) 
-           if line=='F':
-              tb.set_FM(True)             
-           if line=='C':
-              tb.set_CW(True)
-              tb.set_FM(False)
-              tb.set_USB(True) 
-           if line=='N':
-              tb.set_NCW(True)
-           if line=='W':
-              tb.set_NCW(False) 
+              ex=True                  
            if line=='P':
               tb.set_FFTEn(1)
            if line=='p':
               tb.set_FFTEn(0)
-           if line=='M':
+           if line=='U':
               tb.set_Mute(1)
-           if line=='m':
+           if line=='u':
               tb.set_Mute(0)
+           if line=='H':
+              tb.lock()
+           if line=='h':
+              tb.unlock() 
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  
            if line[0]=='V':
               value=int(line[1:])
               tb.set_AFGain(value)
-           if line[0]=='Z':
+           if line[0]=='S':
               value=int(line[1:])
               tb.set_SQL(value) 
-           if line=='H':
-              tb.lock()
-           if line=='h':
-              tb.unlock()                            
+           if line[0]=='F':
+              value=int(line[1:])
+              tb.set_Filt_High(value) 
+           if line[0]=='f':
+              value=int(line[1:])
+              tb.set_Filt_Low(value) 
+           if line[0]=='M':
+              value=int(line[1:])
+              tb.set_Mode(value) 
+                                                     
        except:
          break
 

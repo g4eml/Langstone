@@ -22,6 +22,7 @@ void setVolume(int vol);
 void setSquelch(int sql);
 void setSSBMic(int mic);
 void setFMMic(int mic);
+void setFilter(int low,int high);
 void setBandBits(int b);
 void processTouch();
 void processMouse(int mbut);
@@ -79,10 +80,10 @@ int bbits=0;
 #define maxHwFreq 5999.99999
 
 
-#define nummode 5
+#define nummode 6
 int mode=0;
-char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
-enum {USB,LSB,CW,CWN,FM};
+char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
+enum {USB,LSB,CW,CWN,FM,AM};
 
 #define numSettings 7
 
@@ -192,7 +193,8 @@ int rows=150;
 int FFTRef = -30;
 int spectrum_rows=50;
 unsigned char * palette;
-
+int bwBarStart=3;
+int bwBarEnd=34;
 
 
 
@@ -316,8 +318,6 @@ void waterfall()
 {
   int level,level2;
   int ret;
-  int bwBarStart=3;
-  int bwBarEnd=34;
   int centreShift=0;
   
       //check if data avilable to read
@@ -394,37 +394,16 @@ void waterfall()
         }
           
           //draw Bandwidth indicator
-          if (mode==USB)
+          int p=points/2;
+          
+          if ((mode==CW) || (mode==CWN))
           {
-           bwBarStart=3;
-           bwBarEnd=34;
-           centreShift=0;
-          }
-          if (mode==LSB)
-          {
-           bwBarStart=-34;
-           bwBarEnd=-3;
-           centreShift=0;          
-          }
-          if (mode==CW)
-          {
-           bwBarStart=3;
-           bwBarEnd=34;
            centreShift=9;
           }
-          if (mode==CWN)
+          else
           {
-           bwBarStart=6;
-           bwBarEnd=12;
-           centreShift=9;          
-          }
-          if (mode==FM)
-          {
-           bwBarStart=-87;
-           bwBarEnd=87;
            centreShift=0;          
           }
-          int p=points/2;
 
           drawLine(p+140+bwBarStart, 186-spectrum_rows+5, p+140+bwBarStart, 186-spectrum_rows,255,140,0);
           drawLine(p+140+bwBarStart, 186-spectrum_rows, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);
@@ -1246,7 +1225,7 @@ void setVolume(int vol)
 void setSquelch(int sql)
 {
   char sqlStr[10];
-  sprintf(sqlStr,"Z%d",sql);
+  sprintf(sqlStr,"S%d",sql);
   sendRxFifo(sqlStr);
   if(mode==FM)
   {
@@ -1347,7 +1326,7 @@ void setRit(int ri)
 {
   char ritStr[10];
   int to;
-  if(mode!=4)
+  if(!((mode==FM) || (mode==AM)))
   {
   rit=ri;
   setForeColour(0,255,0);
@@ -1398,65 +1377,90 @@ void setFFTPipe(int ctrl)
 if(ctrl==0) sendRxFifo("p"); else sendRxFifo("P");
 }
 
+void setFilter(int low,int high)
+{
+  char filtStr[10];
+  sprintf(filtStr,"f%d",low);
+  sendTxFifo(filtStr);
+  sendRxFifo(filtStr);
+  sprintf(filtStr,"F%d",high);
+  sendTxFifo(filtStr);
+  sendRxFifo(filtStr);
+  
+  bwBarStart=low/86;
+  bwBarEnd=high/86;
+  
+}
+
 void setMode(int md)
 {
   gotoXY(modeX,modeY);
   setForeColour(255,255,0);
   textSize=2;
   displayStr(modename[md]);
-  if(md==0)
+  if(md==USB)
     {
-    sendTxFifo("U");    //USB
-    sendRxFifo("U");    //USB
+    sendTxFifo("M0");    //USB
+    sendRxFifo("M0");    //SSB
+    setFilter(300,3000);    //USB Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
   
-  if(md==1)
+  if(md==LSB)
     {
-    sendTxFifo("L");    //USB
-    sendRxFifo("L");    //USB
+    sendTxFifo("M1");    //LSB
+    sendRxFifo("M1");    //LSB
+    setFilter(-3000,-300); // LSB Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
   
-  if(md==2)
+  if(md==CW)
     {
-    sendTxFifo("C");    //CW
-    sendRxFifo("C");    //CW
+    sendTxFifo("M2");    //CW
+    sendRxFifo("M2");    //CW
+    setFilter(300,3000);   // CW Wide Filter
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendTxFifo("W");    //wide CW Filter
-    sendRxFifo("W");    //wide CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
     
-  if(md==3)
+  if(md==CWN)
     {
-    sendTxFifo("C");    //CW
-    sendRxFifo("C");    //CW
+    sendTxFifo("M3");    //CWN
+    sendRxFifo("M3");    //CWN
+    setFilter(600,1000);    //CW Narrow Filter
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendTxFifo("N");    //Narrow CW Filter
-    sendRxFifo("N");    //Narrow CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
-  if(md==4)
+  if(md==FM)
     {
-    sendTxFifo("F");    //FM
-    sendRxFifo("F");    //FM
+    sendTxFifo("M4");    //FM
+    sendRxFifo("M4");    //FM
+    setFilter(-7500,7500);    //FM Filter 
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(1);
     ritButton(0);
     setRit(0);
     } 
-
+  if(md==AM)
+    {
+    sendTxFifo("M5");    //AM
+    sendRxFifo("M5");    //AM
+    setFilter(-5000,5000);    //AM Filter 
+    setFreq(freq);    //set the frequency to adjust for CW offset.
+    sqlButton(0);
+    ritButton(0);
+    setRit(0);
+    } 
 
 configCounter=configDelay;
 }
@@ -1473,7 +1477,7 @@ void setTx(int pt)
       usleep(TXDELAY);
       setHwTxFreq(freq);
       PlutoTxEnable(1);
-      if (moni==0) sendRxFifo("M");                        //mute the receiver
+      if (moni==0) sendRxFifo("U");                        //mute the receiver
       if(satMode()==0)
       {
         setFFTPipe(0);                        //turn off the FFT stream
@@ -1491,7 +1495,7 @@ void setTx(int pt)
       sendTxFifo("R");
       sendTxFifo("H");                  //freeze the Tx Flowgraph
       sendRxFifo("h");                  //unfreeze the Rx Flowgraph
-      sendRxFifo("m");                  //unmute the receiver
+      sendRxFifo("u");                  //unmute the receiver
       PlutoTxEnable(0);
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
@@ -1667,7 +1671,7 @@ void setMoni(int m)
 {
   if(m==1)
     {
-     sendRxFifo("m");
+     sendRxFifo("u");
      moni=1;
      gotoXY(moniX,moniY);
      textSize=2;
@@ -1676,7 +1680,7 @@ void setMoni(int m)
     } 
   else
     {
-     if (ptt | ptts) sendRxFifo("M");
+     if (ptt | ptts) sendRxFifo("U");
      moni=0;
      gotoXY(moniX,moniY);
      textSize=2;

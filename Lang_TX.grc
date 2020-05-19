@@ -101,60 +101,6 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(744, 12)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>CW</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>False</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(1032, 12)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>FM</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>False</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
       <value>(1128, 12)</value>
     </param>
     <param>
@@ -182,7 +128,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(936, 12)</value>
+      <value>(640, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -190,11 +136,11 @@
     </param>
     <param>
       <key>id</key>
-      <value>KEY</value>
+      <value>Filt_High</value>
     </param>
     <param>
       <key>value</key>
-      <value>False</value>
+      <value>3000</value>
     </param>
   </block>
   <block>
@@ -209,7 +155,61 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(664, 12)</value>
+      <value>(544, 12)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>Filt_Low</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>300</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(936, 12)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>KEY</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>True</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(840, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -236,7 +236,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(840, 12)</value>
+      <value>(1032, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -244,11 +244,11 @@
     </param>
     <param>
       <key>id</key>
-      <value>NCW</value>
+      <value>Mode</value>
     </param>
     <param>
       <key>value</key>
-      <value>False</value>
+      <value>0</value>
     </param>
   </block>
   <block>
@@ -263,7 +263,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(488, 12)</value>
+      <value>(744, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -276,33 +276,6 @@
     <param>
       <key>value</key>
       <value>False</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(576, 12)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>USB</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>True</value>
     </param>
   </block>
   <block>
@@ -392,7 +365,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(376, 428)</value>
+      <value>(312, 428)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -502,7 +475,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(552, 456)</value>
+      <value>(536, 488)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -541,7 +514,7 @@
     <key>analog_sig_source_x</key>
     <param>
       <key>amp</key>
-      <value>int(CW and KEY)</value>
+      <value>int(((Mode==2) or (Mode==3)) and (KEY))</value>
     </param>
     <param>
       <key>alias</key>
@@ -565,7 +538,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(232, 352)</value>
+      <value>(144, 360)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -699,7 +672,7 @@
     </param>
     <param>
       <key>high_cutoff_freq</key>
-      <value>-300+USB*3300-CW*1950</value>
+      <value>Filt_High</value>
     </param>
     <param>
       <key>id</key>
@@ -711,7 +684,7 @@
     </param>
     <param>
       <key>low_cutoff_freq</key>
-      <value>-3000+USB*3300+CW*250</value>
+      <value>Filt_Low</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -935,7 +908,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(560, 368)</value>
+      <value>(520, 368)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -970,7 +943,7 @@
     </param>
     <param>
       <key>const</key>
-      <value>(MicGain/10.0)*(not CW)</value>
+      <value>(MicGain/10.0)*(not (Mode==2))*(not (Mode==3))</value>
     </param>
     <param>
       <key>affinity</key>
@@ -1072,7 +1045,7 @@
     </param>
     <param>
       <key>const</key>
-      <value>FM</value>
+      <value>Mode==4</value>
     </param>
     <param>
       <key>affinity</key>
@@ -1123,7 +1096,7 @@
     </param>
     <param>
       <key>const</key>
-      <value>not FM</value>
+      <value>not (Mode==4)</value>
     </param>
     <param>
       <key>affinity</key>
