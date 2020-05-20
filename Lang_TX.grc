@@ -306,7 +306,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(832, 368)</value>
+      <value>(880, 368)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -334,7 +334,7 @@
     </param>
     <param>
       <key>reference</key>
-      <value>1.3</value>
+      <value>1.3- (0.65*(int(Mode==5)))</value>
     </param>
     <param>
       <key>type</key>
@@ -660,7 +660,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(976, 348)</value>
+      <value>(1040, 348)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -787,6 +787,57 @@
     </param>
   </block>
   <block>
+    <key>blocks_add_const_vxx</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>const</key>
+      <value>0.5 * int(Mode==5)</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(664, 380)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_add_const_vxx_0</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>complex</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+  </block>
+  <block>
     <key>blocks_add_xx</key>
     <param>
       <key>alias</key>
@@ -857,7 +908,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1312, 336)</value>
+      <value>(1392, 336)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -908,7 +959,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(520, 368)</value>
+      <value>(504, 368)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1057,7 +1108,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1152, 308)</value>
+      <value>(1224, 308)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1108,7 +1159,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1152, 396)</value>
+      <value>(1216, 396)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1155,7 +1206,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(728, 384)</value>
+      <value>(776, 384)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1206,7 +1257,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1616, 352)</value>
+      <value>(1640, 352)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1328,7 +1379,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1448, 328)</value>
+      <value>(1464, 328)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1414,6 +1465,12 @@
     <sink_key>0</sink_key>
   </connection>
   <connection>
+    <source_block_id>blocks_add_const_vxx_0</source_block_id>
+    <sink_block_id>blocks_multiply_xx_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
     <source_block_id>blocks_add_xx_0</source_block_id>
     <sink_block_id>blocks_float_to_complex_0</sink_block_id>
     <source_key>0</source_key>
@@ -1427,7 +1484,7 @@
   </connection>
   <connection>
     <source_block_id>blocks_float_to_complex_0</source_block_id>
-    <sink_block_id>blocks_multiply_xx_0</sink_block_id>
+    <sink_block_id>blocks_add_const_vxx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
