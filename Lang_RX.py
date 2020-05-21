@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Rx
-# Generated: Wed May 13 20:41:14 2020
+# Generated: Thu May 21 11:14:58 2020
 ##################################################
 
 from gnuradio import analog
@@ -29,14 +29,13 @@ class Lang_RX(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        self.USB = USB = True
         self.SQL = SQL = 50
         self.RxOffset = RxOffset = 0
-        self.NCW = NCW = False
         self.Mute = Mute = False
-        self.FM = FM = False
+        self.Mode = Mode = 3
+        self.Filt_Low = Filt_Low = 300
+        self.Filt_High = Filt_High = 3000
         self.FFTEn = FFTEn = 0
-        self.CW = CW = False
         self.AFGain = AFGain = 20
 
         ##################################################
@@ -51,14 +50,17 @@ class Lang_RX(gr.top_block):
         	avg_alpha=0.9,
         	average=True,
         )
-        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,20000,6000)), RxOffset, 529200)
+        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,22000,6000)), RxOffset, 529200)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
-        self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((int(FM), ))
-        self.blocks_multiply_const_vxx_2 = blocks.multiply_const_vff((not FM, ))
+        self.blocks_multiply_const_vxx_2_1 = blocks.multiply_const_vff((Mode==5, ))
+        self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((Mode==4, ))
+        self.blocks_multiply_const_vxx_2 = blocks.multiply_const_vff((Mode<4, ))
         self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff(((AFGain/100.0) *  (not Mute), ))
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_float*512, '/tmp/langstonefft', False)
         self.blocks_file_sink_0.set_unbuffered(False)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
+        self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
+        self.blocks_add_xx_1_0 = blocks.add_vff(1)
         self.blocks_add_xx_1 = blocks.add_vff(1)
         self.blks2_selector_0 = grc_blks2.selector(
         	item_size=gr.sizeof_float*512,
@@ -68,7 +70,7 @@ class Lang_RX(gr.top_block):
         	output_index=FFTEn,
         )
         self.band_pass_filter_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
-        	1, 44100, ((-3000+USB*3300+NCW*CW*250)*(1-FM)) + (-7500 * FM), ((-300+USB*3300-NCW*CW*1950)* (1-FM)) + (7500 * FM), 100, firdes.WIN_HAMMING, 6.76))
+        	1, 44100, Filt_Low, Filt_High, 100, firdes.WIN_HAMMING, 6.76))
         self.audio_sink_0 = audio.sink(44100, "hw:CARD=Device,DEV=0", False)
         self.analog_pwr_squelch_xx_0 = analog.pwr_squelch_cc(SQL-100, 0.001, 0, False)
         self.analog_nbfm_rx_0 = analog.nbfm_rx(
@@ -89,25 +91,22 @@ class Lang_RX(gr.top_block):
         self.connect((self.analog_nbfm_rx_0, 0), (self.blocks_multiply_const_vxx_2_0, 0))
         self.connect((self.analog_pwr_squelch_xx_0, 0), (self.analog_nbfm_rx_0, 0))
         self.connect((self.band_pass_filter_0, 0), (self.analog_pwr_squelch_xx_0, 0))
+        self.connect((self.band_pass_filter_0, 0), (self.blocks_complex_to_mag_0, 0))
         self.connect((self.band_pass_filter_0, 0), (self.blocks_complex_to_real_0, 0))
         self.connect((self.blks2_selector_0, 1), (self.blocks_file_sink_0, 0))
         self.connect((self.blks2_selector_0, 0), (self.blocks_null_sink_0, 0))
         self.connect((self.blocks_add_xx_1, 0), (self.blocks_multiply_const_vxx_1, 0))
+        self.connect((self.blocks_add_xx_1_0, 0), (self.analog_agc2_xx_0, 0))
+        self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_multiply_const_vxx_2_1, 0))
         self.connect((self.blocks_complex_to_real_0, 0), (self.blocks_multiply_const_vxx_2, 0))
         self.connect((self.blocks_multiply_const_vxx_1, 0), (self.audio_sink_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_2, 0), (self.analog_agc2_xx_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_2, 0), (self.blocks_add_xx_1_0, 0))
         self.connect((self.blocks_multiply_const_vxx_2_0, 0), (self.blocks_add_xx_1, 1))
+        self.connect((self.blocks_multiply_const_vxx_2_1, 0), (self.blocks_add_xx_1_0, 1))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.band_pass_filter_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))
         self.connect((self.logpwrfft_x_0, 0), (self.blks2_selector_0, 0))
         self.connect((self.pluto_source_0, 0), (self.freq_xlating_fir_filter_xxx_0, 0))
-
-    def get_USB(self):
-        return self.USB
-
-    def set_USB(self, USB):
-        self.USB = USB
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
 
     def get_SQL(self):
         return self.SQL
@@ -123,13 +122,6 @@ class Lang_RX(gr.top_block):
         self.RxOffset = RxOffset
         self.freq_xlating_fir_filter_xxx_0.set_center_freq(self.RxOffset)
 
-    def get_NCW(self):
-        return self.NCW
-
-    def set_NCW(self, NCW):
-        self.NCW = NCW
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
-
     def get_Mute(self):
         return self.Mute
 
@@ -137,14 +129,28 @@ class Lang_RX(gr.top_block):
         self.Mute = Mute
         self.blocks_multiply_const_vxx_1.set_k(((self.AFGain/100.0) *  (not self.Mute), ))
 
-    def get_FM(self):
-        return self.FM
+    def get_Mode(self):
+        return self.Mode
 
-    def set_FM(self, FM):
-        self.FM = FM
-        self.blocks_multiply_const_vxx_2_0.set_k((int(self.FM), ))
-        self.blocks_multiply_const_vxx_2.set_k((not self.FM, ))
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
+    def set_Mode(self, Mode):
+        self.Mode = Mode
+        self.blocks_multiply_const_vxx_2_1.set_k((self.Mode==5, ))
+        self.blocks_multiply_const_vxx_2_0.set_k((self.Mode==4, ))
+        self.blocks_multiply_const_vxx_2.set_k((self.Mode<4, ))
+
+    def get_Filt_Low(self):
+        return self.Filt_Low
+
+    def set_Filt_Low(self, Filt_Low):
+        self.Filt_Low = Filt_Low
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, self.Filt_Low, self.Filt_High, 100, firdes.WIN_HAMMING, 6.76))
+
+    def get_Filt_High(self):
+        return self.Filt_High
+
+    def set_Filt_High(self, Filt_High):
+        self.Filt_High = Filt_High
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, self.Filt_Low, self.Filt_High, 100, firdes.WIN_HAMMING, 6.76))
 
     def get_FFTEn(self):
         return self.FFTEn
@@ -153,20 +159,12 @@ class Lang_RX(gr.top_block):
         self.FFTEn = FFTEn
         self.blks2_selector_0.set_output_index(int(self.FFTEn))
 
-    def get_CW(self):
-        return self.CW
-
-    def set_CW(self, CW):
-        self.CW = CW
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, ((-3000+self.USB*3300+self.NCW*self.CW*250)*(1-self.FM)) + (-7500 * self.FM), ((-300+self.USB*3300-self.NCW*self.CW*1950)* (1-self.FM)) + (7500 * self.FM), 100, firdes.WIN_HAMMING, 6.76))
-
     def get_AFGain(self):
         return self.AFGain
 
     def set_AFGain(self, AFGain):
         self.AFGain = AFGain
         self.blocks_multiply_const_vxx_1.set_k(((self.AFGain/100.0) *  (not self.Mute), ))
-
 def docommands(tb):
   try:
     os.mkfifo("/tmp/langstoneRx")
@@ -183,48 +181,41 @@ def docommands(tb):
          for line in filein:
            line=line.strip()
            if line=='Q':
-              ex=True        
-           if line=='U':
-              tb.set_USB(True)
-              tb.set_FM(False)
-              tb.set_CW(False)              
-           if line=='L':
-              tb.set_USB(False)
-              tb.set_FM(False)
-              tb.set_CW(False) 
-           if line=='F':
-              tb.set_FM(True)             
-           if line=='C':
-              tb.set_CW(True)
-              tb.set_FM(False)
-              tb.set_USB(True) 
-           if line=='N':
-              tb.set_NCW(True)
-           if line=='W':
-              tb.set_NCW(False) 
+              ex=True                  
            if line=='P':
               tb.set_FFTEn(1)
            if line=='p':
               tb.set_FFTEn(0)
-           if line=='M':
+           if line=='U':
               tb.set_Mute(1)
-           if line=='m':
+           if line=='u':
               tb.set_Mute(0)
+           if line=='H':
+              tb.lock()
+           if line=='h':
+              tb.unlock() 
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  
            if line[0]=='V':
               value=int(line[1:])
               tb.set_AFGain(value)
-           if line[0]=='Z':
+           if line[0]=='S':
               value=int(line[1:])
               tb.set_SQL(value) 
-           if line=='H':
-              tb.lock()
-           if line=='h':
-              tb.unlock()                   
+           if line[0]=='F':
+              value=int(line[1:])
+              tb.set_Filt_High(value) 
+           if line[0]=='f':
+              value=int(line[1:])
+              tb.set_Filt_Low(value) 
+           if line[0]=='M':
+              value=int(line[1:])
+              tb.set_Mode(value) 
+                                                     
        except:
          break
+
 
 def main(top_block_cls=Lang_RX, options=None):
 

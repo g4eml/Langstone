@@ -22,6 +22,8 @@ void setVolume(int vol);
 void setSquelch(int sql);
 void setSSBMic(int mic);
 void setFMMic(int mic);
+void setRxFilter(int low,int high);
+void setTxFilter(int low,int high);
 void setBandBits(int b);
 void processTouch();
 void processMouse(int mbut);
@@ -59,18 +61,21 @@ void setPlutoTxAtt(int att);
 void setBand(int b);
 void setPlutoGpo(int p);
 long long currentTimeMs(void);
+void clearPopUp(void);
+void displayPopupMode(void);
+void displayPopupBand(void);
 
 double freq;
 double freqInc=0.001;
-#define numband 10
-int band=2;
-double bandFreq[numband] = {144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,10489.55};
-double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10069.5};
-double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,10345.0};
-int bandBits[numband]={0,1,2,3,4,5,6,7,8,9};
-int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30};
-int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
-int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0};
+#define numband 12
+int band=3;
+double bandFreq[numband] = {70.200,144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,47088.2,10489.55};
+double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,46656.0,10069.5};
+double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,46656.0,10345.0};
+int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
+int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
+int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
+int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 
 int bbits=0;
 #define minFreq 0.0
@@ -79,14 +84,20 @@ int bbits=0;
 #define maxHwFreq 5999.99999
 
 
-#define nummode 5
+#define nummode 6
 int mode=0;
-char * modename[nummode]={"USB","LSB","CW ","CWN","FM "};
+char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
+enum {USB,LSB,CW,CWN,FM,AM};
 
 #define numSettings 7
-int settingNo=0;
-int inputMode=0;
+
 char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","FFT Ref = ","Tx Att = "};
+enum {SSB_MIC,FM_MIC,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT};
+int settingNo=SSB_MIC;
+
+enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
+int inputMode=FREQ;
+
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -116,6 +127,8 @@ char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Of
 #define moniY 15
 #define settingX 200
 #define settingY 390
+#define popupX 30
+#define popupY 374
 
 
 
@@ -126,7 +139,7 @@ int fifofd;
 int sendDots=0;
 int dotCount=0;
 
-#define configDelay 500                              ///delay before config is written after tuning.
+#define configDelay 500                              ///delay before config is written after tuning (5 Seconds)
 int configCounter=configDelay;
 
 long long lastLOhz;
@@ -166,6 +179,10 @@ int touchPresent;
 int plutoPresent;
 int portsdownPresent;
 
+int popupSel=0;
+int popupFirstBand;
+enum {NONE,MODE,BAND};
+
 #define pttPin 0        // Wiring Pi pin number. Physical pin is 11
 #define keyPin 1        //Wiring Pi pin number. Physical pin is 12
 #define txPin 29        //Wiring Pi pin number. Physical pin is 40      
@@ -186,7 +203,9 @@ int rows=150;
 int FFTRef = -30;
 int spectrum_rows=50;
 unsigned char * palette;
-
+int HzPerBin=86;                        //calculated from FFT width and number of samples. Width=44100  number of samples =512
+int bwBarStart=3;
+int bwBarEnd=34;
 
 
 
@@ -255,7 +274,7 @@ int main(int argc, char* argv[])
       } 
     waterfall();
 
-    if(configCounter>0)
+    if(configCounter>0)                                       //save the config after 5 seconds of inactivity.
     {
       configCounter=configCounter-1;
       if(configCounter==0)
@@ -266,7 +285,7 @@ int main(int argc, char* argv[])
     }
     
     
-    while(currentTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second 
+    while(currentTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second (10ms)
     {
     usleep(100);
     }
@@ -310,8 +329,6 @@ void waterfall()
 {
   int level,level2;
   int ret;
-  int bwBarStart=3;
-  int bwBarEnd=34;
   int centreShift=0;
   
       //check if data avilable to read
@@ -352,7 +369,7 @@ void waterfall()
         for(int r=0;r<rows;r++)
         {  
           for(int p=0;p<points;p++)
-          {  
+          {                                                                                                           
             //limit values displayed to range specified
             if (buf[p][r]<baselevel) buf[p][r]=baselevel;
             if (buf[p][r]>FFTRef) buf[p][r]=FFTRef;
@@ -388,37 +405,16 @@ void waterfall()
         }
           
           //draw Bandwidth indicator
-          if (mode==0)
-          {
-           bwBarStart=3;
-           bwBarEnd=34;
-           centreShift=0;
-          }
-          if (mode==1)
-          {
-           bwBarStart=-34;
-           bwBarEnd=-3;
-           centreShift=0;          
-          }
-          if (mode==2)
-          {
-           bwBarStart=3;
-           bwBarEnd=34;
-           centreShift=9;
-          }
-          if (mode==3)
-          {
-           bwBarStart=6;
-           bwBarEnd=12;
-           centreShift=9;          
-          }
-          if (mode==4)
-          {
-           bwBarStart=-87;
-           bwBarEnd=87;
-           centreShift=0;          
-          }
           int p=points/2;
+          
+          if ((mode==CW) || (mode==CWN))
+          {
+           centreShift=800/HzPerBin;
+          }
+          else
+          {
+           centreShift=0;          
+          }
 
           drawLine(p+140+bwBarStart, 186-spectrum_rows+5, p+140+bwBarStart, 186-spectrum_rows,255,140,0);
           drawLine(p+140+bwBarStart, 186-spectrum_rows, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);
@@ -474,7 +470,7 @@ void detectHw()
   fclose(fp);
   if(ln)  free(ln);
   
-  if ((fp = fopen("/home/pi/rpidatv/bin/rpidatvgui", "r")))
+  if ((fp = fopen("/home/pi/rpidatv/bin/rpidatvgui", "r")))                      //test to see if Portsdown file is present. If so we change the exit behaviour. 
   {
     fclose(fp);
     portsdownPresent=1;
@@ -778,7 +774,7 @@ void initGUI()
   displayMenu();
   setBand(band);
   
-  if(mode==4) 
+  if(mode==FM) 
     {
     sqlButton(1);
     }
@@ -828,13 +824,53 @@ gotoXY(funcButtonsX,funcButtonsY);
 }
 
 
+void displayPopupMode(void)
+{
+clearPopUp();
+gotoXY(popupX,popupY);
+  setForeColour(0,255,0);
+  for(int n=0;n<nummode;n++)
+  {
+    displayButton(modename[n]);
+  }
+popupSel=MODE;
+}
 
+void displayPopupBand(void)
+{
+char bstr[6];
+int b;
+clearPopUp();
+gotoXY(popupX,popupY);
+  setForeColour(0,255,0);
+ displayButton("More..");   
+  for(int n=0;n<6;n++)
+  {
+    b=bandFreq[n+popupFirstBand];
+    sprintf(bstr,"%d", b);
+    displayButton(bstr);
+  }
+popupSel=BAND;
+}
 
+void clearPopUp(void)
+{
+for(int py=popupY;py<popupY+buttonHeight+1;py++)
+{
+  for(int px=0;px<800;px++)
+  {
+  setPixel(px,py,0,0,0);
+  }
+}
+popupSel=NONE;
+}
+
+                                                           
 void processMouse(int mbut)
 {
   if(mbut==128)       //scroll whell turned 
     {
-      if(inputMode==0)
+      if(inputMode==FREQ)
       {
         freq=freq+(mouseScroll*freqInc);
         mouseScroll=0;
@@ -843,12 +879,12 @@ void processMouse(int mbut)
         setFreq(freq);
         return;      
       }
-      if(inputMode==1)
+      if(inputMode==SETTINGS)
       {
         changeSetting();
         return;
       }
-      if(inputMode==2)
+      if(inputMode==VOLUME)
       {
         volume=volume+mouseScroll;
         mouseScroll=0;
@@ -857,7 +893,7 @@ void processMouse(int mbut)
         setVolume(volume);
         return;      
       }    
-      if(inputMode==3)
+      if(inputMode==SQUELCH)
       {
         squelch=squelch+mouseScroll;
         mouseScroll=0;
@@ -867,7 +903,7 @@ void processMouse(int mbut)
         setSquelch(squelch);
         return;      
       }   
-      if(inputMode==4)
+      if(inputMode==RIT)
       {
         rit=rit+mouseScroll*10;
         mouseScroll=0;
@@ -939,13 +975,13 @@ void processTouch()
 
 if(buttonTouched(volButtonX,volButtonY))    //Vol
     {
-      if(inputMode==2)
+      if(inputMode==VOLUME)
         {
-        setInputMode(0);
+        setInputMode(FREQ);
         }
       else
         {
-        setInputMode(2);
+        setInputMode(VOLUME);
         }
       return;
     }
@@ -957,15 +993,15 @@ if(buttonTouched(volButtonX,volButtonY))    //Vol
 
 if(buttonTouched(sqlButtonX,sqlButtonY))    //sql
     {
-     if(mode==4)
+     if(mode==FM)
      {
-      if(inputMode==3)
+      if(inputMode==SQUELCH)
         {
-        setInputMode(0);
+        setInputMode(FREQ);
         }
       else
         {
-        setInputMode(3);
+        setInputMode(SQUELCH);
         }
       return;
       }
@@ -978,13 +1014,13 @@ if(buttonTouched(ritButtonX,ritButtonY))    //rit
     {
      if(mode!=4)
      {
-      if(inputMode==4)
+      if(inputMode==RIT)
         {
-        setInputMode(0);
+        setInputMode(FREQ);
         }
       else
         {
-        setInputMode(4);
+        setInputMode(RIT);
         }
       return;
       }
@@ -995,25 +1031,23 @@ if(buttonTouched(ritButtonX,ritButtonY))    //rit
 if(buttonTouched(ritButtonX,ritButtonY+buttonSpaceY))    //rit zero
     {
      setRit(0);
-     setInputMode(0);
+     setInputMode(FREQ);
     }
 //Function Buttons
 
 
 if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
     {
       bandFreq[band]=freq;
       writeConfig();
-      band=band+1;
-      if(band==numband) band=0;
-      setBand(band);
+      displayPopupBand();
       return;
     }
     else
     {
-      setInputMode(0);
+      setInputMode(FREQ);
       return; 
     }
       
@@ -1021,27 +1055,25 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     }      
 if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE or Blank
     {
-     if(inputMode==0)
+     if(inputMode==FREQ)
       {
-      mode=mode+1;
-      if(mode==nummode) mode=0;
-      setMode(mode);
+      displayPopupMode();
       return;
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       return;
       }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or NEXT
     {
-     if(inputMode==0)
+     if(inputMode==FREQ)
       {
       return;
       }
-      else if(inputMode==1)
+      else if(inputMode==SETTINGS)
       {
       settingNo=settingNo+1;
       if(settingNo==numSettings) settingNo=0;
@@ -1050,27 +1082,27 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank 
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       }
     }
       
 if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or Blank
     {
-     if(inputMode==0)
+     if(inputMode==FREQ)
       {
-      setInputMode(1);
+      setInputMode(SETTINGS);
       return;
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       return;
       }
     }
        
 if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or PREV
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
       {
       if(satMode()==1)
         {
@@ -1078,7 +1110,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
         }      
       return;
       }
-      else  if (inputMode==1)
+      else  if (inputMode==SETTINGS)
       {
       settingNo=settingNo-1;
       if(settingNo<0) settingNo=numSettings-1;
@@ -1087,7 +1119,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       }
       
  
@@ -1095,7 +1127,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
 
 if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Blank
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
       {
       if(sendDots==0)
         {
@@ -1128,14 +1160,14 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       return;
       }
     } 
          
 if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  or OFF
     {
-    if(inputMode==0)
+    if(inputMode==FREQ)
       {
       if(ptts==0)
         {
@@ -1155,7 +1187,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
         }
       return;
       }
-      else if (inputMode==1)
+      else if (inputMode==SETTINGS)
       {
       sendTxFifo("h");        //unlock the Tx so that it can exit
       sendRxFifo("h");        //and unlock the Rx just in case
@@ -1178,7 +1210,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       }
       else
       {
-      setInputMode(0);
+      setInputMode(FREQ);
       }
       
 
@@ -1191,7 +1223,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
 
 if((touchY>freqDisplayY) & (touchY < freqDisplayY+freqDisplayCharHeight) & (touchX>freqDisplayX) & (touchX < freqDisplayX+12*freqDisplayCharWidth))   
   {
-    setInputMode(0);
+    setInputMode(FREQ);
     int tx=touchX-freqDisplayX;
     tx=tx/freqDisplayCharWidth;
     tuneDigit=tx;
@@ -1199,6 +1231,49 @@ if((touchY>freqDisplayY) & (touchY < freqDisplayY+freqDisplayCharHeight) & (touc
     setFreq(freq);
     return;
   }
+
+
+if(popupSel==MODE)
+{
+  for(int n=0;n<nummode;n++)
+  {
+     if(buttonTouched(popupX+(n*buttonSpaceX),popupY))                                
+       {
+       mode=n;
+       setMode(mode);
+       clearPopUp();
+       }
+  }
+}
+
+if(popupSel==BAND)
+{
+  if(buttonTouched(popupX,popupY))
+  {
+  popupFirstBand=popupFirstBand+6;
+  if(popupFirstBand>11) popupFirstBand=0;
+  displayPopupBand();
+  }
+  
+  for(int n=1;n<7;n++)
+  {
+     if(buttonTouched(popupX+(n*buttonSpaceX),popupY))                                
+       {
+       band=n-1+popupFirstBand;
+       setBand(band);
+       clearPopUp();
+       }
+  }
+
+ 
+}
+
+
+
+
+
+
+
 
 }
 
@@ -1219,6 +1294,7 @@ void setBand(int b)
   FFTRef=bandFFTRef[band];
   TxAtt=bandTxAtt[band];
   setPlutoTxAtt(TxAtt);
+  configCounter=configDelay;
 }
  
 void setVolume(int vol)
@@ -1234,15 +1310,15 @@ void setVolume(int vol)
   sprintf(volStr,"%d",vol);
   displayStr(volStr);
   
-  configCounter-configDelay;
+  configCounter=configDelay;
 }
 
 void setSquelch(int sql)
 {
   char sqlStr[10];
-  sprintf(sqlStr,"Z%d",sql);
+  sprintf(sqlStr,"S%d",sql);
   sendRxFifo(sqlStr);
-  if(mode==4)
+  if(mode==FM)
   {
   setForeColour(0,255,0);
   textSize=2;
@@ -1258,7 +1334,7 @@ void setSquelch(int sql)
 void setInputMode(int m)
 
 {
-if(inputMode==1)
+if(inputMode==SETTINGS)
   {
   gotoXY(settingX,settingY);
   setForeColour(255,255,255);
@@ -1266,19 +1342,19 @@ if(inputMode==1)
   writeConfig();
   displayMenu();
   }
-if(inputMode==2)
+if(inputMode==VOLUME)
   {
     gotoXY(volButtonX,volButtonY);
     setForeColour(0,255,0);
     displayButton("Vol");
   }
-if(inputMode==3)
+if(inputMode==SQUELCH)
   {
     gotoXY(sqlButtonX,sqlButtonY);
     setForeColour(0,255,0);
     displayButton("SQL"); 
   }
-if(inputMode==4)
+if(inputMode==RIT)
   {
     gotoXY(ritButtonX,ritButtonY);
     setForeColour(0,255,0);
@@ -1290,8 +1366,9 @@ if(inputMode==4)
   
 inputMode=m;
 
-if(inputMode==1)
+if(inputMode==SETTINGS)
   {
+    clearPopUp();
     gotoXY(funcButtonsX,funcButtonsY);
     setForeColour(0,255,0);
     displayButton("MENU");
@@ -1313,19 +1390,19 @@ if(inputMode==1)
     mouseScroll=0;
     displaySetting(settingNo); 
   }
-if(inputMode==2)
+if(inputMode==VOLUME)
   {
     gotoXY(volButtonX,volButtonY);
     setForeColour(255,0,0);
     displayButton("Vol");
   }
-if(inputMode==3)
+if(inputMode==SQUELCH)
   {
     gotoXY(sqlButtonX,sqlButtonY);
     setForeColour(255,0,0);
     displayButton("SQL"); 
   }
-if(inputMode==4)
+if(inputMode==RIT)
   {
     gotoXY(ritButtonX,ritButtonY);
     setForeColour(255,0,0);
@@ -1341,7 +1418,7 @@ void setRit(int ri)
 {
   char ritStr[10];
   int to;
-  if(mode!=4)
+  if(!((mode==FM) || (mode==AM)))
   {
   rit=ri;
   setForeColour(0,255,0);
@@ -1392,61 +1469,102 @@ void setFFTPipe(int ctrl)
 if(ctrl==0) sendRxFifo("p"); else sendRxFifo("P");
 }
 
+void setRxFilter(int low,int high)
+{
+  char filtStr[10];
+  sprintf(filtStr,"f%d",low);
+  sendRxFifo(filtStr);                                             
+  sprintf(filtStr,"F%d",high);
+  sendRxFifo(filtStr);
+  
+  bwBarStart=low/HzPerBin;
+  bwBarEnd=high/HzPerBin;
+  
+}
+
+void setTxFilter(int low,int high)
+{
+  char filtStr[10];
+  sprintf(filtStr,"f%d",low);
+  sendTxFifo(filtStr);
+  sprintf(filtStr,"F%d",high);
+  sendTxFifo(filtStr);
+  
+}
+
+
 void setMode(int md)
 {
   gotoXY(modeX,modeY);
   setForeColour(255,255,0);
   textSize=2;
   displayStr(modename[md]);
-  if(md==0)
+  if(md==USB)
     {
-    sendTxFifo("U");    //USB
-    sendRxFifo("U");    //USB
+    sendTxFifo("M0");    //USB
+    sendRxFifo("M0");    //SSB
+    setTxFilter(300,3000);    //USB Filter Setting
+    setRxFilter(300,3000);    //USB Filter Setting   
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
   
-  if(md==1)
+  if(md==LSB)
     {
-    sendTxFifo("L");    //USB
-    sendRxFifo("L");    //USB
+    sendTxFifo("M1");    //LSB
+    sendRxFifo("M1");    //LSB
+    setTxFilter(-3000,-300); // LSB Filter Setting
+    setRxFilter(-3000,-300); // LSB Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
   
-  if(md==2)
+  if(md==CW)
     {
-    sendTxFifo("C");    //CW
-    sendRxFifo("C");    //CW
+    sendTxFifo("M2");    //CW
+    sendRxFifo("M2");    //CW
+    setRxFilter(300,3000);   // CW Wide Filter
+    setTxFilter(-100,100); // CW Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendTxFifo("W");    //wide CW Filter
-    sendRxFifo("W");    //wide CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
     
-  if(md==3)
+  if(md==CWN)
     {
-    sendTxFifo("C");    //CW
-    sendRxFifo("C");    //CW
+    sendTxFifo("M3");    //CWN
+    sendRxFifo("M3");    //CWN
+    setRxFilter(600,1000);    //CW Narrow Filter
+    setTxFilter(-100,100); // CW Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
-    sendTxFifo("N");    //Narrow CW Filter
-    sendRxFifo("N");    //Narrow CW Filter
     sqlButton(0);
     ritButton(1);
     setRit(0);
     } 
-  if(md==4)
+  if(md==FM)
     {
-    sendTxFifo("F");    //FM
-    sendRxFifo("F");    //FM
+    sendTxFifo("M4");    //FM
+    sendRxFifo("M4");    //FM
+    setRxFilter(-7500,7500);    //FM Filter
+    setTxFilter(-7500,7500);    //FM Filter  
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(1);
+    ritButton(0);
+    setRit(0);
+    } 
+  if(md==AM)
+    {
+    sendTxFifo("M5");    //AM
+    sendRxFifo("M5");    //AM
+    setRxFilter(-5000,5000);    //AM Filter 
+    setTxFilter(-5000,5000);    //AM Filter 
+    setFreq(freq);    //set the frequency to adjust for CW offset.
+    sqlButton(0);
     ritButton(0);
     setRit(0);
     } 
@@ -1467,7 +1585,7 @@ void setTx(int pt)
       usleep(TXDELAY);
       setHwTxFreq(freq);
       PlutoTxEnable(1);
-      if (moni==0) sendRxFifo("M");                        //mute the receiver
+      if (moni==0) sendRxFifo("U");                        //mute the receiver
       if(satMode()==0)
       {
         setFFTPipe(0);                        //turn off the FFT stream
@@ -1485,7 +1603,7 @@ void setTx(int pt)
       sendTxFifo("R");
       sendTxFifo("H");                  //freeze the Tx Flowgraph
       sendRxFifo("h");                  //unfreeze the Rx Flowgraph
-      sendRxFifo("m");                  //unmute the receiver
+      sendRxFifo("u");                  //unmute the receiver
       PlutoTxEnable(0);
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
@@ -1515,7 +1633,7 @@ void setHwRxFreq(double fr)
   
   LOrxfreqhz=rxfreqhz-rxoffsethz;
   rxoffsethz=rxoffsethz+rit;
-  if((mode==2)|(mode==3))
+  if((mode==CW)|(mode==CWN))
     {
      rxoffsethz=rxoffsethz-800;         //offset  for CW tone of 800 Hz    
     }
@@ -1539,10 +1657,6 @@ void setHwTxFreq(double fr)
   
   txfreqhz=frTx*1000000;
     
-  if((mode==2)|(mode==3))
-    {
-     txfreqhz=txfreqhz-800;         //offset  for CW tone of 800 Hz    
-    }
   
       setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
 }
@@ -1616,7 +1730,7 @@ void setFreq(double fr)
  
    gotoXY(funcButtonsX+buttonSpaceX*4,funcButtonsY);
    setForeColour(0,255,0);
-   if(inputMode==0)
+   if(inputMode==FREQ)
    {
      if(satMode()==1)
       {
@@ -1661,7 +1775,7 @@ void setMoni(int m)
 {
   if(m==1)
     {
-     sendRxFifo("m");
+     sendRxFifo("u");
      moni=1;
      gotoXY(moniX,moniY);
      textSize=2;
@@ -1670,7 +1784,7 @@ void setMoni(int m)
     } 
   else
     {
-     if (ptt | ptts) sendRxFifo("M");
+     if (ptt | ptts) sendRxFifo("U");
      moni=0;
      gotoXY(moniX,moniY);
      textSize=2;
@@ -1729,7 +1843,7 @@ setPlutoGpo(plutoGpo);
 
 void changeSetting(void)
 {
-  if(settingNo==0)        //SSB Mic Gain
+  if(settingNo==SSB_MIC)        //SSB Mic Gain
       {
       SSBMic=SSBMic+mouseScroll;
       mouseScroll=0;
@@ -1738,7 +1852,7 @@ void changeSetting(void)
       setSSBMic(SSBMic);
       displaySetting(settingNo);
       }
-   if(settingNo==1)        // FM Mic Gain
+   if(settingNo==FM_MIC)        // FM Mic Gain
       {
       FMMic=FMMic+mouseScroll;
       mouseScroll=0;
@@ -1747,7 +1861,7 @@ void changeSetting(void)
       setFMMic(FMMic);
       displaySetting(settingNo);
       }
-   if(settingNo==2)        //Transverter Rx Offset 
+   if(settingNo==RX_OFFSET)        //Transverter Rx Offset 
       {
         bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
         displaySetting(settingNo);
@@ -1757,14 +1871,14 @@ void changeSetting(void)
         mouseScroll=0;
         setFreq(freq);
       } 
-   if(settingNo==3)        //Transverter Tx Offset
+   if(settingNo==TX_OFFSET)        //Transverter Tx Offset
       {
         bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
         displaySetting(settingNo);
         mouseScroll=0;
         setFreq(freq);
       }  
-   if(settingNo==4)        // Band Bits
+   if(settingNo==BAND_BITS)        // Band Bits
       {
       bandBits[band]=bandBits[band]+mouseScroll;
       mouseScroll=0;
@@ -1774,7 +1888,7 @@ void changeSetting(void)
       setBandBits(bbits);
       displaySetting(settingNo);  
       }    
-   if(settingNo==5)        // FFT Ref Level
+   if(settingNo==FFT_REF)        // FFT Ref Level
       {
       FFTRef=FFTRef+mouseScroll;
       mouseScroll=0;
@@ -1783,7 +1897,7 @@ void changeSetting(void)
       bandFFTRef[band]=FFTRef;
       displaySetting(settingNo);  
       }    
-    if(settingNo==6)        // Tx Attenuator
+    if(settingNo==TX_ATT)        // Tx Attenuator
       {
       TxAtt=TxAtt+mouseScroll;
       mouseScroll=0;
@@ -1882,13 +1996,13 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"bandFFTRef0")) sscanf(value,"%d",&bandFFTRef[0]);
     if(strstr(variable,"bandSquelch0")) sscanf(value,"%d",&bandSquelch[0]);
     if(strstr(variable,"bandTxAtt0")) sscanf(value,"%d",&bandTxAtt[0]);    
-    if(strstr(variable,"bandFreq1")) sscanf(value,"%lf",&bandFreq[1]);
-    if(strstr(variable,"bandTXOffset1")) sscanf(value,"%lf",&bandTxOffset[1]);  
-    if(strstr(variable,"bandRxOffset1")) sscanf(value,"%lf",&bandRxOffset[1]);
-    if(strstr(variable,"bandBits1")) sscanf(value,"%d",&bandBits[1]);
-    if(strstr(variable,"bandFFTRef1")) sscanf(value,"%d",&bandFFTRef[1]);
-    if(strstr(variable,"bandSquelch1")) sscanf(value,"%d",&bandSquelch[1]);
-    if(strstr(variable,"bandTxAtt1")) sscanf(value,"%d",&bandTxAtt[1]); 
+    if(strstr(variable,"bandFreq1 ")) sscanf(value,"%lf",&bandFreq[1]);
+    if(strstr(variable,"bandTXOffset1 ")) sscanf(value,"%lf",&bandTxOffset[1]);  
+    if(strstr(variable,"bandRxOffset1 ")) sscanf(value,"%lf",&bandRxOffset[1]);
+    if(strstr(variable,"bandBits1 ")) sscanf(value,"%d",&bandBits[1]);
+    if(strstr(variable,"bandFFTRef1 ")) sscanf(value,"%d",&bandFFTRef[1]);
+    if(strstr(variable,"bandSquelch1 ")) sscanf(value,"%d",&bandSquelch[1]);
+    if(strstr(variable,"bandTxAtt1 ")) sscanf(value,"%d",&bandTxAtt[1]); 
     if(strstr(variable,"bandFreq2")) sscanf(value,"%lf",&bandFreq[2]);
     if(strstr(variable,"bandTxOffset2")) sscanf(value,"%lf",&bandTxOffset[2]);  
     if(strstr(variable,"bandRxOffset2")) sscanf(value,"%lf",&bandRxOffset[2]);
@@ -1945,13 +2059,29 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"bandFFTRef9")) sscanf(value,"%d",&bandFFTRef[9]);
     if(strstr(variable,"bandSquelch9")) sscanf(value,"%d",&bandSquelch[9]);
     if(strstr(variable,"bandTxAtt9")) sscanf(value,"%d",&bandTxAtt[9]); 
-
+     if(strstr(variable,"bandFreq10")) sscanf(value,"%lf",&bandFreq[10]);
+    if(strstr(variable,"bandTxOffset10")) sscanf(value,"%lf",&bandTxOffset[10]);  
+    if(strstr(variable,"bandRxOffset10")) sscanf(value,"%lf",&bandRxOffset[10]);
+    if(strstr(variable,"bandBits10")) sscanf(value,"%d",&bandBits[10]);
+    if(strstr(variable,"bandFFTRef10")) sscanf(value,"%d",&bandFFTRef[10]);
+    if(strstr(variable,"bandSquelch10")) sscanf(value,"%d",&bandSquelch[10]);
+    if(strstr(variable,"bandTxAtt10")) sscanf(value,"%d",&bandTxAtt[10]); 
+    if(strstr(variable,"bandFreq11")) sscanf(value,"%lf",&bandFreq[11]);
+    if(strstr(variable,"bandTxOffset11")) sscanf(value,"%lf",&bandTxOffset[11]);  
+    if(strstr(variable,"bandRxOffset11")) sscanf(value,"%lf",&bandRxOffset[11]);
+    if(strstr(variable,"bandBits11")) sscanf(value,"%d",&bandBits[11]);
+    if(strstr(variable,"bandFFTRef11")) sscanf(value,"%d",&bandFFTRef[11]);
+    if(strstr(variable,"bandSquelch11")) sscanf(value,"%d",&bandSquelch[11]);
+    if(strstr(variable,"bandTxAtt11")) sscanf(value,"%d",&bandTxAtt[11]); 
+    
     if(strstr(variable,"currentBand")) sscanf(value,"%d",&band);
     if(strstr(variable,"tuneDigit")) sscanf(value,"%d",&tuneDigit);   
     if(strstr(variable,"mode")) sscanf(value,"%d",&mode);
     if(strstr(variable,"SSBMic")) sscanf(value,"%d",&SSBMic);
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
     if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
+    
+    if(mode>nummode-1) mode=0;
             
   }
 
@@ -2045,6 +2175,20 @@ fprintf(conffile,"bandBits9 %d\n",bandBits[9]);
 fprintf(conffile,"bandFFTRef9 %d\n",bandFFTRef[9]);
 fprintf(conffile,"bandSquelch9 %d\n",bandSquelch[9]);
 fprintf(conffile,"bandTxAtt9 %d\n",bandTxAtt[9]);
+fprintf(conffile,"bandFreq10 %lf\n",bandFreq[10]);
+fprintf(conffile,"bandTxOffset10 %lf\n",bandTxOffset[10]);
+fprintf(conffile,"bandRxOffset10 %lf\n",bandRxOffset[10]);
+fprintf(conffile,"bandBits10 %d\n",bandBits[10]);
+fprintf(conffile,"bandFFTRef10 %d\n",bandFFTRef[10]);
+fprintf(conffile,"bandSquelch10 %d\n",bandSquelch[10]);
+fprintf(conffile,"bandTxAtt10 %d\n",bandTxAtt[10]);
+fprintf(conffile,"bandFreq11 %lf\n",bandFreq[11]);
+fprintf(conffile,"bandTxOffset11 %lf\n",bandTxOffset[11]);
+fprintf(conffile,"bandRxOffset11 %lf\n",bandRxOffset[11]);
+fprintf(conffile,"bandBits11 %d\n",bandBits[11]);
+fprintf(conffile,"bandFFTRef11 %d\n",bandFFTRef[11]);
+fprintf(conffile,"bandSquelch11 %d\n",bandSquelch[11]);
+fprintf(conffile,"bandTxAtt11 %d\n",bandTxAtt[11]);
 
 fprintf(conffile,"currentBand %d\n",band);
 fprintf(conffile,"tuneDigit %d\n",tuneDigit);
