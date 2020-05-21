@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Tx
-# Generated: Wed May 20 21:05:57 2020
+# Generated: Thu May 21 11:26:14 2020
 ##################################################
 
 from gnuradio import analog
@@ -30,7 +30,7 @@ class Lang_TX(gr.top_block):
         self.PTT = PTT = False
         self.Mode = Mode = 0
         self.MicGain = MicGain = 5.0
-        self.KEY = KEY = True
+        self.KEY = KEY = False
         self.Filt_Low = Filt_Low = 300
         self.Filt_High = Filt_High = 3000
         self.FMMIC = FMMIC = 50
@@ -47,20 +47,18 @@ class Lang_TX(gr.top_block):
         self.pluto_sink_0 = iio.pluto_sink('ip:pluto.local', 1000000000, 529200, 2000000, 0x800, False, 0, '', True)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
-        self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc((not (Mode==4), ))
+        self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc(((Mode < 4) or (Mode==5), ))
         self.blocks_multiply_const_vxx_3 = blocks.multiply_const_vcc((Mode==4, ))
         self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_vff((FMMIC/10.0, ))
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_vff(((MicGain/10.0)*(not (Mode==2))*(not (Mode==3)), ))
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
         self.blocks_add_xx_2 = blocks.add_vcc(1)
-        self.blocks_add_xx_0 = blocks.add_vff(1)
-        self.blocks_add_const_vxx_0 = blocks.add_const_vcc((0.5 * int(Mode==5), ))
+        self.blocks_add_const_vxx_0 = blocks.add_const_vcc(((0.5 * int(Mode==5)) + (int(Mode==2) * KEY) +(int(Mode==3) * KEY), ))
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
         	1, 44100, 200, 3000, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 44100, Filt_Low, Filt_High, 100, firdes.WIN_HAMMING, 6.76))
         self.audio_source_0 = audio.source(44100, "hw:CARD=Device,DEV=0", False)
-        self.analog_sig_source_x_1_0 = analog.sig_source_f(44100, analog.GR_COS_WAVE, 800, int(((Mode==2) or (Mode==3)) and (KEY)), 0)
         self.analog_sig_source_x_0 = analog.sig_source_c(44100, analog.GR_COS_WAVE, 0, 1, 0)
         self.analog_nbfm_tx_0 = analog.nbfm_tx(
         	audio_rate=44100,
@@ -82,16 +80,14 @@ class Lang_TX(gr.top_block):
         self.connect((self.analog_const_source_x_0, 0), (self.blocks_float_to_complex_0, 1))
         self.connect((self.analog_nbfm_tx_0, 0), (self.blocks_multiply_const_vxx_3, 0))
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0, 1))
-        self.connect((self.analog_sig_source_x_1_0, 0), (self.blocks_add_xx_0, 1))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0, 0))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0_0, 0))
         self.connect((self.band_pass_filter_0_0, 0), (self.blocks_multiply_const_vxx_4, 0))
         self.connect((self.band_pass_filter_1, 0), (self.analog_nbfm_tx_0, 0))
         self.connect((self.blocks_add_const_vxx_0, 0), (self.blocks_multiply_xx_0, 0))
-        self.connect((self.blocks_add_xx_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.blocks_add_xx_2, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.blocks_float_to_complex_0, 0), (self.blocks_add_const_vxx_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_add_xx_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0_0, 0), (self.band_pass_filter_1, 0))
         self.connect((self.blocks_multiply_const_vxx_3, 0), (self.blocks_add_xx_2, 0))
         self.connect((self.blocks_multiply_const_vxx_4, 0), (self.blocks_add_xx_2, 1))
@@ -111,11 +107,10 @@ class Lang_TX(gr.top_block):
 
     def set_Mode(self, Mode):
         self.Mode = Mode
-        self.blocks_multiply_const_vxx_4.set_k((not (self.Mode==4), ))
+        self.blocks_multiply_const_vxx_4.set_k(((self.Mode < 4) or (self.Mode==5), ))
         self.blocks_multiply_const_vxx_3.set_k((self.Mode==4, ))
         self.blocks_multiply_const_vxx_0.set_k(((self.MicGain/10.0)*(not (self.Mode==2))*(not (self.Mode==3)), ))
-        self.blocks_add_const_vxx_0.set_k((0.5 * int(self.Mode==5), ))
-        self.analog_sig_source_x_1_0.set_amplitude(int(((self.Mode==2) or (self.Mode==3)) and (self.KEY)))
+        self.blocks_add_const_vxx_0.set_k(((0.5 * int(self.Mode==5)) + (int(self.Mode==2) * self.KEY) +(int(self.Mode==3) * self.KEY), ))
         self.analog_agc2_xx_1.set_reference(1.3- (0.65*(int(self.Mode==5))))
 
     def get_MicGain(self):
@@ -130,7 +125,7 @@ class Lang_TX(gr.top_block):
 
     def set_KEY(self, KEY):
         self.KEY = KEY
-        self.analog_sig_source_x_1_0.set_amplitude(int(((self.Mode==2) or (self.Mode==3)) and (self.KEY)))
+        self.blocks_add_const_vxx_0.set_k(((0.5 * int(self.Mode==5)) + (int(self.Mode==2) * self.KEY) +(int(self.Mode==3) * self.KEY), ))
 
     def get_Filt_Low(self):
         return self.Filt_Low
@@ -152,7 +147,6 @@ class Lang_TX(gr.top_block):
     def set_FMMIC(self, FMMIC):
         self.FMMIC = FMMIC
         self.blocks_multiply_const_vxx_0_0.set_k((self.FMMIC/10.0, ))
-
 
 def docommands(tb):
   try:
@@ -200,7 +194,6 @@ def docommands(tb):
               tb.set_Mode(value)                      
        except:
          break
-
 
 def main(top_block_cls=Lang_TX, options=None):
 

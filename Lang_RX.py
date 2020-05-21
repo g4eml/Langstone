@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Rx
-# Generated: Tue May 19 23:29:19 2020
+# Generated: Thu May 21 11:14:58 2020
 ##################################################
 
 from gnuradio import analog
@@ -50,7 +50,7 @@ class Lang_RX(gr.top_block):
         	avg_alpha=0.9,
         	average=True,
         )
-        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,20000,6000)), RxOffset, 529200)
+        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,22000,6000)), RxOffset, 529200)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_multiply_const_vxx_2_1 = blocks.multiply_const_vff((Mode==5, ))
         self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((Mode==4, ))
@@ -165,7 +165,6 @@ class Lang_RX(gr.top_block):
     def set_AFGain(self, AFGain):
         self.AFGain = AFGain
         self.blocks_multiply_const_vxx_1.set_k(((self.AFGain/100.0) *  (not self.Mute), ))
-
 def docommands(tb):
   try:
     os.mkfifo("/tmp/langstoneRx")
@@ -216,6 +215,7 @@ def docommands(tb):
                                                      
        except:
          break
+
 
 def main(top_block_cls=Lang_RX, options=None):
 

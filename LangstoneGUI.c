@@ -22,7 +22,8 @@ void setVolume(int vol);
 void setSquelch(int sql);
 void setSSBMic(int mic);
 void setFMMic(int mic);
-void setFilter(int low,int high);
+void setRxFilter(int low,int high);
+void setTxFilter(int low,int high);
 void setBandBits(int b);
 void processTouch();
 void processMouse(int mbut);
@@ -193,6 +194,7 @@ int rows=150;
 int FFTRef = -30;
 int spectrum_rows=50;
 unsigned char * palette;
+int HzPerBin=86;                        //calculated from FFT width and number of samples. Width=44100  number of samples =512
 int bwBarStart=3;
 int bwBarEnd=34;
 
@@ -358,7 +360,7 @@ void waterfall()
         for(int r=0;r<rows;r++)
         {  
           for(int p=0;p<points;p++)
-          {  
+          {                                                                                                           
             //limit values displayed to range specified
             if (buf[p][r]<baselevel) buf[p][r]=baselevel;
             if (buf[p][r]>FFTRef) buf[p][r]=FFTRef;
@@ -398,7 +400,7 @@ void waterfall()
           
           if ((mode==CW) || (mode==CWN))
           {
-           centreShift=9;
+           centreShift=800/HzPerBin;
           }
           else
           {
@@ -1377,20 +1379,29 @@ void setFFTPipe(int ctrl)
 if(ctrl==0) sendRxFifo("p"); else sendRxFifo("P");
 }
 
-void setFilter(int low,int high)
+void setRxFilter(int low,int high)
+{
+  char filtStr[10];
+  sprintf(filtStr,"f%d",low);
+  sendRxFifo(filtStr);
+  sprintf(filtStr,"F%d",high);
+  sendRxFifo(filtStr);
+  
+  bwBarStart=low/HzPerBin;
+  bwBarEnd=high/HzPerBin;
+  
+}
+
+void setTxFilter(int low,int high)
 {
   char filtStr[10];
   sprintf(filtStr,"f%d",low);
   sendTxFifo(filtStr);
-  sendRxFifo(filtStr);
   sprintf(filtStr,"F%d",high);
   sendTxFifo(filtStr);
-  sendRxFifo(filtStr);
-  
-  bwBarStart=low/86;
-  bwBarEnd=high/86;
   
 }
+
 
 void setMode(int md)
 {
@@ -1402,7 +1413,8 @@ void setMode(int md)
     {
     sendTxFifo("M0");    //USB
     sendRxFifo("M0");    //SSB
-    setFilter(300,3000);    //USB Filter Setting
+    setTxFilter(300,3000);    //USB Filter Setting
+    setRxFilter(300,3000);    //USB Filter Setting   
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1413,7 +1425,8 @@ void setMode(int md)
     {
     sendTxFifo("M1");    //LSB
     sendRxFifo("M1");    //LSB
-    setFilter(-3000,-300); // LSB Filter Setting
+    setTxFilter(-3000,-300); // LSB Filter Setting
+    setRxFilter(-3000,-300); // LSB Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1424,7 +1437,8 @@ void setMode(int md)
     {
     sendTxFifo("M2");    //CW
     sendRxFifo("M2");    //CW
-    setFilter(300,3000);   // CW Wide Filter
+    setRxFilter(300,3000);   // CW Wide Filter
+    setTxFilter(-100,100); // CW Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1435,7 +1449,8 @@ void setMode(int md)
     {
     sendTxFifo("M3");    //CWN
     sendRxFifo("M3");    //CWN
-    setFilter(600,1000);    //CW Narrow Filter
+    setRxFilter(600,1000);    //CW Narrow Filter
+    setTxFilter(-100,100); // CW Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1445,7 +1460,8 @@ void setMode(int md)
     {
     sendTxFifo("M4");    //FM
     sendRxFifo("M4");    //FM
-    setFilter(-7500,7500);    //FM Filter 
+    setRxFilter(-7500,7500);    //FM Filter
+    setTxFilter(-7500,7500);    //FM Filter  
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(1);
     ritButton(0);
@@ -1455,12 +1471,14 @@ void setMode(int md)
     {
     sendTxFifo("M5");    //AM
     sendRxFifo("M5");    //AM
-    setFilter(-5000,5000);    //AM Filter 
+    setRxFilter(-5000,5000);    //AM Filter 
+    setTxFilter(-5000,5000);    //AM Filter 
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(0);
     setRit(0);
     } 
+
 
 configCounter=configDelay;
 }
@@ -1549,10 +1567,6 @@ void setHwTxFreq(double fr)
   
   txfreqhz=frTx*1000000;
     
-  if((mode==CW)|(mode==CWN))
-    {
-     txfreqhz=txfreqhz-800;         //offset  for CW tone of 800 Hz    
-    }
   
       setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
 }
@@ -1962,6 +1976,8 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"SSBMic")) sscanf(value,"%d",&SSBMic);
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
     if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
+    
+    if(mode>nummode-1) mode=0;
             
   }
 
