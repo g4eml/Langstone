@@ -1,7 +1,14 @@
 #!/bin/bash
 # Langstone Install script 
-# Buster Version G4EML 27/01/20
+# Buster Version G4EML 23/05/20
 
+echo "######################################"
+echo "## Installing Langstone Transceiver ##"
+echo "######################################"
+
+echo "#################################"
+echo "##  Update the Package Manager ##"
+echo "#################################"
 
 # Update the package manager
 sudo dpkg --configure -a
@@ -13,9 +20,16 @@ sudo apt-get -y remove apt-listchanges
 
 # -------- Upgrade distribution ------
 
+echo "#################################"
+echo "##     Update Distribution     ##"
+echo "#################################"
+
 # Update the distribution
 sudo apt-get -y dist-upgrade
 
+echo "#################################"
+echo "##       Install Packages      ##"
+echo "#################################"
 
 # Install the packages that we need
 sudo apt-get -y install git
@@ -25,13 +39,19 @@ sudo apt-get -y install gr-iio
 sudo apt-get -y install gnuradio
 sudo apt-get -y install raspi-gpio
 
-
+echo "#################################"
+echo "##     Install Wiring Pi       ##"
+echo "#################################"
 
 # install WiringPi
 cd /tmp
 wget https://project-downloads.drogon.net/wiringpi-latest.deb
 sudo dpkg -i wiringpi-latest.deb
 cd ~
+
+echo "#################################"
+echo "##        Install LibIIO       ##"
+echo "#################################"
 
 #install libiio
 git clone https://github.com/analogdevicesinc/libiio.git
@@ -46,6 +66,10 @@ cd ~
 sudo raspi-config nonint do_boot_behaviour B2
 
 # install the Langstone Files
+
+echo "#################################"
+echo "##     Installing Langstone    ##"
+echo "#################################"
 
 git clone https://github.com/g4eml/Langstone.git
 cd Langstone
@@ -77,6 +101,9 @@ if !(grep global_cursor_default /boot/cmdline.txt) then
   sudo sed -i '1s,$, vt.global_cursor_default=0,' /boot/cmdline.txt
 fi
 
+echo "#################################"
+echo "##       Reboot and Start      ##"
+echo "#################################"
 
 #Reboot and start
 sudo reboot
