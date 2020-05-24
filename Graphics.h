@@ -54,19 +54,30 @@ void displayChar(int ch)
   int row;
   int col;
   int pix;
+  int descender;
+
+  if(font[ch][0] & 0x80)
+  {
+  descender=3*textSize;
+  }
+  else
+  {
+  descender=0;
+  }
 
   for(row=0;row<9;row++)
     {
     pix=font[ch][row];
+    if(row==0) pix=pix & 0x7F;                //top bit of first row indicates descender
     for(col=0;col<8;col++)
       {
        if((pix << col) & 0x80)
          {
-            setLargePixel(currentX+col*textSize,currentY+row*textSize,textSize,foreColourR,foreColourG,foreColourB);
+            setLargePixel(currentX+col*textSize,currentY+row*textSize+descender,textSize,foreColourR,foreColourG,foreColourB);
          }
        else
          { 
-            setLargePixel(currentX+col*textSize,currentY+row*textSize,textSize,backColourR,backColourG,backColourG);
+            setLargePixel(currentX+col*textSize,currentY+row*textSize+descender,textSize,backColourR,backColourG,backColourG);
          }
       }
     }
