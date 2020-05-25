@@ -24,21 +24,22 @@ if !(ps -ax |grep -v grep| grep -q Lang_TX.py) then
 
    
  retry=0
- until [ ${retry} -ge 3 ]
+ until [ ${retry} -ge 4 ]
 do
 	(iio_info -n pluto.local 2>/dev/null | grep -q PlutoSDR) && break
 	retry=$[${retry}+1]
 	sleep 1
 done
 
-if [ ${retry} -ge 3 ]; then
+if [ ${retry} -ge 4 ]; then
   clear
   echo "Pluto Failed to Respond at pluto.local"
   echo "Check Connection and Power"
   exit 1
 fi
    
-sleep 1    
+sleep 1 
+   
   python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
   python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
 	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
