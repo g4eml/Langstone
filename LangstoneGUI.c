@@ -1996,6 +1996,7 @@ int readConfig(void)
 FILE * conffile;
 char variable[80];
 char value[20];
+char vname[20];
 
 conffile=fopen("/home/pi/Langstone/Langstone.conf","r");
 
@@ -2006,90 +2007,24 @@ if(conffile==NULL)
 
 while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
   {
-    if(strstr(variable,"bandFreq00")) sscanf(value,"%lf",&bandFreq[0]);
-    if(strstr(variable,"bandTxOffset00")) sscanf(value,"%lf",&bandTxOffset[0]);
-    if(strstr(variable,"bandRxOffset00")) sscanf(value,"%lf",&bandRxOffset[0]);
-    if(strstr(variable,"bandBits00")) sscanf(value,"%d",&bandBits[0]);
-    if(strstr(variable,"bandFFTRef00")) sscanf(value,"%d",&bandFFTRef[0]);
-    if(strstr(variable,"bandSquelch00")) sscanf(value,"%d",&bandSquelch[0]);
-    if(strstr(variable,"bandTxAtt00")) sscanf(value,"%d",&bandTxAtt[0]);    
-    if(strstr(variable,"bandFreq01")) sscanf(value,"%lf",&bandFreq[1]);
-    if(strstr(variable,"bandTxOffset01")) sscanf(value,"%lf",&bandTxOffset[1]);  
-    if(strstr(variable,"bandRxOffset01")) sscanf(value,"%lf",&bandRxOffset[1]);
-    if(strstr(variable,"bandBits01")) sscanf(value,"%d",&bandBits[1]);
-    if(strstr(variable,"bandFFTRef01")) sscanf(value,"%d",&bandFFTRef[1]);
-    if(strstr(variable,"bandSquelch01")) sscanf(value,"%d",&bandSquelch[1]);
-    if(strstr(variable,"bandTxAtt01")) sscanf(value,"%d",&bandTxAtt[1]); 
-    if(strstr(variable,"bandFreq02")) sscanf(value,"%lf",&bandFreq[2]);
-    if(strstr(variable,"bandTxOffset02")) sscanf(value,"%lf",&bandTxOffset[2]);  
-    if(strstr(variable,"bandRxOffset02")) sscanf(value,"%lf",&bandRxOffset[2]);
-    if(strstr(variable,"bandBits02")) sscanf(value,"%d",&bandBits[2]);
-    if(strstr(variable,"bandFFTRef02")) sscanf(value,"%d",&bandFFTRef[2]);
-    if(strstr(variable,"bandSquelch02")) sscanf(value,"%d",&bandSquelch[2]);
-    if(strstr(variable,"bandTxAtt02")) sscanf(value,"%d",&bandTxAtt[2]); 
-    if(strstr(variable,"bandFreq03")) sscanf(value,"%lf",&bandFreq[3]);
-    if(strstr(variable,"bandTxOffset03")) sscanf(value,"%lf",&bandTxOffset[3]);  
-    if(strstr(variable,"bandRxOffset03")) sscanf(value,"%lf",&bandRxOffset[3]);
-    if(strstr(variable,"bandBits03")) sscanf(value,"%d",&bandBits[3]);
-    if(strstr(variable,"bandFFTRef03")) sscanf(value,"%d",&bandFFTRef[3]);
-    if(strstr(variable,"bandSquelch03")) sscanf(value,"%d",&bandSquelch[3]);
-    if(strstr(variable,"bandTxAtt03")) sscanf(value,"%d",&bandTxAtt[3]); 
-    if(strstr(variable,"bandFreq04")) sscanf(value,"%lf",&bandFreq[4]);
-    if(strstr(variable,"bandTxOffset04")) sscanf(value,"%lf",&bandTxOffset[4]);  
-    if(strstr(variable,"bandRxOffset04")) sscanf(value,"%lf",&bandRxOffset[4]);
-    if(strstr(variable,"bandBits04")) sscanf(value,"%d",&bandBits[4]);
-    if(strstr(variable,"bandFFTRef04")) sscanf(value,"%d",&bandFFTRef[4]);
-    if(strstr(variable,"bandSquelch04")) sscanf(value,"%d",&bandSquelch[4]);
-    if(strstr(variable,"bandTxAtt04")) sscanf(value,"%d",&bandTxAtt[4]); 
-    if(strstr(variable,"bandFreq05")) sscanf(value,"%lf",&bandFreq[5]);
-    if(strstr(variable,"bandTxOffset05")) sscanf(value,"%lf",&bandTxOffset[5]);  
-    if(strstr(variable,"bandRxOffset05")) sscanf(value,"%lf",&bandRxOffset[5]);
-    if(strstr(variable,"bandBits05")) sscanf(value,"%d",&bandBits[5]);
-    if(strstr(variable,"bandFFTRef05")) sscanf(value,"%d",&bandFFTRef[5]);
-    if(strstr(variable,"bandSquelch05")) sscanf(value,"%d",&bandSquelch[5]);
-    if(strstr(variable,"bandTxAtt05")) sscanf(value,"%d",&bandTxAtt[5]); 
-    if(strstr(variable,"bandFreq06")) sscanf(value,"%lf",&bandFreq[6]);
-    if(strstr(variable,"bandTxOffset06")) sscanf(value,"%lf",&bandTxOffset[6]);  
-    if(strstr(variable,"bandRxOffset06")) sscanf(value,"%lf",&bandRxOffset[6]);
-    if(strstr(variable,"bandBits06")) sscanf(value,"%d",&bandBits[6]);
-    if(strstr(variable,"bandFFTRef06")) sscanf(value,"%d",&bandFFTRef[6]);
-    if(strstr(variable,"bandSquelch06")) sscanf(value,"%d",&bandSquelch[6]);
-    if(strstr(variable,"bandTxAtt06")) sscanf(value,"%d",&bandTxAtt[6]); 
-    if(strstr(variable,"bandFreq07")) sscanf(value,"%lf",&bandFreq[7]);
-    if(strstr(variable,"bandTxffset07")) sscanf(value,"%lf",&bandTxOffset[7]); 
-    if(strstr(variable,"bandRxOffset07")) sscanf(value,"%lf",&bandRxOffset[7]);
-    if(strstr(variable,"bandBits07")) sscanf(value,"%d",&bandBits[7]);
-    if(strstr(variable,"bandFFTRef07")) sscanf(value,"%d",&bandFFTRef[7]);
-    if(strstr(variable,"bandSquelch07")) sscanf(value,"%d",&bandSquelch[7]);
-    if(strstr(variable,"bandTxAtt07")) sscanf(value,"%d",&bandTxAtt[7]); 
-    if(strstr(variable,"bandFreq08")) sscanf(value,"%lf",&bandFreq[8]);
-    if(strstr(variable,"bandTxOffset08")) sscanf(value,"%lf",&bandTxOffset[8]);  
-    if(strstr(variable,"bandRxOffset08")) sscanf(value,"%lf",&bandRxOffset[8]);
-    if(strstr(variable,"bandBits08")) sscanf(value,"%d",&bandBits[8]);
-    if(strstr(variable,"bandFFTRef08")) sscanf(value,"%d",&bandFFTRef[8]);
-    if(strstr(variable,"bandSquelch08")) sscanf(value,"%d",&bandSquelch[8]);
-    if(strstr(variable,"bandTxAtt08")) sscanf(value,"%d",&bandTxAtt[8]); 
-    if(strstr(variable,"bandFreq09")) sscanf(value,"%lf",&bandFreq[9]);
-    if(strstr(variable,"bandTxOffset09")) sscanf(value,"%lf",&bandTxOffset[9]);  
-    if(strstr(variable,"bandRxOffset09")) sscanf(value,"%lf",&bandRxOffset[9]);
-    if(strstr(variable,"bandBits09")) sscanf(value,"%d",&bandBits[9]);
-    if(strstr(variable,"bandFFTRef09")) sscanf(value,"%d",&bandFFTRef[9]);
-    if(strstr(variable,"bandSquelch09")) sscanf(value,"%d",&bandSquelch[9]);
-    if(strstr(variable,"bandTxAtt09")) sscanf(value,"%d",&bandTxAtt[9]); 
-    if(strstr(variable,"bandFreq10")) sscanf(value,"%lf",&bandFreq[10]);
-    if(strstr(variable,"bandTxOffset10")) sscanf(value,"%lf",&bandTxOffset[10]);  
-    if(strstr(variable,"bandRxOffset10")) sscanf(value,"%lf",&bandRxOffset[10]);
-    if(strstr(variable,"bandBits10")) sscanf(value,"%d",&bandBits[10]);
-    if(strstr(variable,"bandFFTRef10")) sscanf(value,"%d",&bandFFTRef[10]);
-    if(strstr(variable,"bandSquelch10")) sscanf(value,"%d",&bandSquelch[10]);
-    if(strstr(variable,"bandTxAtt10")) sscanf(value,"%d",&bandTxAtt[10]); 
-    if(strstr(variable,"bandFreq11")) sscanf(value,"%lf",&bandFreq[11]);
-    if(strstr(variable,"bandTxOffset11")) sscanf(value,"%lf",&bandTxOffset[11]);  
-    if(strstr(variable,"bandRxOffset11")) sscanf(value,"%lf",&bandRxOffset[11]);
-    if(strstr(variable,"bandBits11")) sscanf(value,"%d",&bandBits[11]);
-    if(strstr(variable,"bandFFTRef11")) sscanf(value,"%d",&bandFFTRef[11]);
-    if(strstr(variable,"bandSquelch11")) sscanf(value,"%d",&bandSquelch[11]);
-    if(strstr(variable,"bandTxAtt11")) sscanf(value,"%d",&bandTxAtt[11]); 
+    for(int b=0;b<numband;b++)
+    {
+    sprintf(vname,"bandFreq%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandFreq[b]); 
+    sprintf(vname,"bandTxOffset%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandTxOffset[b]); 
+    sprintf(vname,"bandRxOffset%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRxOffset[b]);     
+    sprintf(vname,"bandBits%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandBits[b]);     
+    sprintf(vname,"bandFFTRef%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandFFTRef[b]);     
+    sprintf(vname,"bandSquelch%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandSquelch[b]);  
+    sprintf(vname,"bandTxAtt%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandTxAtt[b]);   
+    }
+
     
     if(strstr(variable,"currentBand")) sscanf(value,"%d",&band);
     if(strstr(variable,"tuneDigit")) sscanf(value,"%d",&tuneDigit);   
@@ -2107,8 +2042,6 @@ return 0;
 
 }
 
-
-
 int writeConfig(void)
 {
 FILE * conffile;
@@ -2124,90 +2057,16 @@ if(conffile==NULL)
     return -1;
   }
 
-fprintf(conffile,"bandFreq00 %lf\n",bandFreq[0]);
-fprintf(conffile,"bandTxOffset00 %lf\n",bandTxOffset[0]);
-fprintf(conffile,"bandRxOffset00 %lf\n",bandRxOffset[0]);
-fprintf(conffile,"bandBits00 %d\n",bandBits[0]);
-fprintf(conffile,"bandFFTRef00 %d\n",bandFFTRef[0]);
-fprintf(conffile,"bandSquelch00 %d\n",bandSquelch[0]);
-fprintf(conffile,"bandTxAtt00 %d\n",bandTxAtt[0]);
-fprintf(conffile,"bandFreq01 %lf\n",bandFreq[1]);
-fprintf(conffile,"bandTxOffset01 %lf\n",bandTxOffset[1]);
-fprintf(conffile,"bandRxOffset01 %lf\n",bandRxOffset[1]);
-fprintf(conffile,"bandBits01 %d\n",bandBits[1]);
-fprintf(conffile,"bandFFTRef01 %d\n",bandFFTRef[1]);
-fprintf(conffile,"bandSquelch01 %d\n",bandSquelch[1]);
-fprintf(conffile,"bandTxAtt01 %d\n",bandTxAtt[1]);
-fprintf(conffile,"bandFreq02 %lf\n",bandFreq[2]);
-fprintf(conffile,"bandTxOffset02 %lf\n",bandTxOffset[2]);
-fprintf(conffile,"bandRxOffset02 %lf\n",bandRxOffset[2]);
-fprintf(conffile,"bandBits02 %d\n",bandBits[2]);
-fprintf(conffile,"bandFFTRef02 %d\n",bandFFTRef[2]);
-fprintf(conffile,"bandSquelch02 %d\n",bandSquelch[2]);
-fprintf(conffile,"bandTxAtt02 %d\n",bandTxAtt[2]);
-fprintf(conffile,"bandFreq03 %lf\n",bandFreq[3]);
-fprintf(conffile,"bandTxOffset03 %lf\n",bandTxOffset[3]);
-fprintf(conffile,"bandRxOffset03 %lf\n",bandRxOffset[3]);
-fprintf(conffile,"bandBits03 %d\n",bandBits[3]);
-fprintf(conffile,"bandFFTRef03 %d\n",bandFFTRef[3]);
-fprintf(conffile,"bandSquelch03 %d\n",bandSquelch[3]);
-fprintf(conffile,"bandTxAtt03 %d\n",bandTxAtt[3]);
-fprintf(conffile,"bandFreq04 %lf\n",bandFreq[4]);
-fprintf(conffile,"bandTxOffset04 %lf\n",bandTxOffset[4]);
-fprintf(conffile,"bandRxOffset04 %lf\n",bandRxOffset[4]);
-fprintf(conffile,"bandBits04 %d\n",bandBits[4]);
-fprintf(conffile,"bandFFTRef04 %d\n",bandFFTRef[4]);
-fprintf(conffile,"bandSquelch04 %d\n",bandSquelch[4]);
-fprintf(conffile,"bandTxAtt04 %d\n",bandTxAtt[4]);
-fprintf(conffile,"bandFreq05 %lf\n",bandFreq[5]);
-fprintf(conffile,"bandTxOffset05 %lf\n",bandTxOffset[5]);
-fprintf(conffile,"bandRxOffset05 %lf\n",bandRxOffset[5]);
-fprintf(conffile,"bandBits05 %d\n",bandBits[5]);
-fprintf(conffile,"bandFFTRef05 %d\n",bandFFTRef[5]);
-fprintf(conffile,"bandSquelch05 %d\n",bandSquelch[5]);
-fprintf(conffile,"bandTxAtt05 %d\n",bandTxAtt[5]);
-fprintf(conffile,"bandFreq06 %lf\n",bandFreq[6]);
-fprintf(conffile,"bandTxOffset06 %lf\n",bandTxOffset[6]);
-fprintf(conffile,"bandRxOffset06 %lf\n",bandRxOffset[6]);
-fprintf(conffile,"bandBits06 %d\n",bandBits[6]);
-fprintf(conffile,"bandFFTRef06 %d\n",bandFFTRef[6]);
-fprintf(conffile,"bandSquelch06 %d\n",bandSquelch[6]);
-fprintf(conffile,"bandTxAtt06 %d\n",bandTxAtt[6]);
-fprintf(conffile,"bandFreq07 %lf\n",bandFreq[7]);
-fprintf(conffile,"bandTxOffset07 %lf\n",bandTxOffset[7]);
-fprintf(conffile,"bandRxOffset07 %lf\n",bandRxOffset[7]);
-fprintf(conffile,"bandBits07 %d\n",bandBits[7]);
-fprintf(conffile,"bandFFTRef07 %d\n",bandFFTRef[7]);
-fprintf(conffile,"bandSquelch07 %d\n",bandSquelch[7]);
-fprintf(conffile,"bandTxAtt07 %d\n",bandTxAtt[7]);
-fprintf(conffile,"bandFreq08 %lf\n",bandFreq[8]);
-fprintf(conffile,"bandTxOffset08 %lf\n",bandTxOffset[8]);
-fprintf(conffile,"bandRxOffset08 %lf\n",bandRxOffset[8]);
-fprintf(conffile,"bandBits08 %d\n",bandBits[8]);
-fprintf(conffile,"bandFFTRef08 %d\n",bandFFTRef[8]);
-fprintf(conffile,"bandSquelch08 %d\n",bandSquelch[8]);
-fprintf(conffile,"bandTxAtt08 %d\n",bandTxAtt[8]);
-fprintf(conffile,"bandFreq09 %lf\n",bandFreq[9]);
-fprintf(conffile,"bandTxOffset09 %lf\n",bandTxOffset[9]);
-fprintf(conffile,"bandRxOffset09 %lf\n",bandRxOffset[9]);
-fprintf(conffile,"bandBits09 %d\n",bandBits[9]);
-fprintf(conffile,"bandFFTRef09 %d\n",bandFFTRef[9]);
-fprintf(conffile,"bandSquelch09 %d\n",bandSquelch[9]);
-fprintf(conffile,"bandTxAtt09 %d\n",bandTxAtt[9]);
-fprintf(conffile,"bandFreq10 %lf\n",bandFreq[10]);
-fprintf(conffile,"bandTxOffset10 %lf\n",bandTxOffset[10]);
-fprintf(conffile,"bandRxOffset10 %lf\n",bandRxOffset[10]);
-fprintf(conffile,"bandBits10 %d\n",bandBits[10]);
-fprintf(conffile,"bandFFTRef10 %d\n",bandFFTRef[10]);
-fprintf(conffile,"bandSquelch10 %d\n",bandSquelch[10]);
-fprintf(conffile,"bandTxAtt10 %d\n",bandTxAtt[10]);
-fprintf(conffile,"bandFreq11 %lf\n",bandFreq[11]);
-fprintf(conffile,"bandTxOffset11 %lf\n",bandTxOffset[11]);
-fprintf(conffile,"bandRxOffset11 %lf\n",bandRxOffset[11]);
-fprintf(conffile,"bandBits11 %d\n",bandBits[11]);
-fprintf(conffile,"bandFFTRef11 %d\n",bandFFTRef[11]);
-fprintf(conffile,"bandSquelch11 %d\n",bandSquelch[11]);
-fprintf(conffile,"bandTxAtt11 %d\n",bandTxAtt[11]);
+for(int b=0;b<numband;b++)
+{
+  fprintf(conffile,"bandFreq%02d %lf\n",b,bandFreq[b]);
+  fprintf(conffile,"bandTxOffset%02d %lf\n",b,bandTxOffset[b]);
+  fprintf(conffile,"bandRxOffset%02d %lf\n",b,bandRxOffset[b]);
+  fprintf(conffile,"bandBits%02d %d\n",b,bandBits[b]);
+  fprintf(conffile,"bandFFTRef%02d %d\n",b,bandFFTRef[b]);
+  fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);
+  fprintf(conffile,"bandTxAtt%02d %d\n",b,bandTxAtt[b]);
+}
 
 fprintf(conffile,"currentBand %d\n",band);
 fprintf(conffile,"tuneDigit %d\n",tuneDigit);
@@ -2220,3 +2079,5 @@ fclose(conffile);
 return 0;
 
 }
+
+
