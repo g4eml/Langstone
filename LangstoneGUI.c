@@ -2014,7 +2014,7 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"bandSquelch00")) sscanf(value,"%d",&bandSquelch[0]);
     if(strstr(variable,"bandTxAtt00")) sscanf(value,"%d",&bandTxAtt[0]);    
     if(strstr(variable,"bandFreq01")) sscanf(value,"%lf",&bandFreq[1]);
-    if(strstr(variable,"bandTXOffset01")) sscanf(value,"%lf",&bandTxOffset[1]);  
+    if(strstr(variable,"bandTxOffset01")) sscanf(value,"%lf",&bandTxOffset[1]);  
     if(strstr(variable,"bandRxOffset01")) sscanf(value,"%lf",&bandRxOffset[1]);
     if(strstr(variable,"bandBits01")) sscanf(value,"%d",&bandBits[1]);
     if(strstr(variable,"bandFFTRef01")) sscanf(value,"%d",&bandFFTRef[1]);
@@ -2076,7 +2076,7 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"bandFFTRef09")) sscanf(value,"%d",&bandFFTRef[9]);
     if(strstr(variable,"bandSquelch09")) sscanf(value,"%d",&bandSquelch[9]);
     if(strstr(variable,"bandTxAtt09")) sscanf(value,"%d",&bandTxAtt[9]); 
-     if(strstr(variable,"bandFreq10")) sscanf(value,"%lf",&bandFreq[10]);
+    if(strstr(variable,"bandFreq10")) sscanf(value,"%lf",&bandFreq[10]);
     if(strstr(variable,"bandTxOffset10")) sscanf(value,"%lf",&bandTxOffset[10]);  
     if(strstr(variable,"bandRxOffset10")) sscanf(value,"%lf",&bandRxOffset[10]);
     if(strstr(variable,"bandBits10")) sscanf(value,"%d",&bandBits[10]);
