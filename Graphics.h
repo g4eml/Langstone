@@ -36,6 +36,8 @@ void setForeColour(int R,int G,int B);
 void setBackColour(int R,int G,int B);
 void displayStr(char*s);
 void displayButton(char*s);
+void displayButton2x12(char*s1,char*s2);
+void displayButton1x12(char*s1);
 void drawLine(int x0, int y0, int x1, int y1,int r,int g,int b);
 
 void displayStr(char*s)
@@ -85,6 +87,18 @@ void displayChar(int ch)
   currentX=currentX+8*textSize;
 }
 
+void clearButton(void)
+{
+gotoXY(currentX+1,currentY+1);
+for(int xi=0;xi<98;xi++)
+  {
+  for(int yi=0;yi<48;yi++)
+    {
+    setPixel(currentX+xi,currentY+yi,backColourR,backColourG,backColourB);
+    }
+  }
+
+}
 
 void displayButton(char*s)
 {
@@ -101,18 +115,71 @@ for(int y=0;y<50;y++)
     setPixel(currentX+100,currentY+y,foreColourR,foreColourG,foreColourB);
   }
 
-gotoXY(currentX+1,currentY+18);
-textSize=2;
-displayStr("      ");
-currentX=saveX;
+gotoXY(saveX,saveY);
+clearButton();
 int sx=50-((strlen(s)*16)/2);  
-gotoXY(currentX+sx,currentY);
+gotoXY(saveX+sx,saveY+18);
 textSize=2;
 displayStr(s);
 currentX=saveX+105;
 currentY=saveY;
 
 }
+
+void displayButton2x12(char*s1,char*s2)
+{
+int saveX=currentX;
+int saveY=currentY;
+for(int x=0;x<100;x++)
+  {
+    setPixel(currentX+x,currentY,foreColourR,foreColourG,foreColourB);
+    setPixel(currentX+x,currentY+50,foreColourR,foreColourG,foreColourB);
+  }
+for(int y=0;y<50;y++)
+  {
+    setPixel(currentX,currentY+y,foreColourR,foreColourG,foreColourB);
+    setPixel(currentX+100,currentY+y,foreColourR,foreColourG,foreColourB);
+  }
+
+gotoXY(saveX,saveY);
+clearButton();
+int sx=50-((strlen(s1)*8)/2);  
+gotoXY(saveX+sx,saveY+11);
+textSize=1;
+displayStr(s1);
+sx=50-((strlen(s2)*8)/2);  
+gotoXY(saveX+sx,saveY+29);
+textSize=1;
+displayStr(s2);
+currentX=saveX+105;
+currentY=saveY;
+}
+
+void displayButton1x12(char*s1)
+{
+int saveX=currentX;
+int saveY=currentY;
+for(int x=0;x<100;x++)
+  {
+    setPixel(currentX+x,currentY,foreColourR,foreColourG,foreColourB);
+    setPixel(currentX+x,currentY+50,foreColourR,foreColourG,foreColourB);
+  }
+for(int y=0;y<50;y++)
+  {
+    setPixel(currentX,currentY+y,foreColourR,foreColourG,foreColourB);
+    setPixel(currentX+100,currentY+y,foreColourR,foreColourG,foreColourB);
+  }
+
+gotoXY(saveX,saveY);
+clearButton();
+int sx=50-((strlen(s1)*8)/2);  
+gotoXY(saveX+sx,saveY+20);
+textSize=1;
+displayStr(s1);
+currentX=saveX+105;
+currentY=saveY;
+}
+
 
 
 void gotoXY(int x, int y)
