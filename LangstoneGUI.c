@@ -80,7 +80,7 @@ int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bbits=0;
 #define minFreq 0.0
 #define maxFreq 99999.99999
-#define minHwFreq 70.0
+#define minHwFreq 69.9
 #define maxHwFreq 5999.99999
 
 
@@ -874,8 +874,8 @@ void processMouse(int mbut)
       {
         freq=freq+(mouseScroll*freqInc);
         mouseScroll=0;
-        if(freq < minFreq) freq=minFreq;
-        if(freq > maxFreq) freq=maxFreq;
+        if((freq - bandRxOffset[band]) < minHwFreq) freq=minHwFreq + bandRxOffset[band];
+        if((freq - bandRxOffset[band]) > maxHwFreq) freq=maxHwFreq + bandRxOffset[band];
         setFreq(freq);
         return;      
       }
@@ -1642,9 +1642,21 @@ void setHwRxFreq(double fr)
   
   rxfreqhz=frRx*1000000;
   
-  rxoffsethz=(rxfreqhz % 100000)+50000;        //use just the +50Khz to +150Khz positive side of the sampled spectrum. This avoids the DC hump .
+  if (rxfreqhz<69900000) rxfreqhz=69900000;         //this is the lowest frequency we can receive with a pluto 
   
+  if(rxfreqhz<70100000)
+  {
+  rxoffsethz=(rxfreqhz-70000000);        //Special case for receiving below 70.100     Use the offset of +-100KHz
+  LOrxfreqhz=70000000;
+  }
+  else
+  {
+  rxoffsethz=(rxfreqhz % 100000)+50000;        //use just the +50Khz to +150Khz positive side of the sampled spectrum. This avoids seeing the DC hump .
   LOrxfreqhz=rxfreqhz-rxoffsethz;
+  }
+
+  
+
   rxoffsethz=rxoffsethz+rit;
   if((mode==CW)|(mode==CWN))
     {
