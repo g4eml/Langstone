@@ -1213,7 +1213,7 @@
     </param>
     <param>
       <key>taps</key>
-      <value>firdes.low_pass(1,529200,22000,6000)</value>
+      <value>firdes.low_pass(1,529200,21000,1000)</value>
     </param>
     <param>
       <key>type</key>
