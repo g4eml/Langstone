@@ -1085,21 +1085,28 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank 
       }
     }
       
-if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or Blank
+if(buttonTouched(funcButtonsX+buttonSpaceX*3,funcButtonsY))    // Button4 =SET or PREV
     {
      if(inputMode==FREQ)
       {
       setInputMode(SETTINGS);
       return;
       }
-      else
+    else  if (inputMode==SETTINGS)
+      {
+      settingNo=settingNo-1;
+      if(settingNo<0) settingNo=numSettings-1;
+      displaySetting(settingNo);
+      return;
+      }
+    else
       {
       setInputMode(FREQ);
       return;
       }
     }
        
-if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or PREV
+if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI (only allowed in Sat mode)  or Blank
     {
     if(inputMode==FREQ)
       {
@@ -1108,15 +1115,8 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
         if(moni==1) setMoni(0); else setMoni(1);
         }      
       return;
-      }
-      else  if (inputMode==SETTINGS)
-      {
-      settingNo=settingNo-1;
-      if(settingNo<0) settingNo=numSettings-1;
-      displaySetting(settingNo);
-      return;
-      }
-      else
+      }     
+    else
       {
       setInputMode(FREQ);
       }
@@ -1124,7 +1124,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
  
     }      
 
-if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Blank
+if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Exit to Portsdown
     {
     if(inputMode==FREQ)
       {
@@ -1160,10 +1160,14 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
         }
       return;
       }
+      else if (inputMode==SETTINGS)
+      {
+         clearScreen();
+         exit(0);
+      }
       else
       {
       setInputMode(FREQ);
-      return;
       }
     } 
          
@@ -1209,19 +1213,10 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       sendTxFifo("Q");       //kill the SDR Tx
       sendRxFifo("Q");       //kill the SDR Rx
       writeConfig();
-      if (portsdownPresent==0)
-         {
-         system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
-         sleep(5);
-         system("sudo poweroff");                          
-         return;
-         }
-      else
-         {
-         clearScreen();
-         exit(0);
-         }
-      
+      system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
+      sleep(2);
+      system("sudo poweroff");                          
+      return;      
       }
       else
       {
@@ -1389,19 +1384,20 @@ if(inputMode==SETTINGS)
     displayButton("MENU");
     displayButton(" ");
     displayButton("NEXT");
-    displayButton(" ");
     displayButton("PREV");
     displayButton(" ");
-    setForeColour(255,0,0);
-    if (portsdownPresent==0)
+
+    if (portsdownPresent==1)
     {
-        displayButton("OFF");
+        setForeColour(255,0,0);
+        displayButton2x12("EXIT TO","PORTSDOWN");
     }
     else
     {
-        displayButton("EXIT");
+        displayButton(" ");
     }
-
+    setForeColour(255,0,0);
+    displayButton1x12("SHUTDOWN");
     mouseScroll=0;
     displaySetting(settingNo); 
   }
@@ -1932,6 +1928,7 @@ void displaySetting(int se)
 {
   char valStr[30];
   gotoXY(settingX,settingY);
+  textSize=2;
   setForeColour(255,255,255);
   displayStr("                                ");
   gotoXY(settingX,settingY);
