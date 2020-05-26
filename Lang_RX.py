@@ -50,7 +50,7 @@ class Lang_RX(gr.top_block):
         	avg_alpha=0.9,
         	average=True,
         )
-        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,20000,6000)), RxOffset, 529200)
+        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,21000,1000)), RxOffset, 529200)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_multiply_const_vxx_2_1 = blocks.multiply_const_vff((Mode==5, ))
         self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((Mode==4, ))
