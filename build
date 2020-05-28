@@ -1,2 +1,1 @@
-cc LangstoneGUI.c -liio -lwiringPi
-mv a.out GUI
+cc /home/pi/Langstone/LangstoneGUI.c -o /home/pi/Langstone/GUI -liio -lwiringPi 

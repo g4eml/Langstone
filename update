@@ -3,8 +3,8 @@ cd /home/pi
 cp /home/pi/Langstone/Langstone.conf /tmp
 rm -rf /home/pi/Langstone
 git clone http://www.github.com/g4eml/Langstone
-cd Langstone
-./build
+/home.pi.Langstone/build
 cp /tmp/Langstone.conf /home/pi/Langstone
+cd Langstone
 
 
