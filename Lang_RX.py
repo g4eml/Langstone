@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Rx
-# Generated: Thu May 21 11:14:58 2020
+# Generated: Thu May 28 20:32:16 2020
 ##################################################
 
 from gnuradio import analog
@@ -41,16 +41,16 @@ class Lang_RX(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.pluto_source_0 = iio.pluto_source('ip:pluto.local', 1000000000, 529200, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
+        self.pluto_source_0 = iio.pluto_source('ip:pluto.local', 1000000000, 528000, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
-        	sample_rate=44100,
+        	sample_rate=48000,
         	fft_size=512,
         	ref_scale=2,
         	frame_rate=15,
         	avg_alpha=0.9,
         	average=True,
         )
-        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(12, (firdes.low_pass(1,529200,21000,1000)), RxOffset, 529200)
+        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(11, (firdes.low_pass(1,529200,23000,2000)), RxOffset, 528000)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_multiply_const_vxx_2_1 = blocks.multiply_const_vff((Mode==5, ))
         self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((Mode==4, ))
@@ -70,12 +70,12 @@ class Lang_RX(gr.top_block):
         	output_index=FFTEn,
         )
         self.band_pass_filter_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
-        	1, 44100, Filt_Low, Filt_High, 100, firdes.WIN_HAMMING, 6.76))
-        self.audio_sink_0 = audio.sink(44100, "hw:CARD=Device,DEV=0", False)
+        	1, 48000, Filt_Low, Filt_High, 100, firdes.WIN_HAMMING, 6.76))
+        self.audio_sink_0 = audio.sink(48000, "hw:CARD=Device,DEV=0", False)
         self.analog_pwr_squelch_xx_0 = analog.pwr_squelch_cc(SQL-100, 0.001, 0, False)
         self.analog_nbfm_rx_0 = analog.nbfm_rx(
-        	audio_rate=44100,
-        	quad_rate=44100,
+        	audio_rate=48000,
+        	quad_rate=48000,
         	tau=75e-6,
         	max_dev=5e3,
           )
@@ -143,14 +143,14 @@ class Lang_RX(gr.top_block):
 
     def set_Filt_Low(self, Filt_Low):
         self.Filt_Low = Filt_Low
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, self.Filt_Low, self.Filt_High, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 48000, self.Filt_Low, self.Filt_High, 100, firdes.WIN_HAMMING, 6.76))
 
     def get_Filt_High(self):
         return self.Filt_High
 
     def set_Filt_High(self, Filt_High):
         self.Filt_High = Filt_High
-        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 44100, self.Filt_Low, self.Filt_High, 100, firdes.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.complex_band_pass(1, 48000, self.Filt_Low, self.Filt_High, 100, firdes.WIN_HAMMING, 6.76))
 
     def get_FFTEn(self):
         return self.FFTEn
@@ -165,6 +165,7 @@ class Lang_RX(gr.top_block):
     def set_AFGain(self, AFGain):
         self.AFGain = AFGain
         self.blocks_multiply_const_vxx_1.set_k(((self.AFGain/100.0) *  (not self.Mute), ))
+
 def docommands(tb):
   try:
     os.mkfifo("/tmp/langstoneRx")
@@ -224,7 +225,6 @@ def main(top_block_cls=Lang_RX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
-
 
 if __name__ == '__main__':
     main()
