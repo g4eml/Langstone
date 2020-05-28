@@ -204,7 +204,7 @@ int rows=150;
 int FFTRef = -30;
 int spectrum_rows=50;
 unsigned char * palette;
-int HzPerBin=86;                        //calculated from FFT width and number of samples. Width=44100  number of samples =512
+int HzPerBin=94;                        //calculated from FFT width and number of samples. Width=48000 number of samples =512
 int bwBarStart=3;
 int bwBarEnd=34;
 

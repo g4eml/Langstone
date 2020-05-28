@@ -392,7 +392,7 @@
     <key>analog_nbfm_tx</key>
     <param>
       <key>audio_rate</key>
-      <value>44100</value>
+      <value>48000</value>
     </param>
     <param>
       <key>alias</key>
@@ -440,7 +440,7 @@
     </param>
     <param>
       <key>quad_rate</key>
-      <value>44100</value>
+      <value>48000</value>
     </param>
     <param>
       <key>tau</key>
@@ -503,7 +503,7 @@
     </param>
     <param>
       <key>samp_rate</key>
-      <value>44100</value>
+      <value>48000</value>
     </param>
     <param>
       <key>waveform</key>
@@ -562,7 +562,7 @@
     </param>
     <param>
       <key>samp_rate</key>
-      <value>44100</value>
+      <value>48000</value>
     </param>
   </block>
   <block>
@@ -633,7 +633,7 @@
     </param>
     <param>
       <key>samp_rate</key>
-      <value>44100</value>
+      <value>48000</value>
     </param>
     <param>
       <key>width</key>
@@ -712,7 +712,7 @@
     </param>
     <param>
       <key>samp_rate</key>
-      <value>44100</value>
+      <value>48000</value>
     </param>
     <param>
       <key>width</key>
@@ -1234,7 +1234,7 @@
     </param>
     <param>
       <key>samplerate</key>
-      <value>529200</value>
+      <value>528000</value>
     </param>
   </block>
   <block>
@@ -1277,7 +1277,7 @@
     </param>
     <param>
       <key>interp</key>
-      <value>12</value>
+      <value>11</value>
     </param>
     <param>
       <key>maxoutbuf</key>
