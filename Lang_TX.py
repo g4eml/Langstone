@@ -44,7 +44,7 @@ class Lang_TX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
-        self.pluto_sink_0 = iio.pluto_sink('ip:pluto.local', 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink('ip:pluto.local', 1000000000, 529000, 2000000, 0x800, False, 0, '', True)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc(((Mode < 4) or (Mode==5), ))
@@ -174,9 +174,10 @@ def docommands(tb):
            if line=='k':
               tb.set_KEY(False) 
            if line=='H':
-              tb.lock()
+	      tb.stop()
+              tb.wait()
            if line=='h':
-              tb.unlock()    
+              tb.start()    
            if line[0]=='G':
               value=int(line[1:])
               tb.set_MicGain(value) 
