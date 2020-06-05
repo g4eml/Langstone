@@ -60,7 +60,7 @@ void gen_palette(char colours[][3],int num_grads);
 void setPlutoTxAtt(int att);
 void setBand(int b);
 void setPlutoGpo(int p);
-long long currentTimeMs(void);
+long long runTimeMs(void);
 void clearPopUp(void);
 void displayPopupMode(void);
 void displayPopupBand(void);
@@ -146,6 +146,7 @@ int configCounter=configDelay;
 long long lastLOhz;
 
 long long lastClock;
+long progStartTime=0;
 
 int lastKey=1;
 
@@ -232,7 +233,6 @@ int main(int argc, char* argv[])
   setFFTPipe(1);            //Turn on FFT Stream from GNU RAdio
 
   
-
   while(1)
   {
   
@@ -285,18 +285,23 @@ int main(int argc, char* argv[])
     }
     
     
-    while(currentTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second (10ms)
+    while(runTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second (10ms)
     {
     usleep(100);
     }
-    lastClock=currentTimeMs();
+    lastClock=runTimeMs();
   }
 }
 
-long long currentTimeMs(void)
+long long runTimeMs(void)
 {
 struct timeval tt;
 gettimeofday(&tt,NULL);
+if(progStartTime==0)
+  {
+    progStartTime=tt.tv_sec;
+  }
+tt.tv_sec=tt.tv_sec - progStartTime;
 return ((tt.tv_sec*1000) + (tt.tv_usec/1000));
 }
 
