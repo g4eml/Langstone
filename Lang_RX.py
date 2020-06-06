@@ -192,9 +192,10 @@ def docommands(tb):
            if line=='u':
               tb.set_Mute(0)
            if line=='H':
-              tb.lock()
+              tb.stop()
+              tb.wait()
            if line=='h':
-              tb.unlock() 
+              tb.start() 
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  
