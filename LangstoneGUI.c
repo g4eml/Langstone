@@ -192,6 +192,10 @@ enum {NONE,MODE,BAND};
 #define bandPin2 24     //Wiring Pi pin number. Physical pin is 35
 #define bandPin3 7      //Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
+#define bandPin5 4      //Wiring Pi pin number. Physical pin is 16
+#define bandPin6 5      //Wiring Pi pin number. Physical pin is 18
+#define bandPin7 12     //Wiring Pi pin number. Physical pin is 19
+#define bandPin8 13     //Wiring Pi pin number. Physical pin is 21
 
 int plutoGpo=0;
 
@@ -670,11 +674,19 @@ void initGPIO(void)
   pinMode(bandPin2,OUTPUT);  
   pinMode(bandPin3,OUTPUT);  
   pinMode(bandPin4,OUTPUT);  
+  pinMode(bandPin5,OUTPUT); 
+  pinMode(bandPin6,OUTPUT);  
+  pinMode(bandPin7,OUTPUT);  
+  pinMode(bandPin8,OUTPUT);  
   digitalWrite(txPin,LOW);
   digitalWrite(bandPin1,LOW); 
   digitalWrite(bandPin2,LOW); 
   digitalWrite(bandPin3,LOW); 
-  digitalWrite(bandPin4,LOW);    
+  digitalWrite(bandPin4,LOW); 
+  digitalWrite(bandPin5,LOW); 
+  digitalWrite(bandPin6,LOW); 
+  digitalWrite(bandPin7,LOW); 
+  digitalWrite(bandPin8,LOW);       
   lastKey=1;
 }
 
@@ -926,7 +938,11 @@ void processMouse(int mbut)
       if(tuneDigit==5) tuneDigit=4;
       if(tuneDigit==9) tuneDigit=8;
       setFreqInc();
-      setFreq(freq);     
+      setFreq(freq);
+      if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
+        {
+        displaySetting(BAND_BITS);
+        }    
     }
     
   if(mbut==2+128)      //Right Mouse Button down
@@ -936,7 +952,11 @@ void processMouse(int mbut)
       if(tuneDigit==5) tuneDigit=6;
       if(tuneDigit==9) tuneDigit=10;
       setFreqInc();
-      setFreq(freq);       
+      setFreq(freq); 
+      if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
+        {
+        displaySetting(BAND_BITS);
+        }          
     }
     
   if(mbut==4+128)      //Extra Button down
@@ -1866,6 +1886,42 @@ else
     digitalWrite(bandPin4,LOW);
     }   
 
+if(b & 0x10) 
+    {
+    digitalWrite(bandPin5,HIGH);
+    }
+else
+    {
+    digitalWrite(bandPin5,LOW);
+    }   
+
+if(b & 0x20) 
+    {
+    digitalWrite(bandPin6,HIGH);
+    }
+else
+    {
+    digitalWrite(bandPin6,LOW);
+    }   
+    
+if(b & 0x40) 
+    {
+    digitalWrite(bandPin7,HIGH);
+    }
+else
+    {
+    digitalWrite(bandPin7,LOW);
+    }   
+    
+if(b & 0x80) 
+    {
+    digitalWrite(bandPin8,HIGH);
+    }
+else
+    {
+    digitalWrite(bandPin8,LOW);
+    }   
+
 setPlutoGpo(plutoGpo);
 
 }
@@ -1910,10 +1966,41 @@ void changeSetting(void)
       }  
    if(settingNo==BAND_BITS)        // Band Bits
       {
-      bandBits[band]=bandBits[band]+mouseScroll;
+      if(tuneDigit==11)
+        {
+        bandBits[band]=bandBits[band] ^ 0x01; 
+        }
+      if(tuneDigit==10)
+        {
+        bandBits[band]=bandBits[band] ^ 0x02; 
+        }
+      if(tuneDigit==8)
+        {
+        bandBits[band]=bandBits[band] ^ 0x04; 
+        }
+      if(tuneDigit==7)
+        {
+        bandBits[band]=bandBits[band] ^ 0x08; 
+        }
+       if(tuneDigit==6)
+        {
+        bandBits[band]=bandBits[band] ^ 0x10; 
+        }
+        if(tuneDigit==4)
+        {
+        bandBits[band]=bandBits[band] ^ 0x20; 
+        }
+        if(tuneDigit==3)
+        {
+        bandBits[band]=bandBits[band] ^ 0x40; 
+        }
+        if(tuneDigit==2)
+        {
+        bandBits[band]=bandBits[band] ^ 0x80; 
+        }
       mouseScroll=0;
       if(bandBits[band]<0) bandBits[band]=0;
-      if(bandBits[band]>15) bandBits[band]=15;
+      if(bandBits[band]>255) bandBits[band]=255;
       bbits=bandBits[band];
       setBandBits(bbits);
       displaySetting(settingNo);  
@@ -1951,54 +2038,58 @@ void displaySetting(int se)
   gotoXY(settingX,settingY);
   displayStr(settingText[se]);
  
- if(se==0)
+ if(se==SSB_MIC)
   {
   sprintf(valStr,"%d",SSBMic);
   displayStr(valStr);
   }
- if(se==1)
+ if(se==FM_MIC)
   {
   sprintf(valStr,"%d",FMMic);
   displayStr(valStr);
   }
-  if(se==2)
+  if(se==RX_OFFSET)
   {
   sprintf(valStr,"%f",bandRxOffset[band]);
   displayStr(valStr);
   }
   
-  if(se==3)
+  if(se==TX_OFFSET)
   {
   sprintf(valStr,"%f",bandTxOffset[band]);
   displayStr(valStr);
   }
   
-  if(se==4)
-  {
-    if(bbits==0)  sprintf(valStr,"0000"); 
-    if(bbits==1)  sprintf(valStr,"0001");
-    if(bbits==2)  sprintf(valStr,"0010"); 
-    if(bbits==3)  sprintf(valStr,"0011"); 
-    if(bbits==4)  sprintf(valStr,"0100"); 
-    if(bbits==5)  sprintf(valStr,"0101"); 
-    if(bbits==6)  sprintf(valStr,"0110"); 
-    if(bbits==7)  sprintf(valStr,"0111"); 
-    if(bbits==8)  sprintf(valStr,"1000"); 
-    if(bbits==9)  sprintf(valStr,"1001"); 
-    if(bbits==10)  sprintf(valStr,"1010");
-    if(bbits==11)  sprintf(valStr,"1011"); 
-    if(bbits==12)  sprintf(valStr,"1100"); 
-    if(bbits==13)  sprintf(valStr,"1101"); 
-    if(bbits==14)  sprintf(valStr,"1110"); 
-    if(bbits==15)  sprintf(valStr,"1111");                          
-  displayStr(valStr);
+  if(se==BAND_BITS)
+  { 
+  setForeColour(255,255,255);
+  for(int b=128;b>0;b=b>>1)
+    {
+      if(((tuneDigit==11)&&(b==1)) || ((tuneDigit==10)&&(b==2))  || ((tuneDigit==8)&&(b==4)) || ((tuneDigit==7)&&(b==8)) || ((tuneDigit==6)&&(b==16))  || ((tuneDigit==4)&&(b==32))  || ((tuneDigit==3)&&(b==64))  || ((tuneDigit==2)&&(b==128)))
+        {
+          setForeColour(0,255,0);
+        }
+      else
+        {
+          setForeColour(255,255,255);
+        }
+      if(bbits & b)
+        {
+        displayChar('1');
+        }
+      else
+        {
+        displayChar('0');
+        }
+    } 
   }
-  if(se==5)
+  
+  if(se==FFT_REF)
   {
   sprintf(valStr,"%d",FFTRef);
   displayStr(valStr);
   }
-  if(se==6)
+  if(se==TX_ATT)
   {
   sprintf(valStr,"%d dB",TxAtt);
   displayStr(valStr);
