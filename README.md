@@ -24,7 +24,7 @@ Currently only one set of hardware is supported:-
 
 - Tx Output is via Raspberry Pi GPIO pin 40. This output goes high when the Langstone is transmitting. This can be used to switch antenna relays and amplifiers. (100ms delay included for sequencing)
 
-- 4 Band select Outputs on pins 31, 24, 7 and 6. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
+- 8 Band select Outputs on pins 28, 35, 7, 22, 16, 18, 19, and 21. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
 
 - The TX output and first three of the Band Select outputs are also available on the Internal Pluto GPO connector. GPO0 is the Tx Output, GPO1-3 are the Band Select outputs.The main use for these is for when the Pluto is remotely mounted. Care must be taken as these pins are low voltage. They will need to be buffered before use. 
 
