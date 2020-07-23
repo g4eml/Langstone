@@ -101,6 +101,12 @@ if !(grep global_cursor_default /boot/cmdline.txt) then
   sudo sed -i '1s,$, vt.global_cursor_default=0,' /boot/cmdline.txt
 fi
 
+#remove overlay from display driver 
+
+sudo sed -i '/dtoverlay=vc4-fkms-v3d/s/^/#/' /boot/config.txt
+
+
+
 echo "#################################"
 echo "##       Reboot and Start      ##"
 echo "#################################"

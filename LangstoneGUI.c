@@ -453,7 +453,7 @@ void detectHw()
     {
       if(ln[0]=='N')        //name of device
       {
-        if(strstr(ln,"FT5406")!=NULL) p=1; else p=0;     //Found Raspberry Pi TouchScreen entry
+        if((strstr(ln,"FT5406")!=NULL) || (strstr(ln,"pi-ts")!=NULL))  p=1; else p=0;     //Found Raspberry Pi TouchScreen entry
       }
       
       if(ln[0]=='H')        //handlers
