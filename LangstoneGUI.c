@@ -48,6 +48,7 @@ void initGPIO(void);
 int readConfig(void);
 int writeConfig(void);
 int satMode(void);
+int splitMode(void);
 int txvtrMode(void);
 void setMoni(int m);
 void initSDR(void);
@@ -1775,6 +1776,10 @@ void setFreq(double fr)
     {
     displayStr("  SAT  ");
     }
+  else if(splitMode()==1)
+    {
+    displayStr(" SPLIT ");
+    }  
   else
     {
       displayStr("       ");
@@ -1801,7 +1806,7 @@ void setFreq(double fr)
 
 int satMode(void)
 {
-if(abs(bandTxOffset[band]-bandRxOffset[band]) > 10 )      // if we have a differnt Rx and Tx offset then we must be in Sat mode. 
+if((abs(bandTxOffset[band]-bandRxOffset[band]) > 1 ) & (bandRxOffset[band]!=0) )     // if we have a differnt Rx and Tx offset then we must be in Sat mode. 
   {
   return 1;
   }
@@ -1823,6 +1828,17 @@ else
   }
 }
 
+int splitMode(void)
+{
+if((abs(bandTxOffset[band])>0) & (bandRxOffset[band]==0))     //  if tx Offset is non zero and rxoffset is zero then we are in split mode. 
+  {
+  return 1;
+  }
+else
+  {
+  return 0;
+  }
+}
 void setMoni(int m)
 {
   if(m==1)
