@@ -70,8 +70,8 @@ double freqInc=0.001;
 #define numband 12
 int band=3;
 double bandFreq[numband] = {70.200,144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,47088.2,10489.55};
-double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,46656.0,10069.5};
-double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,9936.0,23616.0,46656.0,10345.0};
+double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10069.5};
+double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10345.0};
 int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
 int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
@@ -91,7 +91,7 @@ enum {USB,LSB,CW,CWN,FM,AM};
 
 #define numSettings 7
 
-char * settingText[numSettings]={"SSB Mic Gain = ","FM Mic Gain = ","Txvtr Rx Offset = ","Txvtr Tx Offset = ","Band Bits = ","FFT Ref = ","Tx Att = "};
+char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Rx Offset= ","Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= "};
 enum {SSB_MIC,FM_MIC,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT};
 int settingNo=SSB_MIC;
 
@@ -891,8 +891,8 @@ void processMouse(int mbut)
       {
         freq=freq+(mouseScroll*freqInc);
         mouseScroll=0;
-        if((freq - bandRxOffset[band]) < minHwFreq) freq=minHwFreq + bandRxOffset[band];
-        if((freq - bandRxOffset[band]) > maxHwFreq) freq=maxHwFreq + bandRxOffset[band];
+        if((freq + bandRxOffset[band]) < minHwFreq) freq=minHwFreq - bandRxOffset[band];
+        if((freq + bandRxOffset[band]) > maxHwFreq) freq=maxHwFreq - bandRxOffset[band];
         setFreq(freq);
         return;      
       }
@@ -1371,9 +1371,11 @@ void setInputMode(int m)
 {
 if(inputMode==SETTINGS)
   {
-  gotoXY(settingX,settingY);
+  gotoXY(0,settingY);
   setForeColour(255,255,255);
-  displayStr("                                ");
+  displayStr("                                                ");
+  gotoXY(0,settingY+8);
+  displayStr("                                                ");
   writeConfig();
   displayMenu();
   }
@@ -1663,7 +1665,7 @@ void setHwRxFreq(double fr)
   double frRx;
   double frTx;
   
-  frRx=fr-bandRxOffset[band];
+  frRx=fr+bandRxOffset[band];
   
   rxfreqhz=frRx*1000000;
   
@@ -1703,7 +1705,7 @@ void setHwTxFreq(double fr)
   long long txfreqhz;
   double frTx;
   
-  frTx=fr-bandTxOffset[band];
+  frTx=fr+bandTxOffset[band];
   
   txfreqhz=frTx*1000000;
     
@@ -1950,19 +1952,16 @@ void changeSetting(void)
    if(settingNo==RX_OFFSET)        //Transverter Rx Offset 
       {
         bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
-        displaySetting(settingNo);
-        freq=freq+mouseScroll*freqInc;
-        if(freq>maxFreq) freq=maxFreq;
-        if(freq<minFreq) freq=minFreq;
         mouseScroll=0;
         setFreq(freq);
+        displaySetting(settingNo);
       } 
    if(settingNo==TX_OFFSET)        //Transverter Tx Offset
       {
         bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
-        displaySetting(settingNo);
         mouseScroll=0;
         setFreq(freq);
+        displaySetting(settingNo);
       }  
    if(settingNo==BAND_BITS)        // Band Bits
       {
@@ -2031,11 +2030,17 @@ void changeSetting(void)
 void displaySetting(int se)
 {
   char valStr[30];
-  gotoXY(settingX,settingY);
+  gotoXY(0,settingY);
   textSize=2;
   setForeColour(255,255,255);
-  displayStr("                                ");
+  displayStr("                                                ");
+  gotoXY(0,settingY+8);
+  displayStr("                                                ");
   gotoXY(settingX,settingY);
+  if((se==TX_OFFSET)||(se==RX_OFFSET))
+  {
+  gotoXY(0,settingY);
+  }
   displayStr(settingText[se]);
  
  if(se==SSB_MIC)
@@ -2052,11 +2057,17 @@ void displaySetting(int se)
   {
   sprintf(valStr,"%f",bandRxOffset[band]);
   displayStr(valStr);
+  displayStr(" Rx Freq= ");
+  sprintf(valStr,"%f",freq+bandRxOffset[band]);
+  displayStr(valStr);
   }
   
   if(se==TX_OFFSET)
   {
   sprintf(valStr,"%f",bandTxOffset[band]);
+  displayStr(valStr);
+  displayStr(" Tx Freq= ");
+  sprintf(valStr,"%f",freq+bandTxOffset[band]);
   displayStr(valStr);
   }
   
@@ -2116,10 +2127,26 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     {
     sprintf(vname,"bandFreq%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%lf",&bandFreq[b]); 
+    sprintf(vname,"bandTxOffSet%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandTxOffset[b]);           
+    sprintf(vname,"bandRxOffSet%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRxOffset[b]);  
+
+//Special case to handle original offsets being inverted. 
     sprintf(vname,"bandTxOffset%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%lf",&bandTxOffset[b]); 
+    if(strstr(variable,vname)) 
+    {
+    sscanf(value,"%lf",&bandTxOffset[b]);
+    bandTxOffset[b]=0-bandTxOffset[b];
+    } 
     sprintf(vname,"bandRxOffset%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRxOffset[b]);     
+    if(strstr(variable,vname))
+    {
+    sscanf(value,"%lf",&bandRxOffset[b]); 
+    bandRxOffset[b]=0-bandRxOffset[b];
+    }
+    
+   
     sprintf(vname,"bandBits%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandBits[b]);     
     sprintf(vname,"bandFFTRef%02d",b);
@@ -2165,8 +2192,8 @@ if(conffile==NULL)
 for(int b=0;b<numband;b++)
 {
   fprintf(conffile,"bandFreq%02d %lf\n",b,bandFreq[b]);
-  fprintf(conffile,"bandTxOffset%02d %lf\n",b,bandTxOffset[b]);
-  fprintf(conffile,"bandRxOffset%02d %lf\n",b,bandRxOffset[b]);
+  fprintf(conffile,"bandTxOffSet%02d %lf\n",b,bandTxOffset[b]);
+  fprintf(conffile,"bandRxOffSet%02d %lf\n",b,bandRxOffset[b]);
   fprintf(conffile,"bandBits%02d %d\n",b,bandBits[b]);
   fprintf(conffile,"bandFFTRef%02d %d\n",b,bandFFTRef[b]);
   fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);
