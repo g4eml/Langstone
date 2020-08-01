@@ -15,6 +15,7 @@
 #define PLUTOIP "ip:pluto.local"
 
 void setFreq(double fr);
+void displayFreq(double fr);
 void setFreqInc();
 void setTx(int ptt);
 void setMode(int mode);
@@ -50,6 +51,7 @@ int writeConfig(void);
 int satMode(void);
 int splitMode(void);
 int txvtrMode(void);
+int duplexMode(void);
 void setMoni(int m);
 void initSDR(void);
 void setFFTPipe(int cntl);
@@ -65,6 +67,7 @@ long long runTimeMs(void);
 void clearPopUp(void);
 void displayPopupMode(void);
 void displayPopupBand(void);
+void send1750(void);
 
 double freq;
 double freqInc=0.001;
@@ -73,6 +76,7 @@ int band=3;
 double bandFreq[numband] = {70.200,144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,47088.2,10489.55};
 double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10069.5};
 double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10345.0};
+double bandRepShift[numband]={0,-0.6,1.6,-6.0,0,0,0,0,0,0,0,0};
 int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
 int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
@@ -90,10 +94,10 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 7
+#define numSettings 8
 
-char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Rx Offset= ","Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= "};
-enum {SSB_MIC,FM_MIC,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT};
+char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= "," Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= "};
+enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT};
 int settingNo=SSB_MIC;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
@@ -136,6 +140,7 @@ int inputMode=FREQ;
 int ptt=0;
 int ptts=0;
 int moni=0;
+int duplex=0;
 int fifofd;
 int sendDots=0;
 int dotCount=0;
@@ -172,8 +177,10 @@ int TxAtt=0;
 int tuneDigit=8;
 #define maxTuneDigit 11
 
-#define TXDELAY 10000      //100ms delay between setting Tx output bit and sending tx command to SDR
-#define RXDELAY 10000       //100ms delay between sending rx command to SDR and setting Tx output bit low. 
+#define TXDELAY 10000      //10ms delay between setting Tx output bit and sending tx command to SDR
+#define RXDELAY 10000       //10ms delay between sending rx command to SDR and setting Tx output bit low. 
+
+#define BurstLength 500000     //length of 1750Hz Burst   500ms
 
 char mousePath[20];
 char touchPath[20];
@@ -833,7 +840,23 @@ gotoXY(funcButtonsX,funcButtonsY);
   setForeColour(0,255,0);
   displayButton("BAND");
   displayButton("MODE");
-  displayButton(" ");
+  
+  if((mode==FM) && (bandRepShift[band]!=0))
+  {
+  if(ptt | ptts)
+    {
+    displayButton("1750");
+    }
+  else
+    {
+    displayButton("DUP ");
+    }
+  }
+  else
+  {
+  displayButton("    ");
+  }
+
   displayButton("SET");
   displayButton("    ");
   displayButton("DOTS");
@@ -881,6 +904,7 @@ for(int py=popupY;py<popupY+buttonHeight+1;py++)
   }
 }
 popupSel=NONE;
+displayMenu();
 }
 
                                                            
@@ -1092,10 +1116,32 @@ if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE o
       }
     }
       
-if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or NEXT
+if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank or DUP or 1750 or NEXT
     {
      if(inputMode==FREQ)
       {
+      if(mode==FM)
+      {
+        if(ptt | ptts)
+        {  
+        send1750(); 
+        }
+        else
+        {
+        if(duplex==0) 
+          {
+          duplex=1;
+          setMode(mode);
+          }
+         else 
+          {
+          duplex=0;
+          setMode(mode);
+          }
+
+        }
+       
+      }      
       return;
       }
       else if(inputMode==SETTINGS)
@@ -1538,6 +1584,14 @@ void setMode(int md)
   setForeColour(255,255,0);
   textSize=2;
   displayStr(modename[md]);
+  if((md==FM)&&(duplex==1))
+    {
+    displayStr("DUP");
+    }
+  else
+    {
+    displayStr("   ");
+    }      
   if(md==USB)
     {
     sendTxFifo("M0");    //USB
@@ -1614,8 +1668,6 @@ configCounter=configDelay;
 
 void setTx(int pt)
 {
-  gotoXY(txX,txY);
-  textSize=2;
   if((pt==1)&&(transmitting==0))
     {
       digitalWrite(txPin,HIGH);
@@ -1623,6 +1675,11 @@ void setTx(int pt)
       setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
       setHwTxFreq(freq);
+      if((mode==FM)&&(duplex==1))
+        {
+        displayFreq(freq+bandRepShift[band]);
+        displayMenu();
+        }
       PlutoTxEnable(1);
       if (moni==0) sendRxFifo("U");                        //mute the receiver
       if(satMode()==0)
@@ -1634,7 +1691,9 @@ void setTx(int pt)
       }
       sendTxFifo("h");                        //unfreeze the Tx Flowgraph
       sendTxFifo("T");
+      gotoXY(txX,txY);
       setForeColour(255,0,0);
+      textSize=2;
       displayStr("Tx");
       transmitting=1;  
     }
@@ -1648,7 +1707,14 @@ void setTx(int pt)
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
       setHwRxFreq(freq);
+      if((mode==FM)&&(duplex==1))
+        {
+        displayFreq(freq);
+        displayMenu();
+        }
+      gotoXY(txX,txY);
       setForeColour(0,255,0);
+      textSize=2;
       displayStr("Rx");
       transmitting=0;
       usleep(RXDELAY);
@@ -1702,32 +1768,28 @@ void setHwRxFreq(double fr)
 }
 
 void setHwTxFreq(double fr)
-{
+{                                                                        
   long long txfreqhz;
   double frTx;
   
   frTx=fr+bandTxOffset[band];
   
+  if((mode==FM)&&(duplex==1))
+    {
+    frTx=frTx+bandRepShift[band];
+    }
+ 
   txfreqhz=frTx*1000000;
     
   
       setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
 }
 
-void setFreq(double fr)
+void displayFreq(double fr)
 {
   long long freqhz;
   char digit[16]; 
   
-  if(ptt | ptts) 
-  {
-    setHwTxFreq(fr);        //set Hardware Tx frequency if we are transmitting
-  }
-  else
-  {
-  setHwRxFreq(fr);       //set Hardware Rx frequency if we are receiving
-  }
-
   fr=fr+0.0000001;   // correction for rounding errors.
   freqhz=fr*1000000;    
   freqhz=freqhz+100000000000;     //force it to be 12 digits long
@@ -1764,6 +1826,23 @@ void setFreq(double fr)
         }
     }
 
+}
+
+void setFreq(double fr)
+{
+
+  
+  if(ptt | ptts) 
+  {
+    setHwTxFreq(fr);        //set Hardware Tx frequency if we are transmitting
+  }
+  else
+  {
+  setHwRxFreq(fr);       //set Hardware Rx frequency if we are receiving
+  }
+
+displayFreq(fr);
+ 
 //set TXVTR or SAT indication if needed.
   gotoXY(txvtrX,txvtrY);
   setForeColour(0,255,0);
@@ -1839,6 +1918,8 @@ else
   return 0;
   }
 }
+
+
 void setMoni(int m)
 {
   if(m==1)
@@ -1858,6 +1939,13 @@ void setMoni(int m)
      textSize=2;
      displayStr("    ");
     }
+}
+
+void send1750(void)
+{
+sendTxFifo("A");
+usleep(BurstLength);
+sendTxFifo("a");
 }
 
 void setBandBits(int b)
@@ -1965,6 +2053,13 @@ void changeSetting(void)
       setFMMic(FMMic);
       displaySetting(settingNo);
       }
+    if(settingNo==REP_SHIFT)        //Repeater Shift
+      {
+        bandRepShift[band]=bandRepShift[band]+mouseScroll*freqInc;
+        mouseScroll=0;
+        setFreq(freq);
+        displaySetting(settingNo);
+      }  
    if(settingNo==RX_OFFSET)        //Transverter Rx Offset 
       {
         bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
@@ -2069,6 +2164,11 @@ void displaySetting(int se)
   sprintf(valStr,"%d",FMMic);
   displayStr(valStr);
   }
+if(se==REP_SHIFT)
+  {
+  sprintf(valStr,"%f",bandRepShift[band]);
+  displayStr(valStr);
+  }
   if(se==RX_OFFSET)
   {
   sprintf(valStr,"%f",bandRxOffset[band]);
@@ -2162,7 +2262,8 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     bandRxOffset[b]=0-bandRxOffset[b];
     }
     
-   
+    sprintf(vname,"bandRepShift%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRepShift[b]);    
     sprintf(vname,"bandBits%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandBits[b]);     
     sprintf(vname,"bandFFTRef%02d",b);
@@ -2210,6 +2311,7 @@ for(int b=0;b<numband;b++)
   fprintf(conffile,"bandFreq%02d %lf\n",b,bandFreq[b]);
   fprintf(conffile,"bandTxOffSet%02d %lf\n",b,bandTxOffset[b]);
   fprintf(conffile,"bandRxOffSet%02d %lf\n",b,bandRxOffset[b]);
+  fprintf(conffile,"bandRepShift%02d %lf\n",b,bandRepShift[b]);
   fprintf(conffile,"bandBits%02d %d\n",b,bandBits[b]);
   fprintf(conffile,"bandFFTRef%02d %d\n",b,bandFFTRef[b]);
   fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);

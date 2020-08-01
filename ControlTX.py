@@ -41,6 +41,10 @@ def docommands(tb):
               tb.set_KEY(True) 
            if line=='k':
               tb.set_KEY(False) 
+           if line=='A':
+              tb.set_ToneBurst(True) 
+           if line=='a':
+              tb.set_ToneBurst(False) 
            if line=='H':
               tb.lock()
            if line=='h':
