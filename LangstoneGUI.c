@@ -77,10 +77,12 @@ double bandFreq[numband] = {70.200,144.200,432.200,1296.200,2320.200,2400.100,34
 double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10069.5};
 double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10345.0};
 double bandRepShift[numband]={0,-0.6,1.6,-6.0,0,0,0,0,0,0,0,0};
+int bandMode[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
 int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
 int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
+int bandDuplex[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 
 int bbits=0;
 #define minFreq 0.0
@@ -140,7 +142,6 @@ int inputMode=FREQ;
 int ptt=0;
 int ptts=0;
 int moni=0;
-int duplex=0;
 int fifofd;
 int sendDots=0;
 int dotCount=0;
@@ -843,7 +844,7 @@ gotoXY(funcButtonsX,funcButtonsY);
   
   if((mode==FM) && (bandRepShift[band]!=0))
   {
-  if(ptt | ptts)
+  if((ptt | ptts) && (bandDuplex[band]>0))
     {
     displayButton("1750");
     }
@@ -1120,22 +1121,22 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*2,funcButtonsY))  // Button 3 =Blank 
     {
      if(inputMode==FREQ)
       {
-      if(mode==FM)
+      if((mode==FM) && (bandRepShift[band]!=0))
       {
-        if(ptt | ptts)
+        if((ptt | ptts) && (bandDuplex[band]>0))
         {  
         send1750(); 
         }
         else
         {
-        if(duplex==0) 
+        if(bandDuplex[band]==0) 
           {
-          duplex=1;
+          bandDuplex[band]=1;
           setMode(mode);
           }
          else 
           {
-          duplex=0;
+          bandDuplex[band]=0;
           setMode(mode);
           }
 
@@ -1369,6 +1370,8 @@ void setBand(int b)
 {
   freq=bandFreq[band];
   setFreq(freq);
+  mode=bandMode[band];
+  setMode(mode);
   bbits=bandBits[band];
   setBandBits(bbits);
   squelch=bandSquelch[band];
@@ -1580,11 +1583,12 @@ void setTxFilter(int low,int high)
 
 void setMode(int md)
 {
+  bandMode[band]=md;
   gotoXY(modeX,modeY);
   setForeColour(255,255,0);
   textSize=2;
   displayStr(modename[md]);
-  if((md==FM)&&(duplex==1))
+  if((md==FM)&&(bandDuplex[band]==1))
     {
     displayStr("DUP");
     }
@@ -1675,7 +1679,7 @@ void setTx(int pt)
       setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
       setHwTxFreq(freq);
-      if((mode==FM)&&(duplex==1))
+      if((mode==FM)&&(bandDuplex[band]==1))
         {
         displayFreq(freq+bandRepShift[band]);
         displayMenu();
@@ -1707,7 +1711,7 @@ void setTx(int pt)
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
       setHwRxFreq(freq);
-      if((mode==FM)&&(duplex==1))
+      if((mode==FM)&&(bandDuplex[band]==1))
         {
         displayFreq(freq);
         displayMenu();
@@ -1774,7 +1778,7 @@ void setHwTxFreq(double fr)
   
   frTx=fr+bandTxOffset[band];
   
-  if((mode==FM)&&(duplex==1))
+  if((mode==FM)&&(bandDuplex[band]==1))
     {
     frTx=frTx+bandRepShift[band];
     }
@@ -1944,8 +1948,14 @@ void setMoni(int m)
 void send1750(void)
 {
 sendTxFifo("A");
+gotoXY(funcButtonsX+buttonSpaceX*2,funcButtonsY);
+setForeColour(255,0,0);
+displayButton("1750");
 usleep(BurstLength);
 sendTxFifo("a");
+gotoXY(funcButtonsX+buttonSpaceX*2,funcButtonsY);
+setForeColour(0,255,0);
+displayButton("1750");
 }
 
 void setBandBits(int b)
@@ -2242,7 +2252,9 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     for(int b=0;b<numband;b++)
     {
     sprintf(vname,"bandFreq%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%lf",&bandFreq[b]); 
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandFreq[b]);
+    sprintf(vname,"bandMode%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandMode[b]);   
     sprintf(vname,"bandTxOffSet%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%lf",&bandTxOffset[b]);           
     sprintf(vname,"bandRxOffSet%02d",b);
@@ -2263,7 +2275,9 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     }
     
     sprintf(vname,"bandRepShift%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRepShift[b]);    
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRepShift[b]);
+    sprintf(vname,"bandDuplex%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandDuplex[b]);     
     sprintf(vname,"bandBits%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandBits[b]);     
     sprintf(vname,"bandFFTRef%02d",b);
@@ -2309,9 +2323,11 @@ if(conffile==NULL)
 for(int b=0;b<numband;b++)
 {
   fprintf(conffile,"bandFreq%02d %lf\n",b,bandFreq[b]);
+  fprintf(conffile,"bandMode%02d %d\n",b,bandMode[b]);
   fprintf(conffile,"bandTxOffSet%02d %lf\n",b,bandTxOffset[b]);
   fprintf(conffile,"bandRxOffSet%02d %lf\n",b,bandRxOffset[b]);
   fprintf(conffile,"bandRepShift%02d %lf\n",b,bandRepShift[b]);
+  fprintf(conffile,"bandDuplex%02d %d\n",b,bandDuplex[b]);
   fprintf(conffile,"bandBits%02d %d\n",b,bandBits[b]);
   fprintf(conffile,"bandFFTRef%02d %d\n",b,bandFFTRef[b]);
   fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);
