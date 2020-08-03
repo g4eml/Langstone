@@ -3,9 +3,8 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Tx
-# Generated: Sat Aug  1 13:31:21 2020
+# Generated: Mon Aug  3 21:37:36 2020
 ##################################################
-
 import os
 import errno
 
@@ -52,29 +51,32 @@ class Lang_TX(gr.top_block):
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc(((Mode < 4) or (Mode==5), ))
         self.blocks_multiply_const_vxx_3 = blocks.multiply_const_vcc((Mode==4, ))
-        self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_vff((FMMIC/10.0, ))
+        self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_vff((FMMIC/5.0, ))
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_vff(((MicGain/10.0)*(not (Mode==2))*(not (Mode==3)), ))
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
         self.blocks_add_xx_2 = blocks.add_vcc(1)
         self.blocks_add_xx_0 = blocks.add_vff(1)
         self.blocks_add_const_vxx_0 = blocks.add_const_vcc(((0.5 * int(Mode==5)) + (int(Mode==2) * KEY) +(int(Mode==3) * KEY), ))
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
-        	1, 48000, 200, 3000, 100, firdes.WIN_HAMMING, 6.76))
+        	1, 48000, 200, 3500, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 48000, Filt_Low, Filt_High, 100, firdes.WIN_HAMMING, 6.76))
         self.audio_source_0 = audio.source(48000, "hw:CARD=Device,DEV=0", False)
-        self.analog_sig_source_x_1 = analog.sig_source_f(48000, analog.GR_COS_WAVE, 1750, 0.1*ToneBurst, 0)
+        self.analog_sig_source_x_1 = analog.sig_source_f(48000, analog.GR_COS_WAVE, 1750, 1.0*ToneBurst, 0)
         self.analog_sig_source_x_0 = analog.sig_source_c(48000, analog.GR_COS_WAVE, 0, 1, 0)
+        self.analog_rail_ff_0 = analog.rail_ff(-1, 1)
         self.analog_nbfm_tx_0 = analog.nbfm_tx(
         	audio_rate=48000,
         	quad_rate=48000,
-        	tau=75e-6,
-        	max_dev=3000,
+        	tau=1000e-6,
+        	max_dev=250,
         	fh=-1,
                 )
         self.analog_const_source_x_0 = analog.sig_source_f(0, analog.GR_CONST_WAVE, 0, 0, 0)
         self.analog_agc2_xx_1 = analog.agc2_cc(1e-1, 1e-1, 1.3- (0.65*(int(Mode==5))), 1.0)
         self.analog_agc2_xx_1.set_max_gain(10)
+
+
 
         ##################################################
         # Connections
@@ -82,6 +84,7 @@ class Lang_TX(gr.top_block):
         self.connect((self.analog_agc2_xx_1, 0), (self.band_pass_filter_0_0, 0))
         self.connect((self.analog_const_source_x_0, 0), (self.blocks_float_to_complex_0, 1))
         self.connect((self.analog_nbfm_tx_0, 0), (self.blocks_multiply_const_vxx_3, 0))
+        self.connect((self.analog_rail_ff_0, 0), (self.band_pass_filter_1, 0))
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0, 1))
         self.connect((self.analog_sig_source_x_1, 0), (self.blocks_add_xx_0, 0))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0, 0))
@@ -89,7 +92,7 @@ class Lang_TX(gr.top_block):
         self.connect((self.band_pass_filter_0_0, 0), (self.blocks_multiply_const_vxx_4, 0))
         self.connect((self.band_pass_filter_1, 0), (self.analog_nbfm_tx_0, 0))
         self.connect((self.blocks_add_const_vxx_0, 0), (self.blocks_multiply_xx_0, 0))
-        self.connect((self.blocks_add_xx_0, 0), (self.band_pass_filter_1, 0))
+        self.connect((self.blocks_add_xx_0, 0), (self.analog_rail_ff_0, 0))
         self.connect((self.blocks_add_xx_2, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.blocks_float_to_complex_0, 0), (self.blocks_add_const_vxx_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_float_to_complex_0, 0))
@@ -158,7 +161,7 @@ class Lang_TX(gr.top_block):
 
     def set_FMMIC(self, FMMIC):
         self.FMMIC = FMMIC
-        self.blocks_multiply_const_vxx_0_0.set_k((self.FMMIC/10.0, ))
+        self.blocks_multiply_const_vxx_0_0.set_k((self.FMMIC/5.0, ))
 
 def docommands(tb):
   try:
@@ -218,6 +221,7 @@ def main(top_block_cls=Lang_TX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
+
 
 if __name__ == '__main__':
     main()
