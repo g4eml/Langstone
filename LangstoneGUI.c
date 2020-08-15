@@ -136,6 +136,9 @@ int inputMode=FREQ;
 #define settingY 390
 #define popupX 30
 #define popupY 374
+#define FFTX 140
+#define FFTY 186
+
 
 
 
@@ -394,7 +397,7 @@ void waterfall()
     
             //scale to 0-255
             level = (buf[p][r]-baselevel)*scaling;   
-            setPixel(p+140,206+r,palette[level*3+2],palette[level*3+1],palette[level*3]);
+            setPixel(p+FFTX,FFTY+20+r,palette[level*3+2],palette[level*3+1],palette[level*3]);
           }
         }
     
@@ -403,7 +406,7 @@ void waterfall()
         { 
           for(int p=0;p<points;p++)
           {   
-            setPixel(p+140,186-r,0,0,0);
+            setPixel(p+FFTX,FFTY-r,0,0,0);
           }
         }
     
@@ -419,7 +422,7 @@ void waterfall()
             //scale to display height
             level = (buf[p][0]-baselevel)*scaling;   
             level2 = (buf[p+1][0]-baselevel)*scaling;
-            drawLine(p+140, 186-level, p+1+140, 186-level2,255,255,255);
+            drawLine(p+FFTX, FFTY-level, p+1+FFTX, FFTY-level2,255,255,255);
         }
           
           //draw Bandwidth indicator
@@ -434,11 +437,27 @@ void waterfall()
            centreShift=0;          
           }
 
-          drawLine(p+140+bwBarStart, 186-spectrum_rows+5, p+140+bwBarStart, 186-spectrum_rows,255,140,0);
-          drawLine(p+140+bwBarStart, 186-spectrum_rows, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);
-          drawLine(p+140+bwBarEnd, 186-spectrum_rows+5, p+140+bwBarEnd, 186-spectrum_rows,255,140,0);  
+          drawLine(p+FFTX+bwBarStart, FFTY-spectrum_rows+5, p+FFTX+bwBarStart, FFTY-spectrum_rows,255,140,0);
+          drawLine(p+FFTX+bwBarStart, FFTY-spectrum_rows, p+FFTX+bwBarEnd, FFTY-spectrum_rows,255,140,0);
+          drawLine(p+FFTX+bwBarEnd, FFTY-spectrum_rows+5, p+FFTX+bwBarEnd, FFTY-spectrum_rows,255,140,0);  
           //draw centre line (displayed frequency)
-          drawLine(p+140+centreShift, 186-10, p+140+centreShift, 186-spectrum_rows,255,0,0);   
+          drawLine(p+FFTX+centreShift, FFTY-10, p+FFTX+centreShift, FFTY-spectrum_rows,255,0,0);  
+          
+          
+          //draw Scale. 
+          setForeColour(0,255,0);
+          textSize=1;
+          gotoXY(p+centreShift+FFTX-12,FFTY+8);
+          displayStr(" 0 ");
+          gotoXY(p+centreShift+FFTX-10000/HzPerBin-24,FFTY+8);
+          displayStr(" -10K ");
+          gotoXY(p+centreShift+FFTX-20000/HzPerBin-24,FFTY+8);
+          displayStr(" -20K ");
+          gotoXY(p+centreShift+FFTX+10000/HzPerBin-24,FFTY+8);
+          displayStr(" +10K ");
+          gotoXY(p+centreShift+FFTX+20000/HzPerBin-24,FFTY+8);
+          displayStr(" +20K ");
+ 
    }       
 }
 
