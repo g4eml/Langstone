@@ -83,6 +83,7 @@ int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
 int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
 int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bandDuplex[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
+float bandSmeterZero[numband]={-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80};
 
 int bbits=0;
 #define minFreq 0.0
@@ -96,10 +97,10 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 8
+#define numSettings 9
 
-char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= "," Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= "};
-enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT};
+char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= "," Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= "};
+enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT,S_ZERO};
 int settingNo=SSB_MIC;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
@@ -138,6 +139,10 @@ int inputMode=FREQ;
 #define popupY 374
 #define FFTX 140
 #define FFTY 186
+#define sMeterX 2
+#define sMeterY 5
+#define sMeterWidth 170
+#define sMeterHeight 40
 
 
 
@@ -224,7 +229,7 @@ unsigned char * palette;
 int HzPerBin=94;                        //calculated from FFT width and number of samples. Width=48000 number of samples =512
 int bwBarStart=3;
 int bwBarEnd=34;
-
+float sMeter;                             //peak reading S meter.
 
 
 int main(int argc, char* argv[])
@@ -351,6 +356,7 @@ void waterfall()
   int level,level2;
   int ret;
   int centreShift=0;
+  char smStr[10];
   
       //check if data avilable to read
       ret = fread(&inbuf,sizeof(float),1,fftstream);
@@ -380,6 +386,18 @@ void waterfall()
             buf[p-points/2][0]=inbuf[0];
           }
         }
+ 
+        //use raw values inside the bandwidth to calculate S meter value
+        sMeter=-200;
+         for (int p=points/2+bwBarStart;p<points/2+bwBarEnd;p++)
+          {
+           if(buf[p][0]>sMeter)
+             {
+             sMeter=buf[p][0];
+             }
+           
+           }       
+ 
     
         //RF level adjustment
     
@@ -450,13 +468,70 @@ void waterfall()
           gotoXY(p+centreShift+FFTX-12,FFTY+8);
           displayStr(" 0 ");
           gotoXY(p+centreShift+FFTX-10000/HzPerBin-24,FFTY+8);
-          displayStr(" -10K ");
+          displayStr(" -10k ");
           gotoXY(p+centreShift+FFTX-20000/HzPerBin-24,FFTY+8);
-          displayStr(" -20K ");
+          displayStr(" -20k ");
           gotoXY(p+centreShift+FFTX+10000/HzPerBin-24,FFTY+8);
-          displayStr(" +10K ");
+          displayStr(" +10k ");
           gotoXY(p+centreShift+FFTX+20000/HzPerBin-24,FFTY+8);
-          displayStr(" +20K ");
+          displayStr(" +20k ");
+ 
+
+
+          sMeter=sMeter-bandSmeterZero[band];
+          int dbOver=0;
+          int sValue=0;
+          if(sMeter < 0) sMeter=0;
+          if(sMeter<55)
+            {
+            sValue=sMeter/6;
+            }
+          else
+            {
+            sValue=9;
+            dbOver=sMeter-54;
+            }
+ 
+          
+          
+          //Draw S meter
+          drawLine(sMeterX,sMeterY,sMeterX+sMeterWidth,sMeterY,255,255,255);
+          drawLine(sMeterX,sMeterY,sMeterX,sMeterY+sMeterHeight,255,255,255);
+          drawLine(sMeterX,sMeterY+sMeterHeight,sMeterX+sMeterWidth,sMeterY+sMeterHeight,255,255,255);
+          drawLine(sMeterX+sMeterWidth,sMeterY,sMeterX+sMeterWidth,sMeterY+sMeterHeight,255,255,255);          
+
+          for(int ln=0;ln<10;ln++)
+          {
+          if(sMeter<55)
+          {
+          drawLine(sMeterX+5,sMeterY+5+ln,sMeterX+6+sMeter*2,sMeterY+5+ln,0,255,0);
+          drawLine(sMeterX+6+sMeter*2,sMeterY+5+ln,sMeterX+6+160,sMeterY+5+ln,0,0,0);
+          }
+          else
+          {
+          drawLine(sMeterX+5,sMeterY+5+ln,sMeterX+6+110,sMeterY+5+ln,0,255,0);
+          drawLine(sMeterX+6+110,sMeterY+5+ln,sMeterX+6+110+(sMeter-55)*2,sMeterY+5+ln,255,0,0);
+          drawLine(sMeterX+6+110+(sMeter-55)*2,sMeterY+5+ln,sMeterX+6+160,sMeterY+5+ln,0,0,0);
+          }
+
+          }
+ 
+ 
+          textSize=2;
+          setForeColour(0,255,0);
+          gotoXY(sMeterX+10,sMeterY+20);
+          sprintf(smStr,"S%d",sValue);
+          displayStr(smStr);
+          if(dbOver>0)
+            {
+            sprintf(smStr,"+%ddB  ",dbOver);
+            displayStr(smStr);
+            }
+          else
+            {
+            displayStr("       ");
+            }
+ 
  
    }       
 }
@@ -2162,7 +2237,15 @@ void changeSetting(void)
       bandTxAtt[band]=TxAtt;
       setPlutoTxAtt(TxAtt);
       displaySetting(settingNo);  
-      }                                                                  
+      }              
+    if(settingNo==S_ZERO)        // S Meter Zero
+      {
+      bandSmeterZero[band]=bandSmeterZero[band]+mouseScroll;
+      mouseScroll=0;
+      if(bandSmeterZero[band]<-140) bandSmeterZero[band]=-140;
+      if(bandSmeterZero[band]>-30) bandSmeterZero[band]=-30;
+      displaySetting(settingNo);  
+      }                                                                                                     
 }
 
                
@@ -2250,6 +2333,11 @@ if(se==REP_SHIFT)
   sprintf(valStr,"%d dB",TxAtt);
   displayStr(valStr);
   }
+  if(se==S_ZERO)
+  {
+  sprintf(valStr,"%f dB",bandSmeterZero[band]);
+  displayStr(valStr);
+  }
 }
 
 int readConfig(void)
@@ -2304,7 +2392,9 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     sprintf(vname,"bandSquelch%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandSquelch[b]);  
     sprintf(vname,"bandTxAtt%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%d",&bandTxAtt[b]);   
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandTxAtt[b]);  
+    sprintf(vname,"bandSmeterZero%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%f",&bandSmeterZero[b]); 
     }
 
     
@@ -2351,6 +2441,7 @@ for(int b=0;b<numband;b++)
   fprintf(conffile,"bandFFTRef%02d %d\n",b,bandFFTRef[b]);
   fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);
   fprintf(conffile,"bandTxAtt%02d %d\n",b,bandTxAtt[b]);
+  fprintf(conffile,"bandSmeterZero%02d %f\n",b,bandSmeterZero[b]);
 }
 
 fprintf(conffile,"currentBand %d\n",band);
