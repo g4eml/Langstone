@@ -3,9 +3,10 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Rx
-# Generated: Thu May 28 20:32:16 2020
+# Generated: Sun Aug 16 16:18:53 2020
 ##################################################
-
+import os
+import errno
 from gnuradio import analog
 from gnuradio import audio
 from gnuradio import blocks
@@ -18,8 +19,7 @@ from gnuradio.fft import logpwrfft
 from gnuradio.filter import firdes
 from grc_gnuradio import blks2 as grc_blks2
 from optparse import OptionParser
-import os
-import errno
+
 
 class Lang_RX(gr.top_block):
 
@@ -56,8 +56,10 @@ class Lang_RX(gr.top_block):
         self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((Mode==4, ))
         self.blocks_multiply_const_vxx_2 = blocks.multiply_const_vff((Mode<4, ))
         self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff(((AFGain/100.0) *  (not Mute), ))
+        self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_float*512, '/tmp/langstonefft', False)
         self.blocks_file_sink_0.set_unbuffered(False)
+        self.blocks_complex_to_real_0_0 = blocks.complex_to_real(1)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
         self.blocks_add_xx_1_0 = blocks.add_vff(1)
@@ -79,15 +81,13 @@ class Lang_RX(gr.top_block):
         	tau=75e-6,
         	max_dev=5e3,
           )
-        self.analog_agc2_xx_0 = analog.agc2_ff(1e-1, 1e-1, 0.1, 1)
-        self.analog_agc2_xx_0.set_max_gain(1000)
-
-
+        self.analog_agc3_xx_0 = analog.agc3_cc(1e-2, 5e-7, 0.1, 1.0, 1)
+        self.analog_agc3_xx_0.set_max_gain(1000)
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.analog_agc2_xx_0, 0), (self.blocks_add_xx_1, 0))
+        self.connect((self.analog_agc3_xx_0, 0), (self.blocks_complex_to_real_0_0, 0))
         self.connect((self.analog_nbfm_rx_0, 0), (self.blocks_multiply_const_vxx_2_0, 0))
         self.connect((self.analog_pwr_squelch_xx_0, 0), (self.analog_nbfm_rx_0, 0))
         self.connect((self.band_pass_filter_0, 0), (self.analog_pwr_squelch_xx_0, 0))
@@ -96,9 +96,11 @@ class Lang_RX(gr.top_block):
         self.connect((self.blks2_selector_0, 1), (self.blocks_file_sink_0, 0))
         self.connect((self.blks2_selector_0, 0), (self.blocks_null_sink_0, 0))
         self.connect((self.blocks_add_xx_1, 0), (self.blocks_multiply_const_vxx_1, 0))
-        self.connect((self.blocks_add_xx_1_0, 0), (self.analog_agc2_xx_0, 0))
+        self.connect((self.blocks_add_xx_1_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_multiply_const_vxx_2_1, 0))
         self.connect((self.blocks_complex_to_real_0, 0), (self.blocks_multiply_const_vxx_2, 0))
+        self.connect((self.blocks_complex_to_real_0_0, 0), (self.blocks_add_xx_1, 0))
+        self.connect((self.blocks_float_to_complex_0, 0), (self.analog_agc3_xx_0, 0))
         self.connect((self.blocks_multiply_const_vxx_1, 0), (self.audio_sink_0, 0))
         self.connect((self.blocks_multiply_const_vxx_2, 0), (self.blocks_add_xx_1_0, 0))
         self.connect((self.blocks_multiply_const_vxx_2_0, 0), (self.blocks_add_xx_1, 1))
@@ -192,10 +194,9 @@ def docommands(tb):
            if line=='u':
               tb.set_Mute(0)
            if line=='H':
-              tb.stop()
-              tb.wait()
+              tb.lock()
            if line=='h':
-              tb.start() 
+              tb.unlock() 
            if line[0]=='O':
               value=int(line[1:])
               tb.set_RxOffset(value)  
@@ -226,6 +227,7 @@ def main(top_block_cls=Lang_RX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
-
+    
+    
 if __name__ == '__main__':
     main()
