@@ -84,6 +84,8 @@ int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
 int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bandDuplex[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 float bandSmeterZero[numband]={-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80};
+int bandSSBFiltLow[numband]={300,300,300,300,300,300,300,300,300,300,300,300};
+int bandSSBFiltHigh[numband]={3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,3000};
 
 int bbits=0;
 #define minFreq 0.0
@@ -97,10 +99,10 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 9
+#define numSettings 11
 
-char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= "," Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= "};
-enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT,S_ZERO};
+char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= "," Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= "};
+enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH};
 int settingNo=SSB_MIC;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
@@ -1708,7 +1710,7 @@ void setMode(int md)
     sendTxFifo("M0");    //USB
     sendRxFifo("M0");    //SSB
     setTxFilter(300,3000);    //USB Filter Setting
-    setRxFilter(300,3000);    //USB Filter Setting   
+    setRxFilter(bandSSBFiltLow[band],bandSSBFiltHigh[band]);    //USB Filter Setting    configured in settings.
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1720,7 +1722,7 @@ void setMode(int md)
     sendTxFifo("M1");    //LSB
     sendRxFifo("M1");    //LSB
     setTxFilter(-3000,-300); // LSB Filter Setting
-    setRxFilter(-3000,-300); // LSB Filter Setting
+    setRxFilter(-1*bandSSBFiltHigh[band],-1*bandSSBFiltLow[band]); // LSB Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
     ritButton(1);
@@ -1731,7 +1733,7 @@ void setMode(int md)
     {
     sendTxFifo("M2");    //CW
     sendRxFifo("M2");    //CW
-    setRxFilter(300,3000);   // CW Wide Filter
+    setRxFilter(bandSSBFiltLow[band],bandSSBFiltHigh[band]);   // USB filter settings used for CW Wide Filter
     setTxFilter(-100,100); // CW Filter Setting
     setFreq(freq);    //set the frequency to adjust for CW offset.
     sqlButton(0);
@@ -2258,7 +2260,25 @@ void changeSetting(void)
       if(bandSmeterZero[band]<-140) bandSmeterZero[band]=-140;
       if(bandSmeterZero[band]>-30) bandSmeterZero[band]=-30;
       displaySetting(settingNo);  
-      }                                                                                                     
+      }   
+    if(settingNo==SSB_FILT_LOW)        // SSB Filter Low
+      {
+      bandSSBFiltLow[band]=bandSSBFiltLow[band]+mouseScroll*10;
+      mouseScroll=0;
+      if(bandSSBFiltLow[band] < 0) bandSSBFiltLow[band]=0;
+      if(bandSSBFiltLow[band] >1000) bandSSBFiltLow[band]=1000;
+      setMode(mode);                 //refresh mode to set new filter settings
+      displaySetting(settingNo);  
+      }                    
+    if(settingNo==SSB_FILT_HIGH)        // SSB Filter High
+      {
+      bandSSBFiltHigh[band]=bandSSBFiltHigh[band]+mouseScroll*10;
+      mouseScroll=0;
+      if(bandSSBFiltHigh[band] < 1000) bandSSBFiltHigh[band]=1000;
+      if(bandSSBFiltHigh[band] > 5000) bandSSBFiltHigh[band]=5000;
+      setMode(mode);                 //refresh mode to set new filter settings
+      displaySetting(settingNo);  
+      }                                                                                                           
 }
 
                
@@ -2351,6 +2371,16 @@ if(se==REP_SHIFT)
   sprintf(valStr,"%f dB",bandSmeterZero[band]);
   displayStr(valStr);
   }
+  if(se==SSB_FILT_LOW)
+  {
+  sprintf(valStr,"%d Hz",bandSSBFiltLow[band]);
+  displayStr(valStr);
+  }
+  if(se==SSB_FILT_HIGH)
+  {
+  sprintf(valStr,"%d Hz",bandSSBFiltHigh[band]);
+  displayStr(valStr);
+  }
 }
 
 int readConfig(void)
@@ -2407,7 +2437,11 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     sprintf(vname,"bandTxAtt%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandTxAtt[b]);  
     sprintf(vname,"bandSmeterZero%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%f",&bandSmeterZero[b]); 
+    if(strstr(variable,vname)) sscanf(value,"%f",&bandSmeterZero[b]);
+    sprintf(vname,"bandSSBFiltLow%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandSSBFiltLow[b]); 
+    sprintf(vname,"bandSSBFiltHigh%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandSSBFiltHigh[b]);     
     }
 
     
@@ -2455,6 +2489,8 @@ for(int b=0;b<numband;b++)
   fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);
   fprintf(conffile,"bandTxAtt%02d %d\n",b,bandTxAtt[b]);
   fprintf(conffile,"bandSmeterZero%02d %f\n",b,bandSmeterZero[b]);
+  fprintf(conffile,"bandSSBFiltLow%02d %d\n",b,bandSSBFiltLow[b]);
+  fprintf(conffile,"bandSSBFiltHigh%02d %d\n",b,bandSSBFiltHigh[b]);    
 }
 
 fprintf(conffile,"currentBand %d\n",band);
