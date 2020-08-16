@@ -230,6 +230,7 @@ int HzPerBin=94;                        //calculated from FFT width and number o
 int bwBarStart=3;
 int bwBarEnd=34;
 float sMeter;                             //peak reading S meter.
+float sMeterPeak;
 
 
 int main(int argc, char* argv[])
@@ -387,13 +388,15 @@ void waterfall()
           }
         }
  
-        //use raw values inside the bandwidth to calculate S meter value
-        sMeter=-200;
+        //use raw values to calculate S meter value
+        //use highest reading within the receiver bandwidth
+        
+         sMeterPeak=-200;
          for (int p=points/2+bwBarStart;p<points/2+bwBarEnd;p++)
           {
-           if(buf[p][0]>sMeter)
+           if(buf[p][0]>sMeterPeak)
              {
-             sMeter=buf[p][0];
+             sMeterPeak=buf[p][0];
              }
            
            }       
@@ -478,10 +481,20 @@ void waterfall()
  
 
 
-          sMeter=sMeter-bandSmeterZero[band];
+          sMeterPeak=sMeterPeak-bandSmeterZero[band];                   //adjust offset to give positive values for s-meter
           int dbOver=0;
           int sValue=0;
-          if(sMeter < 0) sMeter=0;
+          if(sMeterPeak < 0) sMeterPeak=0;
+          if(sMeterPeak >= sMeter)
+            {
+            sMeter=sMeterPeak;                                    //fast attack
+            } 
+          else
+            {
+            if(sMeter > 0) sMeter=sMeter-2;                    //slow decay
+            }
+          
+          
           if(sMeter<55)
             {
             sValue=sMeter/6;
