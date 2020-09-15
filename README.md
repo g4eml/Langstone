@@ -6,7 +6,7 @@ It was inspired by the very successful Portsdown Amateur Television system creat
 
 This is not yet a finished project but more of a demonstration of what can be done. 
 
-Currently only one set of hardware is supported:-
+Currently only the following hardware is supported:-
 
 - Raspberry Pi 4
 
@@ -18,7 +18,7 @@ Currently only one set of hardware is supported:-
  
 - USB Scroll mouse
 
-- Note, the following GPIO inputs and outputs can not be used with the Hyperpixel4 display because it uses all of the GPIO. It is planned to add support for an external I2C expander module to provide the necessary I/O. More details to follow. 
+**Note, the following GPIO inputs and outputs can not be used with the Hyperpixel4 display because it uses all of the GPIO. It is planned to add support for an external I2C expander module to provide the necessary I/O. More details to follow.** 
 
 - PTT via Raspberry Pi GPIO pin 11. This needs a pull up resistor to 3.3V. Grounding this pin will switch to Transmit.
 
