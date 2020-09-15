@@ -38,6 +38,7 @@ sudo apt-get -y install libaio-dev libusb-1.0-0-dev libserialport-dev libxml2-de
 sudo apt-get -y install gr-iio
 sudo apt-get -y install gnuradio
 sudo apt-get -y install raspi-gpio
+sudo apt-get -y install sshpass
 
 echo "#################################"
 echo "##     Install Wiring Pi       ##"
