@@ -52,6 +52,7 @@ int satMode(void);
 int splitMode(void);
 int txvtrMode(void);
 int duplexMode(void);
+int multMode(void);
 void setMoni(int m);
 void initSDR(void);
 void setFFTPipe(int cntl);
@@ -77,6 +78,8 @@ double bandFreq[numband] = {70.200,144.200,432.200,1296.200,2320.200,2400.100,34
 double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10069.5};
 double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10345.0};
 double bandRepShift[numband]={0,-0.6,1.6,-6.0,0,0,0,0,0,0,0,0};
+int bandTxHarmonic[numband]={1,1,1,1,1,1,1,1,1,1,1,1};
+int bandRxHarmonic[numband]={1,1,1,1,1,1,1,1,1,1,1,1};
 int bandMode[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
@@ -99,10 +102,10 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 11
+#define numSettings 13
 
-char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= "," Tx Offset= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= "};
-enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,TX_OFFSET,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH};
+char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= "};
+enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH};
 int settingNo=SSB_MIC;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
@@ -199,6 +202,7 @@ int mousePresent;
 int touchPresent;
 int plutoPresent;
 int portsdownPresent;
+int hyperPixelPresent;
 
 int popupSel=0;
 int popupFirstBand;
@@ -571,7 +575,17 @@ void detectHw()
     {
       if(ln[0]=='N')        //name of device
       {
-        if((strstr(ln,"FT5406")!=NULL) || (strstr(ln,"pi-ts")!=NULL))  p=1; else p=0;     //Found Raspberry Pi TouchScreen entry
+        p=0;
+        if((strstr(ln,"FT5406")!=NULL) || (strstr(ln,"pi-ts")!=NULL))         //Found Raspberry Pi TouchScreen entry
+          {
+           p=1;
+           hyperPixelPresent=0;
+          }
+        if(strstr(ln,"Goodix")!=NULL)                                         //Found Hyperpixel TouchScreen entry
+          {
+          p=1;
+          hyperPixelPresent=1;
+          }                                                                  
       }
       
       if(ln[0]=='H')        //handlers
@@ -784,6 +798,8 @@ void sendRxFifo(char * s)
 
 void initGPIO(void)
 {
+  if(hyperPixelPresent==0)
+  {
   wiringPiSetup();
   pinMode(pttPin,INPUT);
   pinMode(keyPin,INPUT);
@@ -806,32 +822,36 @@ void initGPIO(void)
   digitalWrite(bandPin7,LOW); 
   digitalWrite(bandPin8,LOW);       
   lastKey=1;
+  }
 }
 
 void processGPIO(void)
 {
-  int v=digitalRead(pttPin);
-  if(v==0)
-      {
-        if(ptt==0)
-          {
-            ptt=1;
-            setTx(ptt|ptts);
-          }
-      }
-   else
-      {
-        if(ptt==1)
-          {
-            ptt=0;
-            setTx(ptt|ptts);
-          }
-      }
-    v=digitalRead(keyPin);
-    if(v!=lastKey)
+if(hyperPixelPresent==0)
   {
-  setKey(!v);
-  lastKey=v;
+    int v=digitalRead(pttPin);
+    if(v==0)
+        {
+          if(ptt==0)
+            {
+              ptt=1;
+              setTx(ptt|ptts);
+            }
+        }
+     else
+        {
+          if(ptt==1)
+            {
+              ptt=0;
+              setTx(ptt|ptts);
+            }
+        }
+      v=digitalRead(keyPin);
+      if(v!=lastKey)
+    {
+    setKey(!v);
+    lastKey=v;
+    }
   }
 }
 
@@ -1026,8 +1046,8 @@ void processMouse(int mbut)
       {
         freq=freq+(mouseScroll*freqInc);
         mouseScroll=0;
-        if((freq + bandRxOffset[band]) < minHwFreq) freq=minHwFreq - bandRxOffset[band];
-        if((freq + bandRxOffset[band]) > maxHwFreq) freq=maxHwFreq - bandRxOffset[band];
+        if(((freq + bandRxOffset[band])/bandRxHarmonic[band]) < minHwFreq) freq=(minHwFreq - bandRxOffset[band])/bandRxHarmonic[band];
+        if(((freq + bandRxOffset[band])/bandRxHarmonic[band]) > maxHwFreq) freq=(maxHwFreq - bandRxOffset[band])/bandRxHarmonic[band];
         setFreq(freq);
         return;      
       }
@@ -1128,7 +1148,17 @@ void setFreqInc()
 void processTouch()
 { 
 
+if(hyperPixelPresent==1)
+{
+float tempX=touchX;
+float tempY=touchY;
+tempX=tempX*0.6;                    //convert 0-800 to 0-480
+tempY=800-(tempY*1.6666);           //convert 480-0   to 0-800
+touchX=tempY;                       //swap X and Y
+touchY=tempX;
+}
 
+printf("touchX= %d touchY= %d\n",touchX,touchY);
    
 // Volume Button   
 
@@ -1783,7 +1813,7 @@ void setTx(int pt)
 {
   if((pt==1)&&(transmitting==0))
     {
-      digitalWrite(txPin,HIGH);
+      if(hyperPixelPresent==0) digitalWrite(txPin,HIGH);
       plutoGpo=plutoGpo | 0x10;
       setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
@@ -1831,7 +1861,7 @@ void setTx(int pt)
       displayStr("Rx");
       transmitting=0;
       usleep(RXDELAY);
-      digitalWrite(txPin,LOW);
+      if(hyperPixelPresent==0) digitalWrite(txPin,LOW);
       plutoGpo=plutoGpo & 0xEF;
       setPlutoGpo(plutoGpo);                               //clear the Pluto GPO Pin 
     }
@@ -1862,6 +1892,10 @@ void setHwRxFreq(double fr)
   LOrxfreqhz=rxfreqhz-rxoffsethz;
   }
 
+  if( bandRxHarmonic[band]>1)                                //allow for harmonic mixing for higher bands (10GHz)
+    {
+      LOrxfreqhz=LOrxfreqhz/bandRxHarmonic[band];
+    }
   
 
   rxoffsethz=rxoffsethz+rit;
@@ -1893,7 +1927,11 @@ void setHwTxFreq(double fr)
     }
  
   txfreqhz=frTx*1000000;
-    
+   
+   if(bandTxHarmonic[band]>1)                    //allow for Harmonic mixing for higher bands or for external multiplier such as Hydra
+    {
+    txfreqhz=txfreqhz/bandTxHarmonic[band];
+    } 
   
       setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
 }
@@ -1956,7 +1994,7 @@ void setFreq(double fr)
 
 displayFreq(fr);
  
-//set TXVTR or SAT indication if needed.
+//set TXVTR, SAT, SPLIT or MULT indication if needed.
   gotoXY(txvtrX,txvtrY);
   setForeColour(0,255,0);
   textSize=2;
@@ -1971,7 +2009,11 @@ displayFreq(fr);
   else if(splitMode()==1)
     {
     displayStr(" SPLIT ");
-    }  
+    } 
+  else if(multMode()==1)
+    {
+    displayStr(" MULT  ");
+    }   
   else
     {
       displayStr("       ");
@@ -2032,6 +2074,18 @@ else
   }
 }
 
+int multMode(void)
+{
+if((bandRxHarmonic[band]>1) || (bandTxHarmonic[band] >1))     //  if either of the Harmonic modes is set then we are in Mult mode. 
+  {
+  return 1;
+  }
+else
+  {
+  return 0;
+  }
+}
+
 
 void setMoni(int m)
 {
@@ -2069,86 +2123,88 @@ displayButton("1750");
 
 void setBandBits(int b)
 {
-if(b & 0x01) 
-    {
-    digitalWrite(bandPin1,HIGH);
-    plutoGpo=plutoGpo | 0x20;
-    }
-else
-    {
-    digitalWrite(bandPin1,LOW);
-    plutoGpo=plutoGpo & 0xDF;
-    }
+if(hyperPixelPresent==0)
+  {
+    if(b & 0x01) 
+        {
+        digitalWrite(bandPin1,HIGH);
+        plutoGpo=plutoGpo | 0x20;
+        }
+    else
+        {
+        digitalWrite(bandPin1,LOW);
+        plutoGpo=plutoGpo & 0xDF;
+        }
+        
+    if(b & 0x02) 
+        {
+        digitalWrite(bandPin2,HIGH);
+        plutoGpo=plutoGpo | 0x40;
+        }
+    else
+        {
+        digitalWrite(bandPin2,LOW);
+        plutoGpo=plutoGpo & 0xBF;
+        }   
     
-if(b & 0x02) 
-    {
-    digitalWrite(bandPin2,HIGH);
-    plutoGpo=plutoGpo | 0x40;
-    }
-else
-    {
-    digitalWrite(bandPin2,LOW);
-    plutoGpo=plutoGpo & 0xBF;
-    }   
-
-if(b & 0x04) 
-    {
-    digitalWrite(bandPin3,HIGH);
-    plutoGpo=plutoGpo | 0x80;
-    }
-else
-    {
-    digitalWrite(bandPin3,LOW);
-    plutoGpo=plutoGpo & 0x7F;
-    }   
-
-if(b & 0x08) 
-    {
-    digitalWrite(bandPin4,HIGH);
-    }
-else
-    {
-    digitalWrite(bandPin4,LOW);
-    }   
-
-if(b & 0x10) 
-    {
-    digitalWrite(bandPin5,HIGH);
-    }
-else
-    {
-    digitalWrite(bandPin5,LOW);
-    }   
-
-if(b & 0x20) 
-    {
-    digitalWrite(bandPin6,HIGH);
-    }
-else
-    {
-    digitalWrite(bandPin6,LOW);
-    }   
+    if(b & 0x04) 
+        {
+        digitalWrite(bandPin3,HIGH);
+        plutoGpo=plutoGpo | 0x80;
+        }
+    else
+        {
+        digitalWrite(bandPin3,LOW);
+        plutoGpo=plutoGpo & 0x7F;
+        }   
     
-if(b & 0x40) 
-    {
-    digitalWrite(bandPin7,HIGH);
-    }
-else
-    {
-    digitalWrite(bandPin7,LOW);
-    }   
+    if(b & 0x08) 
+        {
+        digitalWrite(bandPin4,HIGH);
+        }
+    else
+        {
+        digitalWrite(bandPin4,LOW);
+        }   
     
-if(b & 0x80) 
-    {
-    digitalWrite(bandPin8,HIGH);
-    }
-else
-    {
-    digitalWrite(bandPin8,LOW);
-    }   
-
-setPlutoGpo(plutoGpo);
-
+    if(b & 0x10) 
+        {
+        digitalWrite(bandPin5,HIGH);
+        }
+    else
+        {
+        digitalWrite(bandPin5,LOW);
+        }   
+    
+    if(b & 0x20) 
+        {
+        digitalWrite(bandPin6,HIGH);
+        }
+    else
+        {
+        digitalWrite(bandPin6,LOW);
+        }   
+        
+    if(b & 0x40) 
+        {
+        digitalWrite(bandPin7,HIGH);
+        }
+    else
+        {
+        digitalWrite(bandPin7,LOW);
+        }   
+        
+    if(b & 0x80) 
+        {
+        digitalWrite(bandPin8,HIGH);
+        }
+    else
+        {
+        digitalWrite(bandPin8,LOW);
+        }   
+    
+  }
+ setPlutoGpo(plutoGpo);
 }
 
 
@@ -2186,6 +2242,15 @@ void changeSetting(void)
         setFreq(freq);
         displaySetting(settingNo);
       } 
+ if(settingNo==RX_HARMONIC)        // RX Harmonic mixing number
+      {
+      bandRxHarmonic[band]=bandRxHarmonic[band]+mouseScroll;
+      mouseScroll=0;
+      if(bandRxHarmonic[band]<1) bandRxHarmonic[band]=1;
+      if(bandRxHarmonic[band]>5) bandRxHarmonic[band]=5;
+      setFreq(freq);
+      displaySetting(settingNo);  
+      }    
    if(settingNo==TX_OFFSET)        //Transverter Tx Offset
       {
         bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
@@ -2193,6 +2258,15 @@ void changeSetting(void)
         setFreq(freq);
         displaySetting(settingNo);
       }  
+ if(settingNo==TX_HARMONIC)        // TX Harmonic mixing number or external multiplier
+      {
+      bandTxHarmonic[band]=bandTxHarmonic[band]+mouseScroll;
+      mouseScroll=0;
+      if(bandTxHarmonic[band]<1) bandTxHarmonic[band]=1;
+      if(bandTxHarmonic[band]>5) bandTxHarmonic[band]=5;
+      setFreq(freq);
+      displaySetting(settingNo);  
+      }      
    if(settingNo==BAND_BITS)        // Band Bits
       {
       if(tuneDigit==11)
@@ -2322,7 +2396,11 @@ if(se==REP_SHIFT)
   sprintf(valStr,"%f",freq+bandRxOffset[band]);
   displayStr(valStr);
   }
-  
+  if(se==RX_HARMONIC)
+  {
+  sprintf(valStr,"X%d",bandRxHarmonic[band]);
+  displayStr(valStr);
+  } 
   if(se==TX_OFFSET)
   {
   sprintf(valStr,"%f",bandTxOffset[band]);
@@ -2331,7 +2409,11 @@ if(se==REP_SHIFT)
   sprintf(valStr,"%f",freq+bandTxOffset[band]);
   displayStr(valStr);
   }
-  
+  if(se==TX_HARMONIC)
+  {
+  sprintf(valStr,"X%d",bandTxHarmonic[band]);
+  displayStr(valStr);
+  }   
   if(se==BAND_BITS)
   { 
   setForeColour(255,255,255);
@@ -2406,24 +2488,13 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     sprintf(vname,"bandMode%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandMode[b]);   
     sprintf(vname,"bandTxOffSet%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%lf",&bandTxOffset[b]);           
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandTxOffset[b]); 
+    sprintf(vname,"bandTxHarmonic%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandTxHarmonic[b]);             
     sprintf(vname,"bandRxOffSet%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRxOffset[b]);  
-
-//Special case to handle original offsets being inverted. 
-    sprintf(vname,"bandTxOffset%02d",b);
-    if(strstr(variable,vname)) 
-    {
-    sscanf(value,"%lf",&bandTxOffset[b]);
-    bandTxOffset[b]=0-bandTxOffset[b];
-    } 
-    sprintf(vname,"bandRxOffset%02d",b);
-    if(strstr(variable,vname))
-    {
-    sscanf(value,"%lf",&bandRxOffset[b]); 
-    bandRxOffset[b]=0-bandRxOffset[b];
-    }
-    
+    if(strstr(variable,vname)) sscanf(value,"%lf",&bandRxOffset[b]);      
+    sprintf(vname,"bandRxHarmonic%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandRxHarmonic[b]);   
     sprintf(vname,"bandRepShift%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%lf",&bandRepShift[b]);
     sprintf(vname,"bandDuplex%02d",b);
@@ -2481,7 +2552,9 @@ for(int b=0;b<numband;b++)
   fprintf(conffile,"bandFreq%02d %lf\n",b,bandFreq[b]);
   fprintf(conffile,"bandMode%02d %d\n",b,bandMode[b]);
   fprintf(conffile,"bandTxOffSet%02d %lf\n",b,bandTxOffset[b]);
+  fprintf(conffile,"bandTxHarmonic%02d %d\n",b,bandTxHarmonic[b]);
   fprintf(conffile,"bandRxOffSet%02d %lf\n",b,bandRxOffset[b]);
+  fprintf(conffile,"bandRxHarmonic%02d %d\n",b,bandRxHarmonic[b]);
   fprintf(conffile,"bandRepShift%02d %lf\n",b,bandRepShift[b]);
   fprintf(conffile,"bandDuplex%02d %d\n",b,bandDuplex[b]);
   fprintf(conffile,"bandBits%02d %d\n",b,bandBits[b]);
