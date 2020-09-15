@@ -10,13 +10,15 @@ Currently only one set of hardware is supported:-
 
 - Raspberry Pi 4
 
-- Official Raspberry Pi 7" touchscreen.
+- Official Raspberry Pi 7" touchscreen or Pimoroni Hyperpixel4 4" Touchscreen (experimental)
 
 - Adalm Pluto SDR Module
 
 - USB Audio module. Connected to loudspeaker or headphones and microphone. 
  
 - USB Scroll mouse
+
+- Note, the following GPIO inputs and outputs can not be used with the Hyperpixel4 display because it uses all of the GPIO. It is planned to add support for an external I2C expander module to provide the necessary I/O. More details to follow. 
 
 - PTT via Raspberry Pi GPIO pin 11. This needs a pull up resistor to 3.3V. Grounding this pin will switch to Transmit.
 
@@ -40,7 +42,7 @@ It is easy to modify a cheap mouse by disconnecting the existing switches and wi
 
 Microphone input and headphone output uses the USB audio device. (a couple of pounds on Ebay)
 
-The software consists of three parts. The SDR itself uses two python GNURadio Flowgraphs (Lang_TX.py and Lang_RX.py)which can be created on a PC running GNUradio companion. These Python programs are then manually edited by adding the code from ControlTX.py and ControlRx.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
+The software consists of three parts. The SDR itself uses two python GNURadio Flowgraphs (Lang_TX.py and Lang_RX.py)which can be created on a PC running GNUradio companion. These Python programs are then manually edited by adding the code from ControlTX.py and ControlRX.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
 
 
 
@@ -57,7 +59,7 @@ The preferred installation method only needs a Windows PC connected to the same 
 
 - Before you remove the card from your Windows PC, look at the card with windows explorer; the volume should be labeled "boot".  Create a new empty file called ssh in the top-level (root) directory by right-clicking, selecting New, Text Document, and then change the name to ssh (not ssh.txt).  You should get a window warning about changing the filename extension.  Click OK.  If you do not get this warning, you have created a file called ssh.txt and you need to rename it ssh.  IMPORTANT NOTE: by default, Windows (all versions) hides the .txt extension on the ssh file.  To change this, in Windows Explorer, select File, Options, click the View tab, and then untick "Hide extensions for known file types". Then click OK.
 
-- Connect the 7" touchscreen display, USB mouse, USB Sound Card, and Pluto now.   Power up the RPi with the new card inserted, and a network connection.  Do not connect a keyboard or HDMI display to the Raspberry Pi. 
+- Connect the touchscreen display, USB mouse, USB Sound Card, and Pluto now.   Power up the RPi with the new card inserted, and a network connection.  Do not connect a keyboard or HDMI display to the Raspberry Pi. 
 
 - Find the IP address of your Raspberry Pi using an IP Scanner (such as Advanced IP Scanner http://filehippo.com/download_advanced_ip_scanner/ for Windows, or Fing on an iPhone) to get the RPi's IP address 
 
@@ -65,11 +67,22 @@ The preferred installation method only needs a Windows PC connected to the same 
 
 - Log in (user: pi, password: raspberry) then cut and paste the following code in, one line at a time:
 
+# For the 7" Raspberry Pi Display:-
+
 ```sh
 wget https://raw.githubusercontent.com/g4eml/Langstone/master/install.sh
 chmod +x install.sh
 ./install.sh
 ```
+
+# For the 4" Hyperpixel4 Display:-
+
+```sh
+wget https://raw.githubusercontent.com/g4eml/Langstone/master/install_hyperpixel4.sh
+chmod +x install_hyperpixel4.sh
+./install_hyperpixel4.sh
+```
+
 
 The initial build can take some time, however it does not need any user input, so go and make a cup of coffee and keep an eye on the touchscreen.  When the build is finished the Pi will reboot and start-up with the Langstone Transceiver. If it does not appear to be working see the file 'Debugging Notes.txt' for some things to look at.
 
