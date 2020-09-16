@@ -64,6 +64,7 @@ void gen_palette(char colours[][3],int num_grads);
 void setPlutoTxAtt(int att);
 void setBand(int b);
 void setPlutoGpo(int p);
+void setTxPin(int v);
 long long runTimeMs(void);
 void clearPopUp(void);
 void displayPopupMode(void);
@@ -1809,11 +1810,19 @@ void setMode(int md)
 configCounter=configDelay;
 }
 
+void setTxPin(int v)
+{
+  if(hyperPixelPresent==0) 
+  {
+  if(v==1) digitalWrite(txPin,HIGH) else digitalWrite(txPin,LOW);
+  }
+}
+
 void setTx(int pt)
 {
   if((pt==1)&&(transmitting==0))
     {
-      if(hyperPixelPresent==0) digitalWrite(txPin,HIGH);
+      setTxPin(1);
       plutoGpo=plutoGpo | 0x10;
       setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
@@ -1861,7 +1870,7 @@ void setTx(int pt)
       displayStr("Rx");
       transmitting=0;
       usleep(RXDELAY);
-      if(hyperPixelPresent==0) digitalWrite(txPin,LOW);
+      setTxPin(0);
       plutoGpo=plutoGpo & 0xEF;
       setPlutoGpo(plutoGpo);                               //clear the Pluto GPO Pin 
     }
@@ -2123,39 +2132,33 @@ displayButton("1750");
 
 void setBandBits(int b)
 {
-if(hyperPixelPresent==0)
+if(hyperPixelPresent==0)                //dont use Raspberry Pi GPIO with Hyperpixel Display
   {
     if(b & 0x01) 
         {
         digitalWrite(bandPin1,HIGH);
-        plutoGpo=plutoGpo | 0x20;
         }
     else
         {
         digitalWrite(bandPin1,LOW);
-        plutoGpo=plutoGpo & 0xDF;
         }
         
     if(b & 0x02) 
         {
         digitalWrite(bandPin2,HIGH);
-        plutoGpo=plutoGpo | 0x40;
         }
     else
         {
         digitalWrite(bandPin2,LOW);
-        plutoGpo=plutoGpo & 0xBF;
         }   
     
     if(b & 0x04) 
         {
         digitalWrite(bandPin3,HIGH);
-        plutoGpo=plutoGpo | 0x80;
         }
     else
         {
         digitalWrite(bandPin3,LOW);
-        plutoGpo=plutoGpo & 0x7F;
         }   
     
     if(b & 0x08) 
@@ -2201,10 +2204,38 @@ if(hyperPixelPresent==0)
     else
         {
         digitalWrite(bandPin8,LOW);
-        }   
-    
+        }       
   }
- setPlutoGpo(plutoGpo);
+
+//  copy bits 0,1 and 2to Pluto GPO Pins
+
+  if(b & 0x01) 
+      {
+      plutoGpo=plutoGpo | 0x20;
+      }
+  else
+      {
+      plutoGpo=plutoGpo & 0xDF;
+      }
+      
+  if(b & 0x02) 
+      {
+      plutoGpo=plutoGpo | 0x40;
+      }
+  else
+      {
+      plutoGpo=plutoGpo & 0xBF;
+      }   
+  
+  if(b & 0x04) 
+      {
+      plutoGpo=plutoGpo | 0x80;
+      }
+  else
+      {;
+      plutoGpo=plutoGpo & 0x7F;
+      }   
+  setPlutoGpo(plutoGpo);
 }
 
 
@@ -2247,7 +2278,7 @@ void changeSetting(void)
       bandRxHarmonic[band]=bandRxHarmonic[band]+mouseScroll;
       mouseScroll=0;
       if(bandRxHarmonic[band]<1) bandRxHarmonic[band]=1;
-      if(bandRxHarmonic[band]>5) bandRxHarmonic[band]=5;
+      if(bandRxHarmonic[band]>1) bandRxHarmonic[band]=5;
       setFreq(freq);
       displaySetting(settingNo);  
       }    
@@ -2261,9 +2292,19 @@ void changeSetting(void)
  if(settingNo==TX_HARMONIC)        // TX Harmonic mixing number or external multiplier
       {
       bandTxHarmonic[band]=bandTxHarmonic[band]+mouseScroll;
-      mouseScroll=0;
       if(bandTxHarmonic[band]<1) bandTxHarmonic[band]=1;
       if(bandTxHarmonic[band]>5) bandTxHarmonic[band]=5;
+      if(mouseScroll>0)
+      {
+        if(bandTxHarmonic[band]==4) bandTxHarmonic[band]=5;
+        if(bandTxHarmonic[band]==3) bandTxHarmonic[band]=5;
+      }
+      else
+      {
+        if(bandTxHarmonic[band]==4) bandTxHarmonic[band]=2;
+        if(bandTxHarmonic[band]==3) bandTxHarmonic[band]=2;
+      }
+      mouseScroll=0;
       setFreq(freq);
       displaySetting(settingNo);  
       }      
