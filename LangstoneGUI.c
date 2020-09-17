@@ -10,9 +10,14 @@
 #include "Graphics.h"
 #include "Touch.h"
 #include "Mouse.h"
+#include "mcp23017.c"
 
 
 #define PLUTOIP "ip:pluto.local"
+
+const char *i2cNode1 = "/dev/i2c-1";        //linux i2c node for the Hyperpixel display on Pi 4
+const char *i2cNode2 = "/dev/i2c-11";       //linux i2c node for the Hyperpixel display on Pi 4
+int  mcp23017_addr = 0x20;	               //MCP23017 I2C Address
 
 void setFreq(double fr);
 void displayFreq(double fr);
@@ -46,6 +51,7 @@ void displaySetting(int se);
 void changeSetting(void);
 void processGPIO(void);
 void initGPIO(void);
+void initMCP23017(int add);
 int readConfig(void);
 int writeConfig(void);
 int satMode(void);
@@ -204,6 +210,7 @@ int touchPresent;
 int plutoPresent;
 int portsdownPresent;
 int hyperPixelPresent;
+int MCP23017Present;
 
 int popupSel=0;
 int popupFirstBand;
@@ -220,6 +227,11 @@ enum {NONE,MODE,BAND};
 #define bandPin6 5      //Wiring Pi pin number. Physical pin is 18
 #define bandPin7 12     //Wiring Pi pin number. Physical pin is 19
 #define bandPin8 13     //Wiring Pi pin number. Physical pin is 21
+
+#define i2cPttPin 0     //MCP23017 PTT Input if fitted  Port A bit 0
+#define i2cKeyPin 1     //MCP23017 Key Input if fitted  Port A bit 1
+#define i2cTxPin 7      //MCP23017 TX Output if fitted
+                        //MCP23017 uses port B for band bits. 
 
 int plutoGpo=0;
 
@@ -266,7 +278,7 @@ int main(int argc, char* argv[])
   {
   
     processGPIO();
-  
+                                                                                                                    
    if(touchPresent)
      {
        if(getTouch()==1)
@@ -619,6 +631,10 @@ void detectHw()
   }
   
     plutoPresent=1;      //this will be reset by setPlutoFreq if Pluto is not present.
+  
+// try to initialise MCP23017 i2c chip for additonal I/O
+// this will set or reset MCP23017Present flag 
+  initMCP23017(mcp23017_addr);
 }
 
 
@@ -828,10 +844,28 @@ void initGPIO(void)
 
 void processGPIO(void)
 {
-if(hyperPixelPresent==0)
+int p1=0;
+int p2=0;
+int k1=0;
+int k2=0;
+
+if(hyperPixelPresent==0)              //can only use GPIO if Hyperpixel Display is not fitted. 
   {
-    int v=digitalRead(pttPin);
-    if(v==0)
+    p1=digitalRead(pttPin);
+    k1=digitalRead(keyPin);
+  }
+  
+if(MCP23017Present==1)                //MCP23017 extender chip can be used with any display. 
+  {
+    p2=mcp23017_readbit(mcp23017_addr,GPIOA,i2cPttPin);
+    k2=mcp23017_readbit(mcp23017_addr,GPIOA,i2cKeyPin);
+  }    
+  
+   p1=p1 | p2;        //allow PTT from either source
+   k1=k1 | k2;        //allow Key from either source
+  
+  
+    if(p1==0)
         {
           if(ptt==0)
             {
@@ -847,13 +881,40 @@ if(hyperPixelPresent==0)
               setTx(ptt|ptts);
             }
         }
-      v=digitalRead(keyPin);
-      if(v!=lastKey)
+
+      if(k1!=lastKey)
     {
-    setKey(!v);
-    lastKey=v;
+    setKey(!k1);
+    lastKey=k1;
+    }  
+}
+
+
+// Configure the MCP23017 GPIO Extender if it is fitted :
+
+void initMCP23017(int add) 
+{
+ int resp; 
+ resp=i2c_init(i2cNode1);	               			//Initialize i2c node for a pi with normal display
+ if(resp<0)                                   //not found, try for pi with Hypepixel4 display
+ {
+  resp=i2c_init(i2cNode2);	               		//Initialize i2c node fo4r a pi with normal display
+   if(resp<0)
+    {
+     MCP23017Present=0;                        //neither found so disable it
     }
-  }
+ }
+ resp= mcp23017_readport(mcp23017_addr,GPIOA);      //dummy read to check if device is present
+ if(resp<0)
+ {
+   MCP23017Present=0;
+ }
+ mcp23017_writereg(add,IODIR,GPIOA,0x03);      //Port A bits 0 and 1 are inputs (PTT and KEY)
+ mcp23017_writereg(add,GPPU,GPIOA,0x03);      //Port A pullups enabled
+ mcp23017_writereg(add,IODIR,GPIOB,0x00);      //Port B all outputs for Band Bits  
+ mcp23017_writeport(add,GPIOA,0);
+ mcp23017_writeport(add,GPIOB,0);             //Zero all outputs 
+ MCP23017Present=1;
 }
 
 
@@ -1806,15 +1867,20 @@ void setMode(int md)
     setRit(0);
     } 
 
-
+                                                                 
 configCounter=configDelay;
 }
 
 void setTxPin(int v)
 {
-  if(hyperPixelPresent==0) 
+  if(hyperPixelPresent==0)                      //cant use GPIO if Hyperpixel display is fitted 
   {
-  if(v==1) digitalWrite(txPin,HIGH) else digitalWrite(txPin,LOW);
+  if(v==1) digitalWrite(txPin,HIGH); else digitalWrite(txPin,LOW);
+  }
+  
+  if(MCP23017Present==1)                        //copy to optional extender chip which can be used with any config
+  {
+  if(v==1) mcp23017_writebit(mcp23017_addr,GPIOA,i2cTxPin,1); else mcp23017_writebit(mcp23017_addr,GPIOA,i2cTxPin,0);
   }
 }
 
@@ -2236,6 +2302,11 @@ if(hyperPixelPresent==0)                //dont use Raspberry Pi GPIO with Hyperp
       plutoGpo=plutoGpo & 0x7F;
       }   
   setPlutoGpo(plutoGpo);
+  
+if(MCP23017Present==1)                       //optional extender chip has port b for band bits. 
+  {
+  mcp23017_writeport(mcp23017_addr,GPIOB,b);     
+  }
 }
 
 
