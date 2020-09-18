@@ -39,6 +39,7 @@ sudo apt-get -y install gr-iio
 sudo apt-get -y install gnuradio
 sudo apt-get -y install raspi-gpio
 sudo apt-get -y install sshpass
+sudo apt-get -y install libi2c-dev
 
 echo "#################################"
 echo "##     Install Hyperpixel      ##"
@@ -74,6 +75,10 @@ cd ~
 # Set auto login to command line.
 
 sudo raspi-config nonint do_boot_behaviour B2
+
+# Enable i2c support
+
+sudo raspi-config nonint do_i2c 0
 
 # install the Langstone Files
 
