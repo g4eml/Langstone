@@ -30,7 +30,7 @@ Currently only the following hardware is supported:-
 
 - The TX output and first three of the Band Select outputs are also available on the Internal Pluto GPO connector. GPO0 is the Tx Output, GPO1-3 are the Band Select outputs.The main use for these is for when the Pluto is remotely mounted. Care must be taken as these pins are low voltage. They will need to be buffered before use. 
 
-- To provide I/O when using a Hyperpixel4 display support has been added for an external MCP23017 module which is cheaply available on Ebay etc. This provides 16 digital inputs or outputs and is connected the the i2c port on the Hyperpixel display. It can also optionally be used with the 7" display by connecting to the Raspbery pi i2c. (pins 3 and 5 of the GPIO connector)
+- To provide I/O when using a Hyperpixel4 display, support has been added for an external MCP23017 module which is cheaply available on Ebay etc. This provides 16 digital inputs or outputs and is connected the the i2c port on the Hyperpixel display. It can also optionally be used with the 7" display by connecting to the Raspbery pi i2c. (pins 3 and 5 of the GPIO connector)
 
 - When using the MCP23017 module Port B will output the 8 band select bits. Port A bit 0 will be the PTT input, Port A bit 1 will be the Key input and Port A bit 7 will be the Tx Output. 
 
