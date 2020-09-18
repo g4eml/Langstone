@@ -2346,10 +2346,15 @@ void changeSetting(void)
       } 
  if(settingNo==RX_HARMONIC)        // RX Harmonic mixing number
       {
-      bandRxHarmonic[band]=bandRxHarmonic[band]+mouseScroll;
+      if(mouseScroll>0)
+      {
+        bandRxHarmonic[band]=5;
+      }
+      if(mouseScroll<0)
+      {
+         bandRxHarmonic[band]=1;
+      }
       mouseScroll=0;
-      if(bandRxHarmonic[band]<1) bandRxHarmonic[band]=1;
-      if(bandRxHarmonic[band]>1) bandRxHarmonic[band]=5;
       setFreq(freq);
       displaySetting(settingNo);  
       }    
