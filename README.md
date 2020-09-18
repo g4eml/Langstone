@@ -1,4 +1,4 @@
-# Langstone SDR Transceiver
+# Langstone SDR Transceiver by Colin Durbridge G4EML
 
 This is an experimental project to produce a simple VHF, UHF and Microwave SDR Transceiver operating on SSB CW and FM.
 
