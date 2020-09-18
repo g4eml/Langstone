@@ -10,7 +10,7 @@ Currently only the following hardware is supported:-
 
 - Raspberry Pi 4
 
-- Official Raspberry Pi 7" touchscreen or Pimoroni Hyperpixel4 4" Touchscreen (experimental)
+- Official Raspberry Pi 7" touchscreen or Pimoroni Hyperpixel4 4" Touchscreen
 
 - Adalm Pluto SDR Module
 
@@ -18,7 +18,7 @@ Currently only the following hardware is supported:-
  
 - USB Scroll mouse
 
-**Note, the following GPIO inputs and outputs can not be used with the Hyperpixel4 display because it uses all of the GPIO. It is planned to add support for an external I2C expander module to provide the necessary I/O. More details to follow.** 
+**Note, the following GPIO inputs and outputs can not be used with the Hyperpixel4 display because it uses all of the GPIO. You will need to add an MCP23017 i2c module for any inputs and outputs.**
 
 - PTT via Raspberry Pi GPIO pin 11. This needs a pull up resistor to 3.3V. Grounding this pin will switch to Transmit.
 
@@ -29,6 +29,10 @@ Currently only the following hardware is supported:-
 - 8 Band select Outputs on pins 28, 35, 7, 22, 16, 18, 19, and 21. These can be used to select external filters, amplifiers or Transverters. The state of these outputs is defined using the Band Bits setting. 
 
 - The TX output and first three of the Band Select outputs are also available on the Internal Pluto GPO connector. GPO0 is the Tx Output, GPO1-3 are the Band Select outputs.The main use for these is for when the Pluto is remotely mounted. Care must be taken as these pins are low voltage. They will need to be buffered before use. 
+
+- To provide I/O when using a Hyperpixel4 display, support has been added for an external MCP23017 module which is cheaply available on Ebay etc. This provides 16 digital inputs or outputs and is connected the the i2c port on the Hyperpixel display. It can also optionally be used with the 7" display by connecting to the Raspbery pi i2c. (pins 3 and 5 of the GPIO connector)
+
+- When using the MCP23017 module Port B will output the 8 band select bits. Port A bit 0 will be the PTT input, Port A bit 1 will be the Key input and Port A bit 7 will be the Tx Output. 
 
 To build a complete functional transceiver you will need to add suitable filters, preamplifiers and power amplifiers to the Adalm Pluto. 
 
@@ -50,7 +54,7 @@ The software consists of three parts. The SDR itself uses two python GNURadio Fl
 
 The preferred installation method only needs a Windows PC connected to the same (internet-connected) network as your Raspberry Pi.  Do not connect a keyboard or HDMI display directly to your Raspberry Pi.
 
-- First download the 2020-05-28 release of Raspios Buster Lite on to your Windows PC from here  https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-05-28/2020-05-27-raspios-buster-lite-armhf.zip
+- First download the 2020-05-28 release of Raspios Buster Lite on to your Windows PC from here  https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/2020-08-20-raspios-buster-armhf-lite.zip
 
 (This version is known to work. Newer versions should also work and may speed up the installation but have not yet been tested) 
 
