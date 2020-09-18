@@ -10,7 +10,7 @@ Currently only the following hardware is supported:-
 
 - Raspberry Pi 4
 
-- Official Raspberry Pi 7" touchscreen or Pimoroni Hyperpixel4 4" Touchscreen (experimental)
+- Official Raspberry Pi 7" touchscreen or Pimoroni Hyperpixel4 4" Touchscreen
 
 - Adalm Pluto SDR Module
 
