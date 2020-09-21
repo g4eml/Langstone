@@ -1,10 +1,12 @@
-# Langstone SDR Transceiver
+# Langstone SDR Transceiver by Colin Durbridge G4EML
 
 This is an experimental project to produce a simple VHF, UHF and Microwave SDR Transceiver operating on SSB CW and FM.
 
 It was inspired by the very successful Portsdown Amateur Television system created by the British Amateur Television Club.
 
-This is not yet a finished project but more of a demonstration of what can be done. 
+To install the software on a raspberry pi please follow the instructions further down the page. 
+
+**More information can also be found on the UK Microwave group wiki at https://wiki.microwavers.org.uk/Langstone_Project**
 
 Currently only the following hardware is supported:-
 
@@ -17,6 +19,8 @@ Currently only the following hardware is supported:-
 - USB Audio module. Connected to loudspeaker or headphones and microphone. 
  
 - USB Scroll mouse
+
+- Optional GPIO extender using MCP23017 Module. (This is primarily used with the Hyperpixel display but can also be used with the 7" display if prefered). 
 
 **Note, the following GPIO inputs and outputs can not be used with the Hyperpixel4 display because it uses all of the GPIO. You will need to add an MCP23017 i2c module for any inputs and outputs.**
 
@@ -46,7 +50,7 @@ It is easy to modify a cheap mouse by disconnecting the existing switches and wi
 
 Microphone input and headphone output uses the USB audio device. (a couple of pounds on Ebay)
 
-The software consists of three parts. The SDR itself uses two python GNURadio Flowgraphs (Lang_TX.py and Lang_RX.py)which can be created on a PC running GNUradio companion. These Python programs are then manually edited by adding the code from ControlTX.py and ControlRX.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. 
+The software consists of three parts. The SDR itself uses two python GNURadio Flowgraphs (Lang_TX.py and Lang_RX.py)which can be created on a PC running GNUradio companion. These Python programs are then manually edited by adding the code from ControlTX.py and ControlRX.py so it can be controlled by the GUI part of the software. This is written in C and communicates with GNURadio using a Linux Pipe. However to build and use a Langstone transceiver you do not need to know this!
 
 
 
@@ -102,6 +106,6 @@ cd Langstone
 
 ./update
 
-./run
+sudo reboot
 
 
