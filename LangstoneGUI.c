@@ -844,10 +844,10 @@ void initGPIO(void)
 
 void processGPIO(void)
 {
-int p1=0;
-int p2=0;
-int k1=0;
-int k2=0;
+int p1=1;
+int p2=1;
+int k1=1;
+int k2=1;
 
 if(hyperPixelPresent==0)              //can only use GPIO if Hyperpixel Display is not fitted. 
   {
