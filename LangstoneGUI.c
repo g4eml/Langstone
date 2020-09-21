@@ -861,8 +861,8 @@ if(MCP23017Present==1)                //MCP23017 extender chip can be used with 
     k2=mcp23017_readbit(mcp23017_addr,GPIOA,i2cKeyPin);
   }    
   
-   p1=p1 | p2;        //allow PTT from either source
-   k1=k1 | k2;        //allow Key from either source
+   p1=p1 & p2;        //allow PTT from either source
+   k1=k1 & k2;        //allow Key from either source
   
   
     if(p1==0)
