@@ -794,23 +794,53 @@ void init_fft_Fifo()
 void sendTxFifo(char * s)
 {
   char fs[50];
+  int ret;
+  int retry;
   strcpy(fs,s);
   strcat(fs,"\n");
-  fifofd=open("/tmp/langstoneTx",O_WRONLY);
-  write(fifofd,fs,strlen(fs));
+  fifofd=open("/tmp/langstoneTx",O_WRONLY|O_NONBLOCK);
+  retry=0;
+  do
+     {
+       ret=write(fifofd,fs,strlen(fs));
+       delay(5);
+       retry++;
+     }
+   while((ret==-1)&(retry<10));   
+  if(ret==-1)
+    {
+      gotoXY(220,390);
+      setForeColour(255,0,0);
+      textSize=2;
+      displayStr("TX FIFO NOT RESPONDING");
+     }
   close(fifofd);
-  delay(5);
 }
 
 void sendRxFifo(char * s)
 {
   char fs[50];
+  int ret;
+  int retry;
   strcpy(fs,s);
   strcat(fs,"\n");
-  fifofd=open("/tmp/langstoneRx",O_WRONLY);
-  write(fifofd,fs,strlen(fs));
+  fifofd=open("/tmp/langstoneRx",O_WRONLY|O_NONBLOCK);
+  retry=0;
+    do
+     {
+       ret=write(fifofd,fs,strlen(fs));
+       delay(5);
+       retry++;
+     }
+   while((ret==-1)&(retry<10));   
+  if(ret==-1)
+    {
+      gotoXY(220,390);
+      setForeColour(255,0,0);
+      textSize=2;
+      displayStr("RX FIFO NOT RESPONDING");
+     }
   close(fifofd);
-  delay(5);
 }
 
 void initGPIO(void)
@@ -902,12 +932,14 @@ void initMCP23017(int add)
    if(resp<0)
     {
      MCP23017Present=0;                        //neither found so disable it
+     return;
     }
  }
  resp= mcp23017_readport(mcp23017_addr,GPIOA);      //dummy read to check if device is present
  if(resp<0)
  {
    MCP23017Present=0;
+   return;
  }
  mcp23017_writereg(add,IODIR,GPIOA,0x03);      //Port A bits 0 and 1 are inputs (PTT and KEY)
  mcp23017_writereg(add,GPPU,GPIOA,0x03);      //Port A pullups enabled
