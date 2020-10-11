@@ -220,6 +220,7 @@ enum {NONE,MODE,BAND};
 #define keyPin 1        //Wiring Pi pin number. Physical pin is 12
 #define txPin 29        //Wiring Pi pin number. Physical pin is 40      
 #define bandPin1 31     //Wiring Pi pin number. Physical pin is 28
+#define bandPin1alt 26  //Wiring Pi pin number. Physical pin is 32     Bandpin1 is copied to both of these pins to retain compatibility with Portsdown.
 #define bandPin2 24     //Wiring Pi pin number. Physical pin is 35
 #define bandPin3 7      //Wiring Pi pin number. Physical pin is 7
 #define bandPin4 6      //Wiring Pi pin number. Physical pin is 22
@@ -852,6 +853,7 @@ void initGPIO(void)
   pinMode(keyPin,INPUT);
   pinMode(txPin,OUTPUT);
   pinMode(bandPin1,OUTPUT); 
+  pinMode(bandPin1alt,OUTPUT);
   pinMode(bandPin2,OUTPUT);  
   pinMode(bandPin3,OUTPUT);  
   pinMode(bandPin4,OUTPUT);  
@@ -860,7 +862,8 @@ void initGPIO(void)
   pinMode(bandPin7,OUTPUT);  
   pinMode(bandPin8,OUTPUT);  
   digitalWrite(txPin,LOW);
-  digitalWrite(bandPin1,LOW); 
+  digitalWrite(bandPin1,LOW);
+  digitalWrite(bandPin1alt,LOW);  
   digitalWrite(bandPin2,LOW); 
   digitalWrite(bandPin3,LOW); 
   digitalWrite(bandPin4,LOW); 
@@ -2235,10 +2238,12 @@ if(hyperPixelPresent==0)                //dont use Raspberry Pi GPIO with Hyperp
     if(b & 0x01) 
         {
         digitalWrite(bandPin1,HIGH);
+        digitalWrite(bandPin1alt,HIGH);
         }
     else
         {
         digitalWrite(bandPin1,LOW);
+        digitalWrite(bandPin1alt,LOW);
         }
         
     if(b & 0x02) 
