@@ -1,0 +1,20 @@
+echo
+echo Langstone Sound Device Check
+echo ----------------------------
+echo
+echo Looking for default device hw:CARD=Device,DEV=0
+echo
+if aplay -L |grep -q hw:CARD=Device,DEV=0 
+  then 
+    echo Default Sound device Found OK.
+    echo 
+  else
+    echo Unable to find the default sound device.
+    echo
+    echo These are the available sound devices:-
+    echo
+    aplay -L | grep hw: | grep -v plughw:
+    echo
+    echo To use one of these devices you will need to edit 
+    echo the files Lang_TX.py and Lang_RX.py.
+  fi
