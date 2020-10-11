@@ -653,6 +653,7 @@ void setPlutoRxFreq(long long rxfreq)
         setForeColour(255,0,0);
         textSize=2;
         displayStr("PLUTO NOT DETECTED");
+        return;
       }
       else
       { 
@@ -678,6 +679,7 @@ void setPlutoTxFreq(long long txfreq)
         setForeColour(255,0,0);
         textSize=2;
         displayStr("PLUTO NOT DETECTED");
+        return;
       }
       else
       { 
