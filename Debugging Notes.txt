@@ -1,7 +1,19 @@
-If the transceiver does not start up correctly then please try the following. 
+If the transceiver does not start up correctly then please try the following.
 
 
 Log into the Pi using ssh the same way that you did to build the software. 
+
+Type 'cd ~/Langstone'
+Type './Pluto_Test' and check the results.
+Type './Sound_Test' and check the results.
+Type './HW_Test' and check the results.
+
+If these tests do not identify a problem then you can investigate further by doinf the following:-
+
+Cycle the power to force a reboot
+
+
+Log into the Pi using ssh the same way that you did to build the software.
 
 Type 'ps -ax' to get a list of the running programs. 
 
