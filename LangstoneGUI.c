@@ -155,6 +155,8 @@ int inputMode=FREQ;
 #define sMeterY 5
 #define sMeterWidth 170
 #define sMeterHeight 40
+#define errorX 200
+#define errorY 240
 
 
 
@@ -649,10 +651,10 @@ void setPlutoRxFreq(long long rxfreq)
       if(ctx==NULL)
       {
         plutoPresent=0;
-        gotoXY(220,120);
+        gotoXY(errorX,errorY);
         setForeColour(255,0,0);
         textSize=2;
-        displayStr("PLUTO NOT DETECTED");
+        displayStr("Pluto not Responding");
         return;
       }
       else
@@ -812,10 +814,10 @@ void sendTxFifo(char * s)
    while((ret==-1)&(retry<10));   
   if(ret==-1)
     {
-      gotoXY(220,390);
+      gotoXY(errorX,errorY);
       setForeColour(255,0,0);
       textSize=2;
-      displayStr("TX FIFO NOT RESPONDING");
+      displayStr("Lang_TX.py Not Responding");
      }
   close(fifofd);
 }
@@ -838,10 +840,10 @@ void sendRxFifo(char * s)
    while((ret==-1)&(retry<10));   
   if(ret==-1)
     {
-      gotoXY(220,390);
+      gotoXY(errorX,errorY);
       setForeColour(255,0,0);
       textSize=2;
-      displayStr("RX FIFO NOT RESPONDING");
+      displayStr("Lang_RX.py Not Responding");
      }
   close(fifofd);
 }
