@@ -37,6 +37,7 @@ void initGUI();
 void sendTxFifo(char * s);
 void sendRxFifo(char * s);
 void initFifos();
+void initPluto(void);
 void setPlutoRxFreq(long long rxfreq);
 void setPlutoTxFreq(long long rxfreq);
 void setHwRxFreq(double fr);
@@ -76,6 +77,7 @@ void clearPopUp(void);
 void displayPopupMode(void);
 void displayPopupBand(void);
 void send1750(void);
+void displayError(char*st);
 
 double freq;
 double freqInc=0.001;
@@ -254,6 +256,9 @@ int bwBarEnd=34;
 float sMeter;                             //peak reading S meter.
 float sMeterPeak;
 
+struct iio_context *plutoctx;
+struct iio_device *plutophy;
+
 
 int main(int argc, char* argv[])
 {
@@ -263,6 +268,7 @@ int main(int argc, char* argv[])
   lastClock=0;
   readConfig();
   detectHw();
+  initPluto();
   initFifos();
   init_fft_Fifo();
   initScreen();
@@ -321,7 +327,7 @@ int main(int argc, char* argv[])
 
     if(configCounter>0)                                       //save the config after 5 seconds of inactivity.
     {
-      configCounter=configCounter-1;
+      configCounter=configCounter-1;                                                                                                  
       if(configCounter==0)
         {
         writeConfig();
@@ -640,124 +646,99 @@ void detectHw()
   initMCP23017(mcp23017_addr);
 }
 
-
-void setPlutoRxFreq(long long rxfreq)
+void displayError(char*st)
 {
-  struct iio_context *ctx;
-  struct iio_device *phy;
-   if(plutoPresent)
-    {
-      ctx = iio_create_context_from_uri(PLUTOIP);
-      if(ctx==NULL)
+  gotoXY(errorX,errorY);
+  setForeColour(255,0,0);
+  textSize=2;
+  displayStr(st);
+}
+
+void initPluto(void)
+{
+    plutoctx = iio_create_context_from_uri(PLUTOIP);
+      if(plutoctx==NULL)
       {
         plutoPresent=0;
-        gotoXY(errorX,errorY);
-        setForeColour(255,0,0);
-        textSize=2;
-        displayStr("Pluto not Responding");
+        displayError("Pluto not responding");
         return;
       }
       else
-      { 
-      phy = iio_context_find_device(ctx, "ad9361-phy"); 
-      iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
+      {
+      plutophy = iio_context_find_device(plutoctx, "ad9361-phy"); 
       }
-      iio_context_destroy(ctx); 
+}
+
+void setPlutoRxFreq(long long rxfreq)
+{
+int ret;
+   if(plutoPresent)
+    { 
+      ret=iio_channel_attr_write_longlong(iio_device_find_channel(plutophy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
+      if(ret<0)
+      {
+      displayError("Pluto not responding");
+      }
     }
   
 }
 
 void setPlutoTxFreq(long long txfreq)
 {
-  struct iio_context *ctx;
-  struct iio_device *phy;
+int ret;
    if(plutoPresent)
-    {
-      ctx = iio_create_context_from_uri(PLUTOIP);
-      if(ctx==NULL)
+    { 
+      ret=iio_channel_attr_write_longlong(iio_device_find_channel(plutophy, "altvoltage1", true),"frequency", txfreq); //Tx LO Freq
+   if(ret<0)
       {
-        plutoPresent=0;
-        gotoXY(220,120);
-        setForeColour(255,0,0);
-        textSize=2;
-        displayStr("PLUTO NOT DETECTED");
-        return;
+      displayError("Pluto not responding");
       }
-      else
-      { 
-      phy = iio_context_find_device(ctx, "ad9361-phy"); 
-      iio_channel_attr_write_longlong(iio_device_find_channel(phy, "altvoltage1", true),"frequency", txfreq); //Tx LO Freq
-      }
-      iio_context_destroy(ctx); 
     }
   
 }
 
 void setPlutoTxAtt(int att)
-{
-  struct iio_context *ctx;
-  struct iio_device *phy;
-  
-  
+{ 
   if(plutoPresent)
     {
-      ctx = iio_create_context_from_uri(PLUTOIP);
-      phy = iio_context_find_device(ctx, "ad9361-phy"); 
-      iio_channel_attr_write_double(iio_device_find_channel(phy, "voltage0", true),"hardwaregain", (double)att); //set Tx Attenuator     
-      iio_context_destroy(ctx);
+      iio_channel_attr_write_double(iio_device_find_channel(plutophy, "voltage0", true),"hardwaregain", (double)att); //set Tx Attenuator     
     }
 }
 
 void PlutoTxEnable(int txon)
 {
-  struct iio_context *ctx;
-  struct iio_device *phy;
-  
   if(plutoPresent)
-    {
-      ctx = iio_create_context_from_uri(PLUTOIP);
-      phy = iio_context_find_device(ctx, "ad9361-phy"); 
+    { 
       if(txon==0)
         {
-        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", true); //turn off TX LO
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage1", true),"powerdown", true); //turn off TX LO
         }
       else
         {
-        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage1", true),"powerdown", false); //turn on TX LO
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage1", true),"powerdown", false); //turn on TX LO
         }
-      
-      iio_context_destroy(ctx);
     }
 
 }
 
 void PlutoRxEnable(int rxon)
 {
-  struct iio_context *ctx;
-  struct iio_device *phy;
-  
   if(plutoPresent)
     {
-      ctx = iio_create_context_from_uri(PLUTOIP);
-      phy = iio_context_find_device(ctx, "ad9361-phy"); 
       if(rxon==0)
         {
-        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", true); //turn off RX LO
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage0", true),"powerdown", true); //turn off RX LO
         }
       else
         {
-        iio_channel_attr_write_bool(iio_device_find_channel(phy, "altvoltage0", true),"powerdown", false); //turn on RX LO
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage0", true),"powerdown", false); //turn on RX LO
         }
-      
-      iio_context_destroy(ctx);
     }
 
 }
 
 void setPlutoGpo(int p)
 {
-  struct iio_context *ctx;
-  struct iio_device *phy;
   char pins[10]; 
    
   sprintf(pins,"0x27 0x%x0",p);
@@ -765,13 +746,8 @@ void setPlutoGpo(int p)
 
   if(plutoPresent)
     {
-      ctx = iio_create_context_from_uri(PLUTOIP);
-      phy = iio_context_find_device(ctx, "ad9361-phy"); 
-      iio_device_debug_attr_write(phy,"direct_reg_access",pins);
-      iio_context_destroy(ctx);
+      iio_device_debug_attr_write(plutophy,"direct_reg_access",pins);
     }
-
-
 }
 
 
@@ -814,10 +790,7 @@ void sendTxFifo(char * s)
    while((ret==-1)&(retry<10));   
   if(ret==-1)
     {
-      gotoXY(errorX,errorY);
-      setForeColour(255,0,0);
-      textSize=2;
-      displayStr("Lang_TX.py Not Responding");
+      displayError("Lang_TX.py Not Responding");
      }
   close(fifofd);
 }
@@ -840,10 +813,7 @@ void sendRxFifo(char * s)
    while((ret==-1)&(retry<10));   
   if(ret==-1)
     {
-      gotoXY(errorX,errorY);
-      setForeColour(255,0,0);
-      textSize=2;
-      displayStr("Lang_RX.py Not Responding");
+      displayError("Lang_RX.py Not Responding");
      }
   close(fifofd);
 }
@@ -1476,6 +1446,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS
       else if (inputMode==SETTINGS)
       {
          clearScreen();
+         iio_context_destroy(plutoctx);                  
          exit(0);
       }
       else
@@ -1526,6 +1497,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       sendTxFifo("Q");       //kill the SDR Tx
       sendRxFifo("Q");       //kill the SDR Rx
       writeConfig();
+      iio_context_destroy(plutoctx);
       system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
       sleep(2);
       system("sudo poweroff");                          
