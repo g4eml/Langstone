@@ -5,8 +5,8 @@ Log into the Pi using ssh the same way that you did to build the software.
 
 Type 'cd ~/Langstone'
 Type './Pluto_Test' and check the results.
-Type './Sound_Test' and check the results.
 Type './HW_Test' and check the results.
+Type './set_sound' to check and set the sound device.
 
 If these tests do not identify a problem then you can investigate further by doinf the following:-
 
