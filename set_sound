@@ -1,0 +1,20 @@
+clear
+echo
+echo Langstone Sound Device Selection
+echo --------------------------------
+echo
+echo These are the available sound devices:-
+echo
+SOUNDLIST="$(arecord -L | grep hw: | grep -v plughw:)"
+PS3=$'\n'"Select the sound device to be used by Langstone: "
+select DRIVER in $SOUNDLIST
+do
+ sed -i "s/audio\.source.*/audio\.source(48000, \"$DRIVER\", False)/" /home/pi/Langstone/Lang_TX.py
+ sed -i "s/audio\.sink.*/audio\.sink(48000, \"$DRIVER\", False)/" /home/pi/Langstone/Lang_RX.py
+ break
+done 
+echo
+echo Langstone sound device changed to $DRIVER
+echo
+
+  
