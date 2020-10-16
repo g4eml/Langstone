@@ -69,6 +69,7 @@ void setRit(int rit);
 void setInputMode(int n);
 void gen_palette(char colours[][3],int num_grads);
 void setPlutoTxAtt(int att);
+void setPlutoRxGain(int gain);
 void setBand(int b);
 void setPlutoGpo(int p);
 void setTxPin(int v);
@@ -78,6 +79,8 @@ void displayPopupMode(void);
 void displayPopupBand(void);
 void send1750(void);
 void displayError(char*st);
+int minGain(double freq);
+int maxGain(double freq);
 
 double freq;
 double freqInc=0.001;
@@ -94,6 +97,7 @@ int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
 int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
 int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
+int bandRxGain[numband]={100,100,100,100,100,100,100,100,100,100,100,100};              //100 is automatic gain
 int bandDuplex[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 float bandSmeterZero[numband]={-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80};
 int bandSSBFiltLow[numband]={300,300,300,300,300,300,300,300,300,300,300,300};
@@ -111,11 +115,11 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 13
+#define numSettings 14
 
-char * settingText[numSettings]={"SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= "};
-enum {SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH};
-int settingNo=SSB_MIC;
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH};
+int settingNo=RX_GAIN;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
 int inputMode=FREQ;
@@ -703,6 +707,22 @@ void setPlutoTxAtt(int att)
     {
       iio_channel_attr_write_double(iio_device_find_channel(plutophy, "voltage0", true),"hardwaregain", (double)att); //set Tx Attenuator     
     }
+}
+
+void setPlutoRxGain(int gain)
+{ 
+  if(plutoPresent)
+    {
+     if(gain>71)
+        {
+          iio_channel_attr_write(iio_device_find_channel(plutophy, "voltage0", false),"gain_control_mode", "slow_attack");  //set Auto Gain
+        }
+        else
+        {
+        iio_channel_attr_write(iio_device_find_channel(plutophy, "voltage0", false),"gain_control_mode", "manual");  //set Manual  Gain control
+        iio_channel_attr_write_double(iio_device_find_channel(plutophy, "voltage0", false),"hardwaregain", (double)gain); //set Rx Gain 
+        }
+    } 
 }
 
 void PlutoTxEnable(int txon)
@@ -1591,6 +1611,7 @@ void setBand(int b)
   FFTRef=bandFFTRef[band];
   TxAtt=bandTxAtt[band];
   setPlutoTxAtt(TxAtt);
+  setPlutoRxGain(bandRxGain[band]);
   configCounter=configDelay;
 }
  
@@ -2456,7 +2477,24 @@ void changeSetting(void)
       bandTxAtt[band]=TxAtt;
       setPlutoTxAtt(TxAtt);
       displaySetting(settingNo);  
-      }              
+      }  
+     if(settingNo==RX_GAIN)        // Rx Gain Setting
+      {
+      if (bandRxGain[band] == 100)
+        {
+        bandRxGain[band]=maxGain(freq)+1+mouseScroll;
+        }
+      else
+      {
+        bandRxGain[band]=bandRxGain[band]+mouseScroll;
+      }
+
+      mouseScroll=0;
+      if(bandRxGain[band]< minGain(freq)) bandRxGain[band]=minGain(freq);
+      if(bandRxGain[band]> maxGain(freq)) bandRxGain[band]=100;
+      setPlutoRxGain(bandRxGain[band]);
+      displaySetting(settingNo);  
+      }                   
     if(settingNo==S_ZERO)        // S Meter Zero
       {
       bandSmeterZero[band]=bandSmeterZero[band]+mouseScroll;
@@ -2486,6 +2524,53 @@ void changeSetting(void)
 }
 
                
+int minGain(double freq)
+{
+double rxfreq;
+
+rxfreq=(freq+bandRxOffset[band])/bandRxHarmonic[band];
+
+if(rxfreq<1300)
+ {
+ return -1;
+ }
+if((rxfreq>=1300) && (rxfreq<4000))
+  {
+  return -3;
+  }
+if(rxfreq>=4000)
+  {
+  return -10;
+  }
+  
+return 0;
+}
+
+int maxGain(double freq)
+{
+double rxfreq; 
+
+rxfreq=(freq+bandRxOffset[band])/bandRxHarmonic[band];
+
+if(rxfreq<1300)
+ {
+ return 73;
+ }
+if((rxfreq>=1300) && (rxfreq<4000))
+  {
+  return 71;
+  }
+if(rxfreq>=4000)
+  {
+  return 62;
+  }
+  
+return 73;
+}
+
+
+
+
 
 void displaySetting(int se)
 {
@@ -2578,6 +2663,18 @@ if(se==REP_SHIFT)
   sprintf(valStr,"%d dB",TxAtt);
   displayStr(valStr);
   }
+  if(se==RX_GAIN)
+  {
+    if(bandRxGain[band]>maxGain(freq))
+    {
+    sprintf(valStr,"Auto");
+    }
+    else
+    {
+    sprintf(valStr,"%d dB",bandRxGain[band]);
+    }
+  displayStr(valStr);
+  }
   if(se==S_ZERO)
   {
   sprintf(valStr,"%f dB",bandSmeterZero[band]);
@@ -2636,7 +2733,9 @@ while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
     sprintf(vname,"bandSquelch%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandSquelch[b]);  
     sprintf(vname,"bandTxAtt%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%d",&bandTxAtt[b]);  
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandTxAtt[b]);
+    sprintf(vname,"bandRxGain%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandRxGain[b]);    
     sprintf(vname,"bandSmeterZero%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%f",&bandSmeterZero[b]);
     sprintf(vname,"bandSSBFiltLow%02d",b);
@@ -2691,6 +2790,7 @@ for(int b=0;b<numband;b++)
   fprintf(conffile,"bandFFTRef%02d %d\n",b,bandFFTRef[b]);
   fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);
   fprintf(conffile,"bandTxAtt%02d %d\n",b,bandTxAtt[b]);
+  fprintf(conffile,"bandRxGain%02d %d\n",b,bandRxGain[b]);
   fprintf(conffile,"bandSmeterZero%02d %f\n",b,bandSmeterZero[b]);
   fprintf(conffile,"bandSSBFiltLow%02d %d\n",b,bandSSBFiltLow[b]);
   fprintf(conffile,"bandSSBFiltHigh%02d %d\n",b,bandSSBFiltHigh[b]);    
