@@ -713,7 +713,7 @@ void setPlutoRxGain(int gain)
 { 
   if(plutoPresent)
     {
-     if(gain>71)
+     if(gain>maxGain(freq))
         {
           iio_channel_attr_write(iio_device_find_channel(plutophy, "voltage0", false),"gain_control_mode", "slow_attack");  //set Auto Gain
         }
