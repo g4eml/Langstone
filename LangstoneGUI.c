@@ -70,6 +70,7 @@ void setInputMode(int n);
 void gen_palette(char colours[][3],int num_grads);
 void setPlutoTxAtt(int att);
 void setPlutoRxGain(int gain);
+int readPlutoRxGain(void);
 void setBand(int b);
 void setPlutoGpo(int p);
 void setTxPin(int v);
@@ -516,6 +517,12 @@ void waterfall()
           sMeterPeak=sMeterPeak-bandSmeterZero[band];                   //adjust offset to give positive values for s-meter
           int dbOver=0;
           int sValue=0;
+          
+          if(bandRxGain[band]==100)                  //if we are in RF AGC mode
+            {
+             sMeterPeak=sMeterPeak + maxGain(freq) - readPlutoRxGain();       //compensate for reduced gain due to AGC action
+            }       
+            
           if(sMeterPeak < 0) sMeterPeak=0;
           if(sMeterPeak >= sMeter)
             {
@@ -525,8 +532,8 @@ void waterfall()
             {
             if(sMeter > 0) sMeter=sMeter-2;                    //slow decay
             }
-          
-          
+            
+ 
           if(sMeter<55)
             {
             sValue=sMeter/6;
@@ -554,9 +561,11 @@ void waterfall()
           }
           else
           {
+          int redbit=sMeterX+6+110+(sMeter-55)*2;
+          if(redbit > (sMeterX+6+160)) redbit= sMeterX+6+160;
           drawLine(sMeterX+5,sMeterY+5+ln,sMeterX+6+110,sMeterY+5+ln,0,255,0);
-          drawLine(sMeterX+6+110,sMeterY+5+ln,sMeterX+6+110+(sMeter-55)*2,sMeterY+5+ln,255,0,0);
-          drawLine(sMeterX+6+110+(sMeter-55)*2,sMeterY+5+ln,sMeterX+6+160,sMeterY+5+ln,0,0,0);
+          drawLine(sMeterX+6+110,sMeterY+5+ln,redbit,sMeterY+5+ln,255,0,0);
+          drawLine(redbit,sMeterY+5+ln,sMeterX+6+160,sMeterY+5+ln,0,0,0);
           }
 
           }
@@ -724,6 +733,24 @@ void setPlutoRxGain(int gain)
         }
     } 
 }
+
+
+int readPlutoRxGain(void)
+{
+double ret;
+      if(plutoPresent)
+      {
+        iio_channel_attr_read_double(iio_device_find_channel(plutophy, "voltage0", false),"hardwaregain", &ret); //Read current Rx Gain
+        return (int) ret; 
+      }
+      else
+      {
+      return 73;
+      }
+
+}
+
+
 
 void PlutoTxEnable(int txon)
 {
