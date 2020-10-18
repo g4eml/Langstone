@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 if test -e /tmp/langstonefft ; then
@@ -25,17 +26,25 @@ if !(ps -ax |grep -v grep| grep -q Lang_TX.py) then
  retry=0
  until [ ${retry} -ge 4 ]
 do
-	(iio_info -n pluto.local 2>/dev/null | grep -q PlutoSDR) && break
+        (ping -c1 pluto.local 2>/dev/null |grep -q received) && break
 	retry=$[${retry}+1]
 	sleep 1
 done
+
+#Check if Pluto failed to respond
 
 if [ ${retry} -ge 4 ]; then
   clear
   sudo cp /home/pi/Langstone/plutofail.bgra /dev/fb0
   exit 1
 fi
-  
+
+# Check if Pluto was rebooting and was slow to respond
+
+if [ ${retry} -ge 1 ]; then
+   sleep 5
+fi
+
   python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
   python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
 sleep 2
