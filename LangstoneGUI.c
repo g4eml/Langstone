@@ -96,7 +96,7 @@ int bandRxHarmonic[numband]={1,1,1,1,1,1,1,1,1,1,1,1};
 int bandMode[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
-int bandFFTRef[numband]={-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30};
+int bandFFTRef[numband]={-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10};
 int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bandRxGain[numband]={100,100,100,100,100,100,100,100,100,100,100,100};              //100 is automatic gain
 int bandDuplex[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
@@ -157,7 +157,7 @@ int inputMode=FREQ;
 #define popupX 30
 #define popupY 374
 #define FFTX 140
-#define FFTY 186
+#define FFTY 216
 #define sMeterX 2
 #define sMeterY 5
 #define sMeterWidth 170
@@ -249,11 +249,11 @@ int plutoGpo=0;
 
 float inbuf[2];
 FILE *fftstream;
-float buf[512][150];
+float buf[512][130];
 int points=512;
-int rows=150;
+int rows=130;
 int FFTRef = -30;
-int spectrum_rows=50;
+int spectrum_rows=80;
 unsigned char * palette;
 int HzPerBin=94;                        //calculated from FFT width and number of samples. Width=48000 number of samples =512
 int bwBarStart=3;
@@ -438,7 +438,7 @@ void waterfall()
     
         //RF level adjustment
     
-        int baselevel=FFTRef-50;
+        int baselevel=FFTRef-80;
         float scaling = 255.0/(float)(FFTRef-baselevel);
     
         //draw waterfall
@@ -2495,8 +2495,8 @@ void changeSetting(void)
       {
       FFTRef=FFTRef+mouseScroll;
       mouseScroll=0;
-      if(FFTRef<-50) FFTRef=-50;
-      if(FFTRef>0) FFTRef=0;
+      if(FFTRef<-80) FFTRef=-80;
+      if(FFTRef>30) FFTRef=30;
       bandFFTRef[band]=FFTRef;
       displaySetting(settingNo);  
       }    
