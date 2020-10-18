@@ -1110,7 +1110,14 @@ gotoXY(funcButtonsX,funcButtonsY);
   }
 
   displayButton("SET");
-  displayButton("    ");
+  if(satMode()==1) 
+    {
+    displayButton("MONI");
+    }
+  else
+  {
+    displayButton("    ");
+  }
   displayButton("DOTS");
   displayButton("PTT");
 
@@ -1717,6 +1724,11 @@ if(inputMode==RIT)
   }
   
 inputMode=m;
+
+if(inputMode==FREQ)
+  {
+  setFreq(freq);
+  }
 
 if(inputMode==SETTINGS)
   {
