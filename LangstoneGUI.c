@@ -391,6 +391,7 @@ void waterfall()
   int ret;
   int centreShift=0;
   char smStr[10];
+  static int sMeterCount=0;
   
       //check if data avilable to read
       ret = fread(&inbuf,sizeof(float),1,fftstream);
@@ -570,22 +571,25 @@ void waterfall()
 
           }
  
- 
-          textSize=2;
-          setForeColour(0,255,0);
-          gotoXY(sMeterX+10,sMeterY+20);
-          sprintf(smStr,"S%d",sValue);
-          displayStr(smStr);
-          if(dbOver>0)
-            {
-            sprintf(smStr,"+%ddB  ",dbOver);
-            displayStr(smStr);
-            }
-          else
-            {
-            displayStr("       ");
-            }
- 
+          sMeterCount++;
+          if(sMeterCount>5)
+          {
+              sMeterCount=0;
+              textSize=2;
+              setForeColour(0,255,0);
+              gotoXY(sMeterX+10,sMeterY+20);
+              sprintf(smStr,"S%d",sValue);
+              displayStr(smStr);
+              if(dbOver>0)
+                {
+                sprintf(smStr,"+%ddB  ",dbOver);
+                displayStr(smStr);
+                }
+              else
+                {
+                displayStr("       ");
+                }
+           }
  
    }       
 }
@@ -1683,6 +1687,7 @@ if(inputMode==SETTINGS)
   {
   gotoXY(0,settingY);
   setForeColour(255,255,255);
+  textSize=2;
   displayStr("                                                ");
   gotoXY(0,settingY+8);
   displayStr("                                                ");
@@ -2603,7 +2608,7 @@ void displaySetting(int se)
 {
   char valStr[30];
   gotoXY(0,settingY);
-  textSize=2;
+  textSize=2;                                                            
   setForeColour(255,255,255);
   displayStr("                                                ");
   gotoXY(0,settingY+8);
