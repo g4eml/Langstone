@@ -74,7 +74,7 @@ int readPlutoRxGain(void);
 void setBand(int b);
 void setPlutoGpo(int p);
 void setTxPin(int v);
-long long runTimeMs(void);
+long long runTimeMs(void);                                                    
 void clearPopUp(void);
 void displayPopupMode(void);
 void displayPopupBand(void);
@@ -1180,6 +1180,10 @@ void processMouse(int mbut)
         setFreq(freq);
         return;      
       }
+      
+      if(mouseScroll>0) mouseScroll=1;                     //prevent large changes when adjusting. 
+      if(mouseScroll<0) mouseScroll=-1;
+      
       if(inputMode==SETTINGS)
       {
         changeSetting();
@@ -1287,7 +1291,6 @@ touchX=tempY;                       //swap X and Y
 touchY=tempX;
 }
 
-printf("touchX= %d touchY= %d\n",touchX,touchY);
    
 // Volume Button   
 
