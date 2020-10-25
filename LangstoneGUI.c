@@ -1579,7 +1579,6 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
 
 if((touchY>freqDisplayY) & (touchY < freqDisplayY+freqDisplayCharHeight) & (touchX>freqDisplayX) & (touchX < freqDisplayX+12*freqDisplayCharWidth))   
   {
-    setInputMode(FREQ);
     int tx=touchX-freqDisplayX;
     tx=tx/freqDisplayCharWidth;
     tuneDigit=tx;
