@@ -82,6 +82,7 @@ void send1750(void);
 void displayError(char*st);
 int minGain(double freq);
 int maxGain(double freq);
+void setDialLock(int d);
 
 double freq;
 double freqInc=0.001;
@@ -164,6 +165,8 @@ int inputMode=FREQ;
 #define sMeterHeight 40
 #define errorX 200
 #define errorY 240
+#define diallockX 316
+#define diallockY 15
 
 
 
@@ -175,6 +178,7 @@ int fifofd;
 int sendDots=0;
 int dotCount=0;
 int transmitting=0;
+int dialLock=0;
 
 #define configDelay 500                              ///delay before config is written after tuning (5 Seconds)
 int configCounter=configDelay;
@@ -1171,7 +1175,7 @@ void processMouse(int mbut)
 {
   if(mbut==128)       //scroll whell turned 
     {
-      if(inputMode==FREQ)
+      if((inputMode==FREQ) && (dialLock==0))
       {
         freq=freq+(mouseScroll*freqInc);
         mouseScroll=0;
@@ -1246,6 +1250,18 @@ void processMouse(int mbut)
         displaySetting(BAND_BITS);
         }          
     }
+    
+  if(mbut==3+128)       //Middle button down
+     {
+      if(dialLock==0)
+        {
+          setDialLock(1);
+        }
+      else
+        {
+         setDialLock(0); 
+        }
+     }
     
   if(mbut==4+128)      //Extra Button down
     {
@@ -1360,7 +1376,7 @@ if(buttonTouched(ritButtonX,ritButtonY+buttonSpaceY))    //rit zero
 
 if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     {
-    if(inputMode==FREQ)
+    if((inputMode==FREQ) && (popupSel!=BAND))
     {
       writeConfig();
       displayPopupBand();
@@ -1369,6 +1385,7 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     else
     {
       setInputMode(FREQ);
+      clearPopUp();
       return; 
     }
       
@@ -1376,7 +1393,7 @@ if(buttonTouched(funcButtonsX,funcButtonsY))    //Button 1 = BAND or MENU
     }      
 if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE or Blank
     {
-     if(inputMode==FREQ)
+     if((inputMode==FREQ) && (popupSel!=MODE))
       {
       displayPopupMode();
       return;
@@ -1384,6 +1401,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX,funcButtonsY))    //Button 2 = MODE o
       else
       {
       setInputMode(FREQ);
+      clearPopUp();
       return;
       }
     }
@@ -1575,10 +1593,11 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
 
 
    
-//Touch on Frequency Digits moves cursor to digit and sets tuning step. 
+//Touch on Frequency Digits moves cursor to digit and sets tuning step. Removes dial lock if it is set.  
 
 if((touchY>freqDisplayY) & (touchY < freqDisplayY+freqDisplayCharHeight) & (touchX>freqDisplayX) & (touchX < freqDisplayX+12*freqDisplayCharWidth))   
   {
+    if(inputMode==FREQ) setDialLock(0);
     int tx=touchX-freqDisplayX;
     tx=tx/freqDisplayCharWidth;
     tuneDigit=tx;
@@ -2239,6 +2258,24 @@ else
   }
 }
 
+void setDialLock(int d)
+{
+  if(d==0)
+  {
+    dialLock=0;
+    gotoXY(diallockX,diallockY);
+    textSize=2;
+    displayStr("    ");
+  }
+  else
+  {
+    dialLock=1;
+    gotoXY(diallockX,diallockY);
+    textSize=2;
+    setForeColour(255,0,0);
+    displayStr("LOCK");
+  }
+}
 
 void setMoni(int m)
 {
