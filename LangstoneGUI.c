@@ -119,10 +119,10 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 14
+#define numSettings 15
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH};
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ", "CWID Carrier= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CW_CARRIER};
 int settingNo=RX_GAIN;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
@@ -2710,7 +2710,15 @@ void changeSetting(void)
       if(bandSSBFiltHigh[band] > 5000) bandSSBFiltHigh[band]=5000;
       setMode(mode);                 //refresh mode to set new filter settings
       displaySetting(settingNo);  
-      }                                                                                                           
+      }     
+    if(settingNo==CW_CARRIER)        // CWID Carrier time
+      {
+      CWIDkeyDownTime=CWIDkeyDownTime+mouseScroll*100;
+      mouseScroll=0;
+      if(CWIDkeyDownTime< 500) CWIDkeyDownTime=500;
+      if(CWIDkeyDownTime> 12000) CWIDkeyDownTime=12000;
+      displaySetting(settingNo);  
+      }                                                                                                                       
 }
 
                
@@ -2878,6 +2886,11 @@ if(se==REP_SHIFT)
   if(se==SSB_FILT_HIGH)
   {
   sprintf(valStr,"%d Hz",bandSSBFiltHigh[band]);
+  displayStr(valStr);
+  }
+  if(se==CW_CARRIER)
+  {
+  sprintf(valStr,"%d Secs",CWIDkeyDownTime/100);
   displayStr(valStr);
   }
 }
