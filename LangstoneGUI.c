@@ -11,6 +11,7 @@
 #include "Touch.h"
 #include "Mouse.h"
 #include "mcp23017.c"
+#include "Morse.c"
 
 
 #define PLUTOIP "ip:pluto.local"
@@ -83,6 +84,7 @@ void displayError(char*st);
 int minGain(double freq);
 int maxGain(double freq);
 void setDialLock(int d);
+void setBeacon(int b);
 
 double freq;
 double freqInc=0.001;
@@ -175,12 +177,15 @@ int ptt=0;
 int ptts=0;
 int moni=0;
 int fifofd;
-int sendDots=0;
+int sendBeacon=0;
 int dotCount=0;
 int transmitting=0;
 int dialLock=0;
 
-#define configDelay 500                              ///delay before config is written after tuning (5 Seconds)
+int keyDownTimer=0;
+int CWIDkeyDownTime=1000;                     //time to put key down between CW Idents (100 per second)
+
+#define configDelay 500                              //delay before config is written after tuning (5 Seconds)
 int configCounter=configDelay;
 
 long long lastLOhz;
@@ -227,7 +232,7 @@ int MCP23017Present;
 
 int popupSel=0;
 int popupFirstBand;
-enum {NONE,MODE,BAND};
+enum {NONE,MODE,BAND,BEACON};
 
 #define pttPin 0        // Wiring Pi pin number. Physical pin is 11
 #define keyPin 1        //Wiring Pi pin number. Physical pin is 12
@@ -315,8 +320,8 @@ int main(int argc, char* argv[])
       }
       
       
-    
-    if(sendDots==1)
+   
+    if(sendBeacon==2)
       {
         dotCount=dotCount+1;
         if(dotCount==1)
@@ -332,6 +337,41 @@ int main(int argc, char* argv[])
           dotCount=0;
           }
       } 
+      
+
+
+    if(sendBeacon==1)                                   //sending CWID
+    {
+      if(keyDownTimer>0)
+        {    
+          if((keyDownTimer>100) &&( keyDownTimer < CWIDkeyDownTime-100))                                //Key down between Idents
+           {
+            setKey(1);
+           }
+           else
+           {
+            setKey(0);
+           }
+        keyDownTimer--;
+        }    
+     else
+      {
+       int ret=morseKey();                              //get the next key from morse string
+       if(ret==-1)                                      // Ident finished
+        {
+        keyDownTimer=CWIDkeyDownTime;                   //key down for this time between idents
+        }
+       else
+        {  
+          setKey(ret);
+        }
+      }
+  
+    }
+
+
+
+
     waterfall();
 
     if(configCounter>0)                                       //save the config after 5 seconds of inactivity.
@@ -513,7 +553,7 @@ void waterfall()
           gotoXY(p+centreShift+FFTX-20000/HzPerBin-24,FFTY+8);
           displayStr(" -20k ");
           gotoXY(p+centreShift+FFTX+10000/HzPerBin-24,FFTY+8);
-          displayStr(" +10k ");
+          displayStr(" +10k ");                                                                                             
           gotoXY(p+centreShift+FFTX+20000/HzPerBin-24,FFTY+8);
           displayStr(" +20k ");
  
@@ -1122,7 +1162,32 @@ gotoXY(funcButtonsX,funcButtonsY);
   {
     displayButton("    ");
   }
-  displayButton("DOTS");
+  if(sendBeacon > 0)
+    {
+    setForeColour(255,0,0);
+    if(sendBeacon==1)
+      {
+        displayButton("CWID");
+      } 
+     else
+      {
+        displayButton("DOTS");
+      } 
+    }
+  else
+    {
+    setForeColour(0,255,0);
+    displayButton("BEACON");
+    }
+
+  if(ptt|ptts)
+    {
+    setForeColour(255,0,0);  
+    }
+  else
+    {
+    setForeColour(0,255,0);
+    }   
   displayButton("PTT");
 
 }
@@ -1156,6 +1221,17 @@ gotoXY(popupX,popupY);
   }
 popupSel=BAND;
 }
+
+void displayPopupBeacon(void)
+{
+clearPopUp();
+gotoXY(popupX + buttonSpaceX*5,popupY);
+setForeColour(0,255,0);
+displayButton("DOTS");
+displayButton("CWID");
+popupSel=BEACON;
+}
+
 
 void clearPopUp(void)
 {
@@ -1486,40 +1562,19 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
  
     }      
 
-if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = DOTS  or Exit to Portsdown
+if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = BEACON  or Exit to Portsdown
     {
     if(inputMode==FREQ)
       {
-      if(sendDots==0)
+      if(sendBeacon==0)
         {
-          sendDots=1;
-          setMode(2);
-          if(!(ptt|ptts))                     //if not already transmitting
-          {
-           setTx(1);                          //goto transmit
-          }
-          ptts=1;                             //latch the transmit on
-          gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
-          setForeColour(255,0,0);
-          displayButton("DOTS");  
-          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-          setForeColour(255,0,0);
-          displayButton("PTT");       
+         displayPopupBeacon();
         }
       else
         {
-          sendDots=0;
-          ptts=0;
-          setTx(0);
-          setKey(0);
-          setMode(mode);
-          gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
-          setForeColour(0,255,0);
-          displayButton("DOTS");  
-          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-          setForeColour(0,255,0);
-          displayButton("PTT");       
+        setBeacon(0);
         }
+ 
       return;
       }
       else if (inputMode==SETTINGS)
@@ -1541,7 +1596,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       if(ptts==0)
         {
           ptts=1;
-          sendDots=0;
+          sendBeacon=0;
           setTx(ptt|ptts);
           gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
           setForeColour(255,0,0);
@@ -1550,13 +1605,13 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       else
         {
           ptts=0;
-          if(sendDots==1)
+          if(sendBeacon==1)
           {
-          sendDots=0;
+          sendBeacon=0;
           setMode(mode);
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(0,255,0);
-          displayButton("DOTS");  
+          displayButton("BEACON");  
           }
 
           setTx(ptt|ptts);
@@ -1565,7 +1620,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
           displayButton("PTT");
           gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
           setForeColour(0,255,0);
-          displayButton("DOTS");   
+          displayButton("BEACON");   
         }
       return;
       }
@@ -1643,6 +1698,20 @@ if(popupSel==BAND)
 }
 
 
+if(popupSel==BEACON)
+  {
+    if(buttonTouched(popupX+ 5* buttonSpaceX,popupY))       //DOTS
+      {
+      setBeacon(2);
+      clearPopUp();
+      }
+     if(buttonTouched(popupX+ 6* buttonSpaceX,popupY))       //CWID
+      {
+      setBeacon(1);
+      clearPopUp();
+      }     
+  }
+
 
 
 
@@ -1673,6 +1742,44 @@ void setBand(int b)
   setPlutoRxGain(bandRxGain[band]);
   configCounter=configDelay;
 }
+
+void setBeacon(int b)
+{
+ if(b > 0)
+   {
+      sendBeacon=b;
+      morseReset();
+      keyDownTimer=300;
+      setMode(2);
+      if(!(ptt|ptts))                     //if not already transmitting
+        {
+          setTx(1);                          //goto transmit
+        }
+      ptts=1;                             //latch the transmit on
+      gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
+      setForeColour(255,0,0);
+      displayButton("BEACON");  
+      gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+      setForeColour(255,0,0);
+      displayButton("PTT");       
+   }
+  else
+    {
+      sendBeacon=0;
+      ptts=0;
+      setTx(0);
+      setKey(0);
+      setMode(mode);
+      gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
+      setForeColour(0,255,0);
+      displayButton("BEACON");  
+      gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+      setForeColour(0,255,0);
+      displayButton("PTT");       
+    }
+
+}
+
  
 void setVolume(int vol)
 {
@@ -2779,8 +2886,9 @@ int readConfig(void)
 {
 FILE * conffile;
 char variable[80];
-char value[20];
+char value[200];
 char vname[20];
+char remainder[200];
 
 conffile=fopen("/home/pi/Langstone/Langstone.conf","r");
 
@@ -2791,6 +2899,18 @@ if(conffile==NULL)
 
 while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
   {
+     
+    if(strstr(variable,"CW_IDENT"))
+      {
+       strcpy(morseIdent,value);
+      }
+    if(strstr(variable,"CWID_KEY_DOWN_TIME"))
+      {
+        sscanf(value,"%d",&CWIDkeyDownTime);
+        CWIDkeyDownTime=CWIDkeyDownTime*100;
+      }
+
+    
     for(int b=0;b<numband;b++)
     {
     sprintf(vname,"bandFreq%02d",b);
@@ -2858,6 +2978,9 @@ if(conffile==NULL)
   {
     return -1;
   }
+
+fprintf(conffile,"CW_IDENT %s\n",morseIdent);
+fprintf(conffile,"CWID_KEY_DOWN_TIME %d\n",CWIDkeyDownTime/100);
 
 for(int b=0;b<numband;b++)
 {
