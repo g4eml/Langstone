@@ -2984,10 +2984,9 @@ if(se==REP_SHIFT)
 int readConfig(void)
 {
 FILE * conffile;
-char variable[80];
-char value[200];
+char variable[50];
+char value[100];
 char vname[20];
-char remainder[200];
 
 conffile=fopen("/home/pi/Langstone/Langstone.conf","r");
 
@@ -2996,11 +2995,12 @@ if(conffile==NULL)
     return -1;
   }
 
-while(fscanf(conffile,"%s %s [^\n]\n",variable,value) !=EOF)
+while(fscanf(conffile,"%49s %99s [^\n]\n",variable,value) !=EOF)
   {
      
     if(strstr(variable,"CW_IDENT"))
       {
+       value[MORSEIDENTLENGTH-1]=0;           //force to maximum length if necessary
        strcpy(morseIdent,value);
       }
     if(strstr(variable,"CWID_KEY_DOWN_TIME"))
