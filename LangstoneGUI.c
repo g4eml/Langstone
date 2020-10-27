@@ -119,11 +119,12 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 15
+#define numSettings 16
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ", "CWID Carrier= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CW_CARRIER};
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER};
 int settingNo=RX_GAIN;
+int setIndex=0;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
 int inputMode=FREQ;
@@ -1301,29 +1302,48 @@ void processMouse(int mbut)
     
   if(mbut==1+128)      //Left Mouse Button down
     {
-      tuneDigit=tuneDigit-1;
-      if(tuneDigit<0) tuneDigit=0;
-      if(tuneDigit==5) tuneDigit=4;
-      if(tuneDigit==9) tuneDigit=8;
-      setFreqInc();
-      setFreq(freq);
-      if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
-        {
-        displaySetting(BAND_BITS);
-        }    
+    
+      if((inputMode==SETTINGS)&&(settingNo=CWID))
+       {
+         setIndex=setIndex-1;
+         if(setIndex<0) setIndex=0;
+         displaySetting(CWID);
+       }
+      else
+       {
+        tuneDigit=tuneDigit-1;
+        if(tuneDigit<0) tuneDigit=0;
+        if(tuneDigit==5) tuneDigit=4;
+        if(tuneDigit==9) tuneDigit=8;
+        setFreqInc();
+        setFreq(freq);
+        if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
+          {
+          displaySetting(BAND_BITS);
+          }
+       }  
     }
     
   if(mbut==2+128)      //Right Mouse Button down
     {
-      tuneDigit=tuneDigit+1;
-      if(tuneDigit > maxTuneDigit) tuneDigit=maxTuneDigit;
-      if(tuneDigit==5) tuneDigit=6;
-      if(tuneDigit==9) tuneDigit=10;
-      setFreqInc();
-      setFreq(freq); 
-      if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
-        {
-        displaySetting(BAND_BITS);
+      if((inputMode==SETTINGS)&&(settingNo=CWID))
+       {
+         setIndex=setIndex+1;
+         if(setIndex>MORSEIDENTLENGTH-2) setIndex=MORSEIDENTLENGTH-2;
+         displaySetting(CWID);
+       }
+      else  
+       {
+         tuneDigit=tuneDigit+1;
+         if(tuneDigit > maxTuneDigit) tuneDigit=maxTuneDigit;
+         if(tuneDigit==5) tuneDigit=6;
+         if(tuneDigit==9) tuneDigit=10;
+         setFreqInc();
+         setFreq(freq); 
+         if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
+           {
+             displaySetting(BAND_BITS);
+           }
         }          
     }
     
@@ -2718,7 +2738,30 @@ void changeSetting(void)
       if(CWIDkeyDownTime< 500) CWIDkeyDownTime=500;
       if(CWIDkeyDownTime> 12000) CWIDkeyDownTime=12000;
       displaySetting(settingNo);  
-      }                                                                                                                       
+      }  
+      
+     if(settingNo==CWID)            //CW Ident string
+     {
+     int c;
+     c= morseIdent[setIndex];
+     c=c+mouseScroll;
+     if(mouseScroll>0)
+       {
+         if(c>95) c=47;
+         if((c>57)&&(c<65)) c=65;
+         if(c>90) c=95;
+       }
+     if(mouseScroll<0)
+       {
+          if(c<47) c=95;
+          if((c>90)&&(c<95)) c=90;
+          if((c>57)&&(c<65)) c=57;
+       }
+     
+     morseIdent[setIndex] = c;
+     mouseScroll=0;
+     displaySetting(settingNo); 
+     }                                                                                                                     
 }
 
                
@@ -2780,7 +2823,7 @@ void displaySetting(int se)
   gotoXY(0,settingY+8);
   displayStr("                                                ");
   gotoXY(settingX,settingY);
-  if((se==TX_OFFSET)||(se==RX_OFFSET))
+  if((se==TX_OFFSET)||(se==RX_OFFSET)||(se==CWID))
   {
   gotoXY(0,settingY);
   }
@@ -2893,6 +2936,46 @@ if(se==REP_SHIFT)
   sprintf(valStr,"%d Secs",CWIDkeyDownTime/100);
   displayStr(valStr);
   }
+  if(se==CWID)
+  {
+   for(int c=0; c<MORSEIDENTLENGTH;c++)
+    {
+      if(setIndex==c)
+        {
+          setForeColour(255,0,0);
+        }
+      else
+        {
+          setForeColour(255,255,255);
+        }
+      if(morseIdent[c]>0)
+        {
+          if((morseIdent[c]==95) && (setIndex!=c))
+            {
+              displayChar(32);
+            }
+          else
+            {
+              displayChar(morseIdent[c]);
+            }
+        } 
+      else
+        {
+          if(setIndex>=c)
+            {
+            setIndex=c;
+            morseIdent[c]=95;
+            setForeColour(255,0,0);
+            displayChar(95);
+            morseIdent[c+1]=0;          
+            }
+          break;
+        }   
+    }
+  }
+  
+  
+  
 }
 
 int readConfig(void)
@@ -2984,6 +3067,16 @@ char variable[80];
 int value;
 
 bandFreq[band]=freq;
+
+for(int i=0;i<MORSEIDENTLENGTH;i++)                                                 //trim morse Ident to remove redundant spaces.
+  {
+  if((morseIdent[i]==95) && (morseIdent[i+1]==95))                    //find double space
+    {
+      morseIdent[i]=0;                                                //terminate string here
+      break;
+    }
+  }
+
 
 conffile=fopen("/home/pi/Langstone/Langstone.conf","w");
 

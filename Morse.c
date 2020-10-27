@@ -13,7 +13,10 @@ int morseBitTimer =0;            //bit timer to control speed of morse character
 int morseBitInterval =5;        //number of ticks per bit. (sets the morse speed)
 long morseShiftReg =0;           // 
 int morseLastRet=0;
-char morseIdent[200] = "TEST_DE_LANGSTONE";          //Ident string terminated with zero
+
+#define MORSEIDENTLENGTH 41
+
+char morseIdent[MORSEIDENTLENGTH] = "TEST_DE_LANGSTONE";          //Ident string terminated with zero
 
 void morseEncode(int ch,long * bits,int * count);         
 
