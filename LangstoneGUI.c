@@ -125,6 +125,7 @@ char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","R
 enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER};
 int settingNo=RX_GAIN;
 int setIndex=0;
+int maxSetIndex=10;
 
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
 int inputMode=FREQ;
@@ -1303,11 +1304,11 @@ void processMouse(int mbut)
   if(mbut==1+128)      //Left Mouse Button down
     {
     
-      if((inputMode==SETTINGS)&&(settingNo=CWID))
+      if((inputMode==SETTINGS)&&((settingNo==CWID)||(settingNo==BAND_BITS)))
        {
          setIndex=setIndex-1;
          if(setIndex<0) setIndex=0;
-         displaySetting(CWID);
+         displaySetting(settingNo);
        }
       else
        {
@@ -1326,11 +1327,11 @@ void processMouse(int mbut)
     
   if(mbut==2+128)      //Right Mouse Button down
     {
-      if((inputMode==SETTINGS)&&(settingNo=CWID))
+      if((inputMode==SETTINGS)&&((settingNo==CWID)||(settingNo==BAND_BITS)))
        {
          setIndex=setIndex+1;
-         if(setIndex>MORSEIDENTLENGTH-2) setIndex=MORSEIDENTLENGTH-2;
-         displaySetting(CWID);
+         if(setIndex>maxSetIndex) setIndex=maxSetIndex;
+         displaySetting(settingNo);
        }
       else  
        {
@@ -2630,35 +2631,35 @@ void changeSetting(void)
       }      
    if(settingNo==BAND_BITS)        // Band Bits
       {
-      if(tuneDigit==11)
+      if(setIndex==7)
         {
         bandBits[band]=bandBits[band] ^ 0x01; 
         }
-      if(tuneDigit==10)
+      if(setIndex==6)
         {
         bandBits[band]=bandBits[band] ^ 0x02; 
         }
-      if(tuneDigit==8)
+      if(setIndex==5)
         {
         bandBits[band]=bandBits[band] ^ 0x04; 
         }
-      if(tuneDigit==7)
+      if(setIndex==4)
         {
         bandBits[band]=bandBits[band] ^ 0x08; 
         }
-       if(tuneDigit==6)
+       if(setIndex==3)
         {
         bandBits[band]=bandBits[band] ^ 0x10; 
         }
-        if(tuneDigit==4)
+      if(setIndex==2)
         {
         bandBits[band]=bandBits[band] ^ 0x20; 
         }
-        if(tuneDigit==3)
+      if(setIndex==1)
         {
         bandBits[band]=bandBits[band] ^ 0x40; 
         }
-        if(tuneDigit==2)
+      if(setIndex==0)
         {
         bandBits[band]=bandBits[band] ^ 0x80; 
         }
@@ -2841,15 +2842,15 @@ void displaySetting(int se)
   }
 if(se==REP_SHIFT)
   {
-  sprintf(valStr,"%f",bandRepShift[band]);
+  sprintf(valStr,"%.5f",bandRepShift[band]);
   displayStr(valStr);
   }
   if(se==RX_OFFSET)
   {
-  sprintf(valStr,"%f",bandRxOffset[band]);
+  sprintf(valStr,"%.5f",bandRxOffset[band]);
   displayStr(valStr);
   displayStr(" Rx Freq= ");
-  sprintf(valStr,"%f",freq+bandRxOffset[band]);
+  sprintf(valStr,"%.5f",freq+bandRxOffset[band]);
   displayStr(valStr);
   }
   if(se==RX_HARMONIC)
@@ -2859,10 +2860,10 @@ if(se==REP_SHIFT)
   } 
   if(se==TX_OFFSET)
   {
-  sprintf(valStr,"%f",bandTxOffset[band]);
+  sprintf(valStr,"%.5f",bandTxOffset[band]);
   displayStr(valStr);
   displayStr(" Tx Freq= ");
-  sprintf(valStr,"%f",freq+bandTxOffset[band]);
+  sprintf(valStr,"%.5f",freq+bandTxOffset[band]);
   displayStr(valStr);
   }
   if(se==TX_HARMONIC)
@@ -2872,10 +2873,11 @@ if(se==REP_SHIFT)
   }   
   if(se==BAND_BITS)
   { 
+  maxSetIndex=7;
   setForeColour(255,255,255);
   for(int b=128;b>0;b=b>>1)
     {
-      if(((tuneDigit==11)&&(b==1)) || ((tuneDigit==10)&&(b==2))  || ((tuneDigit==8)&&(b==4)) || ((tuneDigit==7)&&(b==8)) || ((tuneDigit==6)&&(b==16))  || ((tuneDigit==4)&&(b==32))  || ((tuneDigit==3)&&(b==64))  || ((tuneDigit==2)&&(b==128)))
+      if(((setIndex==7)&&(b==1)) || ((setIndex==6)&&(b==2))  || ((setIndex==5)&&(b==4)) || ((setIndex==4)&&(b==8)) || ((setIndex==3)&&(b==16))  || ((setIndex==2)&&(b==32))  || ((setIndex==1)&&(b==64))  || ((setIndex==0)&&(b==128)))
         {
           setForeColour(0,255,0);
         }
@@ -2918,7 +2920,7 @@ if(se==REP_SHIFT)
   }
   if(se==S_ZERO)
   {
-  sprintf(valStr,"%f dB",bandSmeterZero[band]);
+  sprintf(valStr,"%.0f dB",bandSmeterZero[band]);
   displayStr(valStr);
   }
   if(se==SSB_FILT_LOW)
@@ -2938,11 +2940,12 @@ if(se==REP_SHIFT)
   }
   if(se==CWID)
   {
+    maxSetIndex=MORSEIDENTLENGTH-2;
    for(int c=0; c<MORSEIDENTLENGTH;c++)
     {
       if(setIndex==c)
         {
-          setForeColour(255,0,0);
+          setForeColour(0,255,0);
         }
       else
         {
@@ -2965,7 +2968,7 @@ if(se==REP_SHIFT)
             {
             setIndex=c;
             morseIdent[c]=95;
-            setForeColour(255,0,0);
+            setForeColour(0,255,0);
             displayChar(95);
             morseIdent[c+1]=0;          
             }
