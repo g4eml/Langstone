@@ -119,10 +119,10 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 16
+#define numSettings 17
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER};
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
 int settingNo=RX_GAIN;
 int setIndex=0;
 int maxSetIndex=10;
@@ -189,6 +189,9 @@ int CWIDkeyDownTime=1000;                     //time to put key down between CW 
 
 #define configDelay 500                              //delay before config is written after tuning (5 Seconds)
 int configCounter=configDelay;
+
+int breakInTimer=0;
+int breakInTime=100;
 
 long long lastLOhz;
 
@@ -987,10 +990,34 @@ if(MCP23017Present==1)                //MCP23017 extender chip can be used with 
         }
 
       if(k1!=lastKey)
-    {
+    {    
     setKey(!k1);
     lastKey=k1;
-    }  
+    } 
+
+    if(mode==CW)
+      {
+        if(k1==0)          //key down
+          {
+            if((ptt|ptts)==0)   //not transmitting
+              { 
+                setTx(1);    
+              }
+            breakInTimer=breakInTime;
+          }
+        else
+          {
+            if((breakInTimer>0) & ((ptt|ptts)==0))
+            {
+            breakInTimer--;
+            if(breakInTimer==0)
+              {
+              setTx(0);
+              }
+            }
+          }
+       }
+     
 }
 
 
@@ -2762,7 +2789,16 @@ void changeSetting(void)
      morseIdent[setIndex] = c;
      mouseScroll=0;
      displaySetting(settingNo); 
-     }                                                                                                                     
+     }  
+     
+  if(settingNo==BREAK_IN_TIME)        // CW Break In Timer
+      {
+      breakInTime=breakInTime+mouseScroll;
+      mouseScroll=0;
+      if(breakInTime< 50) breakInTime=50;
+      if(breakInTime> 200) breakInTime=200;
+      displaySetting(settingNo);  
+      }                                                                                                                     
 }
 
                
@@ -2977,7 +3013,11 @@ if(se==REP_SHIFT)
     }
   }
   
-  
+ if(se==BREAK_IN_TIME)
+  {
+  sprintf(valStr,"%d ms",breakInTime*10);
+  displayStr(valStr);
+  }  
   
 }
 
@@ -3053,7 +3093,7 @@ while(fscanf(conffile,"%49s %99s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"SSBMic")) sscanf(value,"%d",&SSBMic);
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
     if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
-    
+    if(strstr(variable,"breakInTime")) sscanf(value,"%d",&breakInTime);
     if(mode>nummode-1) mode=0;
             
   }
@@ -3117,6 +3157,7 @@ fprintf(conffile,"mode %d\n",mode);
 fprintf(conffile,"SSBMic %d\n",SSBMic);
 fprintf(conffile,"FMMic %d\n",FMMic);
 fprintf(conffile,"volume %d\n",volume);
+fprintf(conffile,"breakInTime %d\n",breakInTime);
 
 fclose(conffile);
 return 0;
