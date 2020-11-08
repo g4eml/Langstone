@@ -1007,7 +1007,7 @@ if(MCP23017Present==1)                //MCP23017 extender chip can be used with 
     lastKey=k1;
     } 
 
-    if(mode==CW)
+    if((mode==CW) ||(mode==CWN))
       {
         if(k1==0)          //key down
           {
