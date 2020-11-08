@@ -1357,7 +1357,7 @@ void processMouse(int mbut)
         if(tuneDigit==9) tuneDigit=8;
         setFreqInc();
         setFreq(freq);
-        twoButTimer=10;
+        twoButTimer=20;
         lastBut=lastBut | 1;
         if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
           {
@@ -1382,7 +1382,7 @@ void processMouse(int mbut)
          if(tuneDigit==9) tuneDigit=10;
          setFreqInc();
          setFreq(freq); 
-         twoButTimer=10;
+         twoButTimer=20;
          lastBut=lastBut | 2;
          if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
            {
