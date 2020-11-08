@@ -190,6 +190,9 @@ int CWIDkeyDownTime=1000;                     //time to put key down between CW 
 #define configDelay 500                              //delay before config is written after tuning (5 Seconds)
 int configCounter=configDelay;
 
+int twoButTimer=0;
+int lastBut=0;
+
 int breakInTimer=0;
 int breakInTime=100;
 
@@ -321,7 +324,16 @@ int main(int argc, char* argv[])
         if(but>0)
           {
              processMouse(but);
-          }           
+          }
+       if(twoButTimer>0) 
+       {
+        twoButTimer--;
+        if(twoButTimer==0)
+          {
+            lastBut=0;
+          }
+       }
+           
       }
       
       
@@ -1345,6 +1357,8 @@ void processMouse(int mbut)
         if(tuneDigit==9) tuneDigit=8;
         setFreqInc();
         setFreq(freq);
+        twoButTimer=10;
+        lastBut=lastBut | 1;
         if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
           {
           displaySetting(BAND_BITS);
@@ -1368,14 +1382,16 @@ void processMouse(int mbut)
          if(tuneDigit==9) tuneDigit=10;
          setFreqInc();
          setFreq(freq); 
+         twoButTimer=10;
+         lastBut=lastBut | 2;
          if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
            {
              displaySetting(BAND_BITS);
            }
         }          
     }
-    
-  if(mbut==3+128)       //Middle button down
+ 
+  if((mbut==3+128) | (lastBut==3))       //Middle button down or both buttons within 100ms
      {
       if(dialLock==0)
         {
@@ -1385,6 +1401,7 @@ void processMouse(int mbut)
         {
          setDialLock(0); 
         }
+       lastBut=0;
      }
     
   if(mbut==4+128)      //Extra Button down
