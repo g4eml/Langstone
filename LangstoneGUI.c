@@ -85,7 +85,7 @@ int minGain(double freq);
 int maxGain(double freq);
 void setDialLock(int d);
 void setBeacon(int b);
-
+int firstpass=1;
 double freq;
 double freqInc=0.001;
 #define numband 12
@@ -400,6 +400,13 @@ int main(int argc, char* argv[])
         }
     }
     
+   
+   if(firstpass==1)
+   {
+   firstpass=0;
+   setTx(1);                                              //seems to be needed to initialise Pluto
+   setTx(0);
+   }
     
     while(runTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second (10ms)
     {
