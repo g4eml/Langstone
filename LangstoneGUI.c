@@ -2345,13 +2345,13 @@ void setFreq(double fr)
 
 displayFreq(fr);
  
-//set TXVTR, SAT, SPLIT or MULT indication if needed.
+//set XVTR, SAT, SPLIT or MULT indication if needed.
   gotoXY(txvtrX,txvtrY);
   setForeColour(0,255,0);
   textSize=2;
   if( txvtrMode()==1)
     {
-     displayStr(" TXVTR "); 
+     displayStr(" XVTR  "); 
     }
   else if(satMode()==1)
     {
