@@ -304,6 +304,8 @@ int main(int argc, char* argv[])
 
   setFFTPipe(1);            //Turn on FFT Stream from GNU RAdio
 
+  setTx(1);
+  setTx(0);
   
   while(1)
   {
