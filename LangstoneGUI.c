@@ -2197,6 +2197,7 @@ void setTx(int pt)
       sendTxFifo("H");                  //freeze the Tx Flowgraph
       sendRxFifo("h");                  //unfreeze the Rx Flowgraph
       sendRxFifo("u");                  //unmute the receiver
+      setHwTxFreq(freq+10.0);           //offset the Tx freq to prevent unwanted spurious
       PlutoTxEnable(0);
       PlutoRxEnable(1);
       setFFTPipe(1);                //turn on the FFT Stream
@@ -2349,7 +2350,11 @@ displayFreq(fr);
   gotoXY(txvtrX,txvtrY);
   setForeColour(0,255,0);
   textSize=2;
-  if( txvtrMode()==1)
+  if(multMode()==1)
+    {
+    displayStr(" MULT  ");
+    }  
+  else if( txvtrMode()==1)
     {
      displayStr(" XVTR  "); 
     }
@@ -2361,10 +2366,6 @@ displayFreq(fr);
     {
     displayStr(" SPLIT ");
     } 
-  else if(multMode()==1)
-    {
-    displayStr(" MULT  ");
-    }   
   else
     {
       displayStr("       ");
@@ -2391,7 +2392,7 @@ displayFreq(fr);
 
 int satMode(void)
 {
-if((abs(bandTxOffset[band]-bandRxOffset[band]) > 1 ) & (bandRxOffset[band]!=0) )     // if we have a differnt Rx and Tx offset then we must be in Sat mode. 
+if(((abs(bandTxOffset[band]-bandRxOffset[band]) > 1 ) & (bandRxOffset[band]!=0) ) & bandRxHarmonic[band]<2  & bandTxHarmonic[band]<2 )     // if we have a differnt Rx and Tx offset and we are not multiplying then we must be in Sat mode. 
   {
   return 1;
   }
@@ -2636,6 +2637,8 @@ void changeSetting(void)
    if(settingNo==RX_OFFSET)        //Transverter Rx Offset 
       {
         bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
+        if(bandRxOffset[band] > 99999.9) bandRxOffset[band]= 99999.9;
+        if(bandRxOffset[band] < -99999.9) bandRxOffset[band]= -99999.9;
         mouseScroll=0;
         setFreq(freq);
         displaySetting(settingNo);
@@ -2657,6 +2660,8 @@ void changeSetting(void)
    if(settingNo==TX_OFFSET)        //Transverter Tx Offset
       {
         bandTxOffset[band]=bandTxOffset[band]+mouseScroll*freqInc;
+        if(bandTxOffset[band] > 99999.9) bandTxOffset[band]= 99999.9;
+        if(bandTxOffset[band] < -99999.9) bandTxOffset[band]= -99999.9;
         mouseScroll=0;
         setFreq(freq);
         displaySetting(settingNo);
