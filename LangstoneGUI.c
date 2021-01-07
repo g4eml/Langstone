@@ -724,6 +724,16 @@ void detectHw()
     portsdownPresent=1;
   }
   
+  if ((fp = fopen("/home/pi/hyperpixel4/install.sh", "r")))                      //test to see if Hyperpixel4 file is present. If so we dont use the GPIO pins. 
+  {
+    fclose(fp);
+    hyperPixelPresent=1;
+  }
+  else
+  {
+    hyperPixelPresent=0;
+  }
+  
     plutoPresent=1;      //this will be reset by setPlutoFreq if Pluto is not present.
   
 // try to initialise MCP23017 i2c chip for additonal I/O
