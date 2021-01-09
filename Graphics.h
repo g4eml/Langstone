@@ -79,7 +79,7 @@ void displayChar(int ch)
          }
        else
          { 
-            setLargePixel(currentX+col*textSize,currentY+row*textSize+descender,textSize,backColourR,backColourG,backColourG);
+            setLargePixel(currentX+col*textSize,currentY+row*textSize+descender,textSize,backColourR,backColourG,backColourB);
          }
       }
     }
