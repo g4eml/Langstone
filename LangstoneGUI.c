@@ -121,8 +121,8 @@ enum {USB,LSB,CW,CWN,FM,AM};
 
 #define numSettings 17
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","Send Band Bits to Pluto=","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,BAND_BITS_TO_PLUTO,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
 int settingNo=RX_GAIN;
 int setIndex=0;
 int maxSetIndex=10;
@@ -237,6 +237,8 @@ int plutoPresent;
 int portsdownPresent;
 int hyperPixelPresent;
 int MCP23017Present;
+
+int bandBitsToPluto=0;      //copy low 3 band bits to pluto IO1-IO3
 
 int popupSel=0;
 int popupFirstBand;
@@ -1661,6 +1663,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = BEAC
       }
       else if (inputMode==SETTINGS)
       {
+         setBandBits(0);
          clearScreen();
          iio_context_destroy(plutoctx);                  
          exit(0);
@@ -1708,6 +1711,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       }
       else if (inputMode==SETTINGS)
       {
+      setBandBits(0);
       sendTxFifo("h");        //unlock the Tx so that it can exit
       sendRxFifo("h");        //and unlock the Rx just in case
       sendTxFifo("Q");       //kill the SDR Tx
@@ -2580,8 +2584,10 @@ if(hyperPixelPresent==0)                //dont use Raspberry Pi GPIO with Hyperp
         }       
   }
 
-//  copy bits 0,1 and 2to Pluto GPO Pins
+//  copy bits 0,1 and 2to Pluto GPO Pins if enabled
 
+ if(bandBitsToPluto==1)
+ {
   if(b & 0x01) 
       {
       plutoGpo=plutoGpo | 0x20;
@@ -2609,6 +2615,13 @@ if(hyperPixelPresent==0)                //dont use Raspberry Pi GPIO with Hyperp
       plutoGpo=plutoGpo & 0x7F;
       }   
   setPlutoGpo(plutoGpo);
+ } 
+ else
+ {
+   plutoGpo=plutoGpo & 0x1F;
+   setPlutoGpo(plutoGpo);
+ }
+ 
   
 if(MCP23017Present==1)                       //optional extender chip has port b for band bits. 
   {
@@ -2735,7 +2748,21 @@ void changeSetting(void)
       bbits=bandBits[band];
       setBandBits(bbits);
       displaySetting(settingNo);  
-      }    
+      }  
+    if(settingNo==BAND_BITS_TO_PLUTO)        // Copy Band Bits to Pluto
+      {
+      if(mouseScroll>0)
+      {
+        bandBitsToPluto=1;
+      }
+      if(mouseScroll<0)
+      {
+         bandBitsToPluto=0;
+      }
+      mouseScroll=0;
+      displaySetting(settingNo);  
+      }       
+        
    if(settingNo==FFT_REF)        // FFT Ref Level
       {
       FFTRef=FFTRef+mouseScroll;
@@ -2970,7 +2997,18 @@ if(se==REP_SHIFT)
         }
     } 
   }
-  
+  if(se==BAND_BITS_TO_PLUTO)
+  {
+    if(bandBitsToPluto==1)
+      {
+      sprintf(valStr,"Yes");
+      }
+    else
+      {
+      sprintf(valStr,"No");
+      }
+   displayStr(valStr);  
+  } 
   if(se==FFT_REF)
   {
   sprintf(valStr,"%d",FFTRef);
@@ -3133,6 +3171,7 @@ while(fscanf(conffile,"%49s %99s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
     if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
     if(strstr(variable,"breakInTime")) sscanf(value,"%d",&breakInTime);
+    if(strstr(variable,"bandBitsToPluto")) sscanf(value,"%d",&bandBitsToPluto);
     if(mode>nummode-1) mode=0;
             
   }
@@ -3197,6 +3236,7 @@ fprintf(conffile,"SSBMic %d\n",SSBMic);
 fprintf(conffile,"FMMic %d\n",FMMic);
 fprintf(conffile,"volume %d\n",volume);
 fprintf(conffile,"breakInTime %d\n",breakInTime);
+fprintf(conffile,"bandBitsToPluto %d\n",bandBitsToPluto);
 
 fclose(conffile);
 return 0;
