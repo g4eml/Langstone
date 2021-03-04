@@ -1,8 +1,10 @@
+PLUTO_IP=pluto.local
+
 echo Stopping GNU Radio Modules
 killall python >/dev/null 2>&1
 echo Stopping GUI
 killall /home/pi/Langstone/GUI >/dev/null 2>&1
 echo Rebooting Pluto
 cp /home/pi/Langstone/splash.bgra /dev/fb0
-ssh-keygen -f "/home/pi/.ssh/known_hosts" -R pluto.local >/dev/null 2>&1
-timeout 2 sshpass -p analog ssh -o StrictHostKeyChecking=no root@pluto.local 'PATH=/bin:/sbin:/usr/bin;reboot'  >/dev/null 2>&1
+ssh-keygen -f "/home/pi/.ssh/known_hosts" -R $PLUTO_IP >/dev/null 2>&1
+timeout 2 sshpass -p analog ssh -o StrictHostKeyChecking=no root@$PLUTO_IP 'PATH=/bin:/sbin:/usr/bin;reboot'  >/dev/null 2>&1

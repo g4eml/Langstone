@@ -13,6 +13,21 @@ import os
 import errno
 
 #######################################################
+# Add these lines at the start of the Variables section
+#######################################################
+
+        plutoip=os.environ.get('PLUTO_IP')
+        if plutoip==None :
+          plutoip='pluto.local'
+        plutoip='ip:' + plutoip
+        
+########################################################
+# change the pluto source definition to  this
+########################################################
+
+        self.pluto_source_0 = iio.pluto_source(plutoip, 1000000000, 528000, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
+
+#######################################################
 # Manually add just before the Main () Function
 # to provide support for Piped commands
 #######################################################

@@ -14,7 +14,9 @@
 #include "Morse.c"
 
 
-#define PLUTOIP "ip:pluto.local"
+//#define PLUTOIP "ip:pluto.local"
+
+char plutoip[30];
 
 const char *i2cNode1 = "/dev/i2c-1";        //linux i2c node for the Hyperpixel display on Pi 4
 const char *i2cNode2 = "/dev/i2c-11";       //linux i2c node for the Hyperpixel display on Pi 4
@@ -286,6 +288,16 @@ struct iio_device *plutophy;
 
 int main(int argc, char* argv[])
 {
+  strcpy(plutoip,"ip:");
+  char * penv = getenv("PLUTO_IP");
+  if(penv==NULL)
+    {
+      strcpy(penv,"pluto.local");
+    }
+  strcat(plutoip,penv);
+
+  printf("plutoip = %s\n",plutoip);
+  
   fftstream=fopen("/tmp/langstonefft","r");                 //Open FFT Stream from GNU Radio 
   fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
   
@@ -753,7 +765,7 @@ void displayError(char*st)
 
 void initPluto(void)
 {
-    plutoctx = iio_create_context_from_uri(PLUTOIP);
+    plutoctx = iio_create_context_from_uri(plutoip);
       if(plutoctx==NULL)
       {
         plutoPresent=0;

@@ -1,6 +1,14 @@
 
 #!/bin/bash
 
+# Change this line to configure the Pluto IP address iff required. 
+
+export PLUTO_IP=pluto.local
+
+# export PLUTO_IP=192.168.2.1
+
+
+
 if test -e /tmp/langstonefft ; then
 rm /tmp/langstonefft
 fi
@@ -26,7 +34,7 @@ if !(ps -ax |grep -v grep| grep -q Lang_TX.py) then
  retry=0
  until [ ${retry} -ge 4 ]
 do
-        (ping -c1 pluto.local 2>/dev/null |grep -q received) && break
+        (ping -c1 $PLUTO_IP 2>/dev/null |grep -q received) && break
 	retry=$[${retry}+1]
 	sleep 1
 done

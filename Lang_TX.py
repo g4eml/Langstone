@@ -28,6 +28,10 @@ class Lang_TX(gr.top_block):
         ##################################################
         # Variables
         ##################################################
+        plutoip=os.environ.get('PLUTO_IP')
+        if plutoip==None :
+          plutoip='pluto.local'
+        plutoip='ip:' + plutoip
         self.ToneBurst = ToneBurst = False
         self.PTT = PTT = False
         self.Mode = Mode = 0
@@ -46,7 +50,7 @@ class Lang_TX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
-        self.pluto_sink_0 = iio.pluto_sink('ip:pluto.local', 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink(plutoip, 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc(((Mode < 4) or (Mode==5), ))

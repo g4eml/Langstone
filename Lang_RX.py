@@ -29,6 +29,10 @@ class Lang_RX(gr.top_block):
         ##################################################
         # Variables
         ##################################################
+        plutoip=os.environ.get('PLUTO_IP')
+        if plutoip==None :
+          plutoip='pluto.local'
+        plutoip='ip:' + plutoip  
         self.SQL = SQL = 50
         self.RxOffset = RxOffset = 0
         self.Mute = Mute = False
@@ -41,7 +45,7 @@ class Lang_RX(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.pluto_source_0 = iio.pluto_source('ip:pluto.local', 1000000000, 528000, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
+        self.pluto_source_0 = iio.pluto_source(plutoip, 1000000000, 528000, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
         	sample_rate=48000,
         	fft_size=512,
