@@ -13,6 +13,7 @@ read PLUTO_IP
 echo
 echo Langstone has been updated to use $PLUTO_IP
 echo
+echo
 
 
   
