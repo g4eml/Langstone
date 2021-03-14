@@ -35,8 +35,7 @@ try starting the GNURadio Rx Program manually
 cd ~/Langstone
 python Lang_RX.py &
 
-You should see a couple of INFO lines about the Audio Source and Audio Sync and a line  len(audio_taps) = 213
-The LED on your USB Audio Dongle should start flashing 
+You may see a couple of INFO lines about the Audio Source and Audio Sync and a line  len(audio_taps) = 213
 
 Any other error messages should give a clue as to what is wrong. 
 
