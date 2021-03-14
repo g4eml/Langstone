@@ -34,7 +34,7 @@ try starting the GNURadio Rx Program manually
  
 cd ~/Langstone
 python Lang_RX.py &
-cat /tmp/langstonefft
+cat /tmp/langstonefft &
 
 You may see a couple of INFO lines about the Audio Source and Audio Sync and a line  len(audio_taps) = 213
 
