@@ -212,8 +212,8 @@ int squelch=20;
 #define maxsql 100
 
 int rit=0;
-#define minrit -1000
-#define maxrit 1000
+#define minrit -9990
+#define maxrit 9990
 
 int SSBMic=50;
 #define maxSSBMic 100
@@ -2014,21 +2014,17 @@ void setRit(int ri)
   rit=ri;
   setForeColour(0,255,0);
   textSize=2;
-  to=0;
-  if(abs(rit)>0) to=8;
-  if(abs(rit)>9) to=16;
-  if(abs(rit)>99) to=24;
-  if(abs(rit)>999) to=32; 
+  to=28; 
   gotoXY(ritButtonX,ritButtonY-25);
   displayStr("         ");
   gotoXY(ritButtonX+38-to,ritButtonY-25);
   if (rit==0)
   {
-  sprintf(ritStr,"0");
+  sprintf(ritStr," 0.00");
   }
   else
   {
-    sprintf(ritStr,"%+d",rit);
+    sprintf(ritStr,"%+3.2f",rit/1000.0);
   }
   displayStr(ritStr);
   setFreq(freq);
