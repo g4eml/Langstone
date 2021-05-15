@@ -99,7 +99,8 @@ double bandRepShift[numband]={0,-0.6,1.6,-6.0,0,0,0,0,0,0,0,0};
 int bandTxHarmonic[numband]={1,1,1,1,1,1,1,1,1,1,1,1};
 int bandRxHarmonic[numband]={1,1,1,1,1,1,1,1,1,1,1,1};
 int bandMode[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
-int bandBits[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
+int bandBitsRx[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
+int bandBitsTx[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
 int bandFFTRef[numband]={-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10};
 int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
@@ -109,7 +110,6 @@ float bandSmeterZero[numband]={-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80};
 int bandSSBFiltLow[numband]={300,300,300,300,300,300,300,300,300,300,300,300};
 int bandSSBFiltHigh[numband]={3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,3000};
 
-int bbits=0;
 #define minFreq 0.0
 #define maxFreq 99999.99999
 #define minHwFreq 69.9
@@ -121,10 +121,10 @@ int mode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 18
+#define numSettings 19
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits= ","Copy Band Bits to Pluto=","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS,BAND_BITS_TO_PLUTO,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits (Rx)= ","Band Bits (Tx)= ","Copy Band Bits to Pluto=","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS_RX,BAND_BITS_TX,BAND_BITS_TO_PLUTO,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
 int settingNo=RX_GAIN;
 int setIndex=0;
 int maxSetIndex=10;
@@ -1374,7 +1374,7 @@ void processMouse(int mbut)
   if(mbut==1+128)      //Left Mouse Button down
     {
     
-      if((inputMode==SETTINGS)&&((settingNo==CWID)||(settingNo==BAND_BITS)))
+      if((inputMode==SETTINGS)&&((settingNo==CWID)||(settingNo==BAND_BITS_RX)||(settingNo==BAND_BITS_TX)))
        {
          setIndex=setIndex-1;
          if(setIndex<0) setIndex=0;
@@ -1390,16 +1390,20 @@ void processMouse(int mbut)
         setFreq(freq);
         twoButTimer=20;
         lastBut=lastBut | 1;
-        if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
+        if((inputMode==SETTINGS) && (settingNo==BAND_BITS_RX))
           {
-          displaySetting(BAND_BITS);
+          displaySetting(BAND_BITS_RX);
+          }
+        if((inputMode==SETTINGS) && (settingNo==BAND_BITS_TX))
+          {
+          displaySetting(BAND_BITS_TX);
           }
        }  
     }
     
   if(mbut==2+128)      //Right Mouse Button down
     {
-      if((inputMode==SETTINGS)&&((settingNo==CWID)||(settingNo==BAND_BITS)))
+      if((inputMode==SETTINGS)&&((settingNo==CWID)||(settingNo==BAND_BITS_RX)||(settingNo==BAND_BITS_TX)))
        {
          setIndex=setIndex+1;
          if(setIndex>maxSetIndex) setIndex=maxSetIndex;
@@ -1415,9 +1419,13 @@ void processMouse(int mbut)
          setFreq(freq); 
          twoButTimer=20;
          lastBut=lastBut | 2;
-         if((inputMode==SETTINGS) && (settingNo==BAND_BITS))
+         if((inputMode==SETTINGS) && (settingNo==BAND_BITS_RX))
            {
-             displaySetting(BAND_BITS);
+             displaySetting(BAND_BITS_RX);
+           }
+         if((inputMode==SETTINGS) && (settingNo==BAND_BITS_TX))
+           {
+             displaySetting(BAND_BITS_TX);
            }
         }          
     }
@@ -1830,8 +1838,7 @@ void setBand(int b)
   setFreq(freq);
   mode=bandMode[band];
   setMode(mode);
-  bbits=bandBits[band];
-  setBandBits(bbits);
+  setBandBits(bandBitsRx[band]);
   squelch=bandSquelch[band];
   setSquelch(squelch);
   FFTRef=bandFFTRef[band];
@@ -2187,6 +2194,7 @@ void setTx(int pt)
   if((pt==1)&&(transmitting==0))
     {
       setTxPin(1);
+      setBandBits(bandBitsTx[band]);
       plutoGpo=plutoGpo | 0x10;
       setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
@@ -2236,6 +2244,7 @@ void setTx(int pt)
       transmitting=0;
       usleep(RXDELAY);
       setTxPin(0);
+      setBandBits(bandBitsRx[band]);
       plutoGpo=plutoGpo & 0xEF;
       setPlutoGpo(plutoGpo);                               //clear the Pluto GPO Pin 
     }
@@ -2716,45 +2725,83 @@ void changeSetting(void)
       setFreq(freq);
       displaySetting(settingNo);  
       }      
-   if(settingNo==BAND_BITS)        // Band Bits
+   if(settingNo==BAND_BITS_RX)        // Band Bits Rx
       {
       if(setIndex==7)
         {
-        bandBits[band]=bandBits[band] ^ 0x01; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x01; 
         }
       if(setIndex==6)
         {
-        bandBits[band]=bandBits[band] ^ 0x02; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x02; 
         }
       if(setIndex==5)
         {
-        bandBits[band]=bandBits[band] ^ 0x04; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x04; 
         }
       if(setIndex==4)
         {
-        bandBits[band]=bandBits[band] ^ 0x08; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x08; 
         }
        if(setIndex==3)
         {
-        bandBits[band]=bandBits[band] ^ 0x10; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x10; 
         }
       if(setIndex==2)
         {
-        bandBits[band]=bandBits[band] ^ 0x20; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x20; 
         }
       if(setIndex==1)
         {
-        bandBits[band]=bandBits[band] ^ 0x40; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x40; 
         }
       if(setIndex==0)
         {
-        bandBits[band]=bandBits[band] ^ 0x80; 
+        bandBitsRx[band]=bandBitsRx[band] ^ 0x80; 
         }
       mouseScroll=0;
-      if(bandBits[band]<0) bandBits[band]=0;
-      if(bandBits[band]>255) bandBits[band]=255;
-      bbits=bandBits[band];
-      setBandBits(bbits);
+      if(bandBitsRx[band]<0) bandBitsRx[band]=0;
+      if(bandBitsRx[band]>255) bandBitsRx[band]=255;
+      setBandBits(bandBitsRx[band]);
+      displaySetting(settingNo);  
+      }  
+if(settingNo==BAND_BITS_TX)        // Band Bits Tx
+      {
+      if(setIndex==7)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x01; 
+        }
+      if(setIndex==6)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x02; 
+        }
+      if(setIndex==5)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x04; 
+        }
+      if(setIndex==4)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x08; 
+        }
+       if(setIndex==3)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x10; 
+        }
+      if(setIndex==2)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x20; 
+        }
+      if(setIndex==1)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x40; 
+        }
+      if(setIndex==0)
+        {
+        bandBitsTx[band]=bandBitsTx[band] ^ 0x80; 
+        }
+      mouseScroll=0;
+      if(bandBitsTx[band]<0) bandBitsTx[band]=0;
+      if(bandBitsTx[band]>255) bandBitsTx[band]=255;
       displaySetting(settingNo);  
       }  
     if(settingNo==BAND_BITS_TO_PLUTO)        // Copy Band Bits to Pluto
@@ -2981,7 +3028,7 @@ if(se==REP_SHIFT)
   sprintf(valStr,"X%d",bandTxHarmonic[band]);
   displayStr(valStr);
   }   
-  if(se==BAND_BITS)
+  if(se==BAND_BITS_RX)
   { 
   maxSetIndex=7;
   setForeColour(255,255,255);
@@ -2995,7 +3042,31 @@ if(se==REP_SHIFT)
         {
           setForeColour(255,255,255);
         }
-      if(bbits & b)
+      if(bandBitsRx[band] & b)
+        {
+        displayChar('1');
+        }
+      else
+        {
+        displayChar('0');
+        }
+    } 
+  }
+if(se==BAND_BITS_TX)
+  { 
+  maxSetIndex=7;
+  setForeColour(255,255,255);
+  for(int b=128;b>0;b=b>>1)
+    {
+      if(((setIndex==7)&&(b==1)) || ((setIndex==6)&&(b==2))  || ((setIndex==5)&&(b==4)) || ((setIndex==4)&&(b==8)) || ((setIndex==3)&&(b==16))  || ((setIndex==2)&&(b==32))  || ((setIndex==1)&&(b==64))  || ((setIndex==0)&&(b==128)))
+        {
+          setForeColour(0,255,0);
+        }
+      else
+        {
+          setForeColour(255,255,255);
+        }
+      if(bandBitsTx[band] & b)
         {
         displayChar('1');
         }
@@ -3152,9 +3223,24 @@ while(fscanf(conffile,"%49s %99s [^\n]\n",variable,value) !=EOF)
     sprintf(vname,"bandRepShift%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%lf",&bandRepShift[b]);
     sprintf(vname,"bandDuplex%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%d",&bandDuplex[b]);     
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandDuplex[b]);  
+ 
+ //handle old config file format by converting bandbits to bandbitsRx and BandbitsTx   
     sprintf(vname,"bandBits%02d",b);
-    if(strstr(variable,vname)) sscanf(value,"%d",&bandBits[b]);     
+    if(strstr(variable,vname)) 
+    {
+    sscanf(value,"%d",&bandBitsRx[b]); 
+    sscanf(value,"%d",&bandBitsTx[b]);
+    }
+       
+    sprintf(vname,"bandRxBits%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandBitsRx[b]); 
+    sprintf(vname,"bandTxBits%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandBitsTx[b]);  
+    
+    
+    
+      
     sprintf(vname,"bandFFTRef%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandFFTRef[b]);     
     sprintf(vname,"bandSquelch%02d",b);
@@ -3227,7 +3313,8 @@ for(int b=0;b<numband;b++)
   fprintf(conffile,"bandRxHarmonic%02d %d\n",b,bandRxHarmonic[b]);
   fprintf(conffile,"bandRepShift%02d %lf\n",b,bandRepShift[b]);
   fprintf(conffile,"bandDuplex%02d %d\n",b,bandDuplex[b]);
-  fprintf(conffile,"bandBits%02d %d\n",b,bandBits[b]);
+  fprintf(conffile,"bandRxBits%02d %d\n",b,bandBitsRx[b]);
+  fprintf(conffile,"bandTxBits%02d %d\n",b,bandBitsTx[b]);
   fprintf(conffile,"bandFFTRef%02d %d\n",b,bandFFTRef[b]);
   fprintf(conffile,"bandSquelch%02d %d\n",b,bandSquelch[b]);
   fprintf(conffile,"bandTxAtt%02d %d\n",b,bandTxAtt[b]);
