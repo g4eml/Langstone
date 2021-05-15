@@ -1,4 +1,4 @@
-
+#
 #!/bin/bash
 
 # Change this line to configure the Pluto IP address iff required. 
@@ -44,6 +44,7 @@ done
 if [ ${retry} -ge 4 ]; then
   clear
   sudo cp /home/pi/Langstone/plutofail.bgra /dev/fb0
+  sleep 5
   exit 1
 fi
 
@@ -55,14 +56,16 @@ fi
 
   python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
   python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
-sleep 2
+sleep 5
 	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
 	  /home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1
 	else
 		sudo cp /home/pi/Langstone/gnufail.bgra /dev/fb0
+                sleep 10
 	fi
 else
 	echo Langstone is already running. Use ./stop first.
+        sleep 5
 fi
 
 
