@@ -58,7 +58,7 @@ The software consists of three parts. The SDR itself uses two python GNURadio Fl
 
 The preferred installation method only needs a Windows PC connected to the same (internet-connected) network as your Raspberry Pi.  Do not connect a keyboard or HDMI display directly to your Raspberry Pi.
 
-- First download the 2020-12-02 release of Raspios Buster Lite on to your Windows PC from here  https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-12-04/2020-12-02-raspios-buster-armhf-lite.zip
+- First download the 2021-03-04 release of Raspios Buster Lite on to your Windows PC from here  https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2021-03-25/2021-03-04-raspios-buster-armhf-lite.zip
 
 (This version is known to work. Newer versions should also work and may speed up the installation but have not yet been tested) 
 
