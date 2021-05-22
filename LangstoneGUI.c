@@ -390,7 +390,7 @@ int main(int argc, char* argv[])
        int ret=morseKey();                              //get the next key from morse string
        if(ret==-1)                                      // Ident finished
         {
-        keyDownTimer=CWIDkeyDownTime;                   //key down for this time between idents
+        keyDownTimer=CWIDkeyDownTime + 100;             //key down for this time between idents. Add 1 second to force a minimum key up gap between idents. 
         }
        else
         {  
@@ -2884,7 +2884,7 @@ if(settingNo==BAND_BITS_TX)        // Band Bits Tx
       {
       CWIDkeyDownTime=CWIDkeyDownTime+mouseScroll*100;
       mouseScroll=0;
-      if(CWIDkeyDownTime< 500) CWIDkeyDownTime=500;
+      if(CWIDkeyDownTime< 0) CWIDkeyDownTime=0;
       if(CWIDkeyDownTime> 12000) CWIDkeyDownTime=12000;
       displaySetting(settingNo);  
       }  
