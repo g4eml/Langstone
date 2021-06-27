@@ -26,6 +26,7 @@ void setFreq(double fr);
 void displayFreq(double fr);
 void setFreqInc();
 void setTx(int ptt);
+void setPtts(int p);
 void setMode(int mode);
 void setVolume(int vol);
 void setSquelch(int sql);
@@ -936,6 +937,7 @@ void sendTxFifo(char * s)
       displayError("Lang_TX.py Not Responding");
      }
   close(fifofd);
+  delay(1);
 }
 
 void sendRxFifo(char * s)
@@ -959,6 +961,7 @@ void sendRxFifo(char * s)
       displayError("Lang_RX.py Not Responding");
      }
   close(fifofd);
+  delay(1);
 }
 
 void initGPIO(void)
@@ -1015,11 +1018,12 @@ if(MCP23017Present==1)                //MCP23017 extender chip can be used with 
    k1=k1 & k2;        //allow Key from either source
   
   
-    if(p1==0)
+    if(p1==0)             //if one of the two hardware PTTS has been pressed
         {
           if(ptt==0)
             {
               ptt=1;
+              if(ptts==1) setPtts(0);                       //turn off the touchscreen PTT.
               setTx(ptt|ptts);
             }
         }
@@ -1700,32 +1704,11 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       {
       if(ptts==0)
         {
-          ptts=1;
-          sendBeacon=0;
-          setTx(ptt|ptts);
-          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-          setForeColour(255,0,0);
-          displayButton("PTT"); 
+          setPtts(1);
         }
       else
         {
-          ptts=0;
-          if(sendBeacon==1)
-          {
-          sendBeacon=0;
-          setMode(mode);
-          gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
-          setForeColour(0,255,0);
-          displayButton("BEACON");  
-          }
-
-          setTx(ptt|ptts);
-          gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
-          setForeColour(0,255,0);
-          displayButton("PTT");
-          gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
-          setForeColour(0,255,0);
-          displayButton("BEACON");   
+          setPtts(0);
         }
       return;
       }
@@ -1750,7 +1733,6 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       
 
     }      
-
 
 
    
@@ -1848,6 +1830,42 @@ void setBand(int b)
   configCounter=configDelay;
 }
 
+void setPtts(int p)
+{
+ if(p==1)
+ {
+  ptts=1;
+  setTx(ptt|ptts);
+  gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+  setForeColour(255,0,0);
+  displayButton("PTT"); 
+ }
+  else
+ {
+  ptts=0;
+  if(sendBeacon>0)
+   {
+    setBeacon(0);
+    setMode(mode);
+    gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
+    setForeColour(0,255,0);
+    displayButton("BEACON");  
+    }
+
+  setTx(ptt|ptts);
+  gotoXY(funcButtonsX+buttonSpaceX*6,funcButtonsY);
+  setForeColour(0,255,0);
+  displayButton("PTT");
+  gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
+  setForeColour(0,255,0);
+  displayButton("BEACON");   
+ }
+
+}
+
+
+
+
 void setBeacon(int b)
 {
  if(b > 0)
@@ -1855,7 +1873,10 @@ void setBeacon(int b)
       sendBeacon=b;
       morseReset();
       keyDownTimer=300;
-      setMode(2);
+      setMode(CW);
+      if(mode==USB) freq=freq+0.0008;         //If we are working SSb add an offset of 800Hz to bring pips into Rx bandwidth.
+      if(mode==LSB) freq=freq-0.0008;
+      setFreq(freq);                  
       if(!(ptt|ptts))                     //if not already transmitting
         {
           setTx(1);                          //goto transmit
@@ -1875,6 +1896,9 @@ void setBeacon(int b)
       setTx(0);
       setKey(0);
       setMode(mode);
+      if(mode==USB) freq=freq-0.0008;
+      if(mode==LSB) freq=freq+0.0008;
+      setFreq(freq);
       gotoXY(funcButtonsX+buttonSpaceX*5,funcButtonsY);
       setForeColour(0,255,0);
       displayButton("BEACON");  
@@ -2240,7 +2264,7 @@ void setTx(int pt)
       gotoXY(txX,txY);
       setForeColour(0,255,0);
       textSize=2;
-      displayStr("Rx");
+      displayStr("Rx");                                                                           
       transmitting=0;
       usleep(RXDELAY);
       setTxPin(0);
