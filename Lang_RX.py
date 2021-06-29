@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Rx
-# Generated: Sun Aug 16 16:18:53 2020
+# Generated: Tue Jun 29 17:11:47 2021
 ##################################################
 import os
 import errno
@@ -32,7 +32,7 @@ class Lang_RX(gr.top_block):
         plutoip=os.environ.get('PLUTO_IP')
         if plutoip==None :
           plutoip='pluto.local'
-        plutoip='ip:' + plutoip  
+        plutoip='ip:' + plutoip
         self.SQL = SQL = 50
         self.RxOffset = RxOffset = 0
         self.Mute = Mute = False
@@ -56,8 +56,9 @@ class Lang_RX(gr.top_block):
         )
         self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(11, (firdes.low_pass(1,529200,23000,2000)), RxOffset, 528000)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
+        self.blocks_multiply_const_vxx_2_1_0 = blocks.multiply_const_vff((1.0 + (Mode==5), ))
         self.blocks_multiply_const_vxx_2_1 = blocks.multiply_const_vff((Mode==5, ))
-        self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff((Mode==4, ))
+        self.blocks_multiply_const_vxx_2_0 = blocks.multiply_const_vff(((Mode==4) * 0.2, ))
         self.blocks_multiply_const_vxx_2 = blocks.multiply_const_vff((Mode<4, ))
         self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff(((AFGain/100.0) *  (not Mute), ))
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
@@ -103,12 +104,13 @@ class Lang_RX(gr.top_block):
         self.connect((self.blocks_add_xx_1_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_multiply_const_vxx_2_1, 0))
         self.connect((self.blocks_complex_to_real_0, 0), (self.blocks_multiply_const_vxx_2, 0))
-        self.connect((self.blocks_complex_to_real_0_0, 0), (self.blocks_add_xx_1, 0))
+        self.connect((self.blocks_complex_to_real_0_0, 0), (self.blocks_multiply_const_vxx_2_1_0, 0))
         self.connect((self.blocks_float_to_complex_0, 0), (self.analog_agc3_xx_0, 0))
         self.connect((self.blocks_multiply_const_vxx_1, 0), (self.audio_sink_0, 0))
         self.connect((self.blocks_multiply_const_vxx_2, 0), (self.blocks_add_xx_1_0, 0))
         self.connect((self.blocks_multiply_const_vxx_2_0, 0), (self.blocks_add_xx_1, 1))
         self.connect((self.blocks_multiply_const_vxx_2_1, 0), (self.blocks_add_xx_1_0, 1))
+        self.connect((self.blocks_multiply_const_vxx_2_1_0, 0), (self.blocks_add_xx_1, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.band_pass_filter_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.logpwrfft_x_0, 0))
         self.connect((self.logpwrfft_x_0, 0), (self.blks2_selector_0, 0))
@@ -140,8 +142,9 @@ class Lang_RX(gr.top_block):
 
     def set_Mode(self, Mode):
         self.Mode = Mode
+        self.blocks_multiply_const_vxx_2_1_0.set_k((1.0 + (self.Mode==5), ))
         self.blocks_multiply_const_vxx_2_1.set_k((self.Mode==5, ))
-        self.blocks_multiply_const_vxx_2_0.set_k((self.Mode==4, ))
+        self.blocks_multiply_const_vxx_2_0.set_k(((self.Mode==4) * 0.2, ))
         self.blocks_multiply_const_vxx_2.set_k((self.Mode<4, ))
 
     def get_Filt_Low(self):
@@ -223,7 +226,6 @@ def docommands(tb):
        except:
          break
 
-
 def main(top_block_cls=Lang_RX, options=None):
 
     tb = top_block_cls()
@@ -231,7 +233,7 @@ def main(top_block_cls=Lang_RX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
-    
-    
+
+
 if __name__ == '__main__':
     main()
