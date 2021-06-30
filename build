@@ -1,5 +1,3 @@
 cc /home/pi/Langstone/LangstoneGUI.c -o /home/pi/Langstone/GUI -liio -lwiringPi 
 cc /home/pi/Langstone/HW_Test.c -o /home/pi/Langstone/HW_Test -lwiringPi
 cc /home/pi/Langstone/Pluto_Test.c -o /home/pi/Langstone/Pluto_Test -liio
-chmod +x /home/pi/Langstone/set_sound
-chmod +x /home/pi/Langstone/set_pluto
