@@ -3,11 +3,10 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Tx
-# Generated: Mon Aug  3 21:37:36 2020
+# Generated: Tue Jun 29 20:58:28 2021
 ##################################################
 import os
 import errno
-
 from gnuradio import analog
 from gnuradio import audio
 from gnuradio import blocks
@@ -16,7 +15,9 @@ from gnuradio import filter
 from gnuradio import gr
 from gnuradio import iio
 from gnuradio.eng_option import eng_option
+from gnuradio.fft import logpwrfft
 from gnuradio.filter import firdes
+from grc_gnuradio import blks2 as grc_blks2
 from optparse import OptionParser
 
 
@@ -40,6 +41,7 @@ class Lang_TX(gr.top_block):
         self.Filt_Low = Filt_Low = 300
         self.Filt_High = Filt_High = 3000
         self.FMMIC = FMMIC = 50
+        self.FFTEn = FFTEn = 0
 
         ##################################################
         # Blocks
@@ -51,6 +53,16 @@ class Lang_TX(gr.top_block):
                 fractional_bw=None,
         )
         self.pluto_sink_0 = iio.pluto_sink(plutoip, 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
+        self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
+        	sample_rate=48000,
+        	fft_size=512,
+        	ref_scale=2,
+        	frame_rate=15,
+        	avg_alpha=0.9,
+        	average=True,
+        )
+        self.blocks_udp_sink_0 = blocks.udp_sink(gr.sizeof_float*512, '127.0.0.1', 7374, 1472, False)
+        self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_mute_xx_0_0 = blocks.mute_cc(bool(not PTT))
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_const_vxx_4 = blocks.multiply_const_vcc(((Mode < 4) or (Mode==5), ))
@@ -61,6 +73,13 @@ class Lang_TX(gr.top_block):
         self.blocks_add_xx_2 = blocks.add_vcc(1)
         self.blocks_add_xx_0 = blocks.add_vff(1)
         self.blocks_add_const_vxx_0 = blocks.add_const_vcc(((0.5 * int(Mode==5)) + (int(Mode==2) * KEY) +(int(Mode==3) * KEY), ))
+        self.blks2_selector_0 = grc_blks2.selector(
+        	item_size=gr.sizeof_float*512,
+        	num_inputs=1,
+        	num_outputs=2,
+        	input_index=0,
+        	output_index=FFTEn,
+        )
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
         	1, 48000, 200, 3500, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
@@ -80,8 +99,6 @@ class Lang_TX(gr.top_block):
         self.analog_agc2_xx_1 = analog.agc2_cc(1e-1, 1e-1, 1.3- (0.65*(int(Mode==5))), 1.0)
         self.analog_agc2_xx_1.set_max_gain(10)
 
-
-
         ##################################################
         # Connections
         ##################################################
@@ -95,8 +112,11 @@ class Lang_TX(gr.top_block):
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0_0, 0))
         self.connect((self.band_pass_filter_0_0, 0), (self.blocks_multiply_const_vxx_4, 0))
         self.connect((self.band_pass_filter_1, 0), (self.analog_nbfm_tx_0, 0))
+        self.connect((self.blks2_selector_0, 0), (self.blocks_null_sink_0, 0))
+        self.connect((self.blks2_selector_0, 1), (self.blocks_udp_sink_0, 0))
         self.connect((self.blocks_add_const_vxx_0, 0), (self.blocks_multiply_xx_0, 0))
         self.connect((self.blocks_add_xx_0, 0), (self.analog_rail_ff_0, 0))
+        self.connect((self.blocks_add_xx_2, 0), (self.logpwrfft_x_0, 0))
         self.connect((self.blocks_add_xx_2, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.blocks_float_to_complex_0, 0), (self.blocks_add_const_vxx_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_float_to_complex_0, 0))
@@ -105,6 +125,7 @@ class Lang_TX(gr.top_block):
         self.connect((self.blocks_multiply_const_vxx_4, 0), (self.blocks_add_xx_2, 1))
         self.connect((self.blocks_multiply_xx_0, 0), (self.analog_agc2_xx_1, 0))
         self.connect((self.blocks_mute_xx_0_0, 0), (self.pluto_sink_0, 0))
+        self.connect((self.logpwrfft_x_0, 0), (self.blks2_selector_0, 0))
         self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_mute_xx_0_0, 0))
 
     def get_ToneBurst(self):
@@ -167,6 +188,13 @@ class Lang_TX(gr.top_block):
         self.FMMIC = FMMIC
         self.blocks_multiply_const_vxx_0_0.set_k((self.FMMIC/5.0, ))
 
+    def get_FFTEn(self):
+        return self.FFTEn
+
+    def set_FFTEn(self, FFTEn):
+        self.FFTEn = FFTEn
+        self.blks2_selector_0.set_output_index(int(self.FFTEn))
+
 def docommands(tb):
   try:
     os.mkfifo("/tmp/langstoneTx")
@@ -184,6 +212,10 @@ def docommands(tb):
            line=line.strip()
            if line=='Q':
               ex=True        
+           if line=='P':
+              tb.set_FFTEn(1)
+           if line=='p':
+              tb.set_FFTEn(0)
            if line=='R':
               tb.set_PTT(False) 
            if line=='T':
@@ -225,7 +257,6 @@ def main(top_block_cls=Lang_TX, options=None):
     docommands(tb)
     tb.stop()
     tb.wait()
-
 
 if __name__ == '__main__':
     main()
