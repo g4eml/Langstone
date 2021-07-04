@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Rx
-# Generated: Tue Jun 29 17:11:47 2021
+# Generated: Tue Jun 29 22:13:28 2021
 ##################################################
 import os
 import errno
@@ -55,6 +55,7 @@ class Lang_RX(gr.top_block):
         	average=True,
         )
         self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(11, (firdes.low_pass(1,529200,23000,2000)), RxOffset, 528000)
+        self.blocks_udp_sink_0 = blocks.udp_sink(gr.sizeof_float*512, '127.0.0.1', 7373, 1472, False)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*512)
         self.blocks_multiply_const_vxx_2_1_0 = blocks.multiply_const_vff((1.0 + (Mode==5), ))
         self.blocks_multiply_const_vxx_2_1 = blocks.multiply_const_vff((Mode==5, ))
@@ -62,8 +63,6 @@ class Lang_RX(gr.top_block):
         self.blocks_multiply_const_vxx_2 = blocks.multiply_const_vff((Mode<4, ))
         self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff(((AFGain/100.0) *  (not Mute), ))
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
-        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_float*512, '/tmp/langstonefft', False)
-        self.blocks_file_sink_0.set_unbuffered(False)
         self.blocks_complex_to_real_0_0 = blocks.complex_to_real(1)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
@@ -98,8 +97,8 @@ class Lang_RX(gr.top_block):
         self.connect((self.band_pass_filter_0, 0), (self.analog_pwr_squelch_xx_0, 0))
         self.connect((self.band_pass_filter_0, 0), (self.blocks_complex_to_mag_0, 0))
         self.connect((self.band_pass_filter_0, 0), (self.blocks_complex_to_real_0, 0))
-        self.connect((self.blks2_selector_0, 1), (self.blocks_file_sink_0, 0))
         self.connect((self.blks2_selector_0, 0), (self.blocks_null_sink_0, 0))
+        self.connect((self.blks2_selector_0, 1), (self.blocks_udp_sink_0, 0))
         self.connect((self.blocks_add_xx_1, 0), (self.blocks_multiply_const_vxx_1, 0))
         self.connect((self.blocks_add_xx_1_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_multiply_const_vxx_2_1, 0))

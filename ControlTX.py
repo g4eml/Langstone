@@ -49,6 +49,10 @@ def docommands(tb):
            line=line.strip()
            if line=='Q':
               ex=True        
+           if line=='P':
+              tb.set_FFTEn(1)
+           if line=='p':
+              tb.set_FFTEn(0)
            if line=='R':
               tb.set_PTT(False) 
            if line=='T':

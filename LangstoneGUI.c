@@ -1,5 +1,6 @@
 
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <iio.h>
@@ -12,6 +13,9 @@
 #include "Mouse.h"
 #include "mcp23017.c"
 #include "Morse.c"
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 
 //#define PLUTOIP "ip:pluto.local"
@@ -41,6 +45,7 @@ void initGUI();
 void sendTxFifo(char * s);
 void sendRxFifo(char * s);
 void initFifos();
+void initUDP(void);
 void initPluto(void);
 void setPlutoRxFreq(long long rxfreq);
 void setPlutoTxFreq(long long rxfreq);
@@ -67,8 +72,11 @@ int multMode(void);
 void setMoni(int m);
 void initSDR(void);
 void setFFTPipe(int cntl);
+void setTxFFTPipe(int ctrl);
 void waterfall(void);
-void init_fft_Fifo();
+void clearWaterfall(void);
+void P_Meter(void);
+void S_Meter(void);
 void setRit(int rit);
 void setInputMode(int n);
 void gen_palette(char colours[][3],int num_grads);
@@ -119,6 +127,7 @@ int bandSSBFiltHigh[numband]={3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,
 
 #define nummode 6
 int mode=0;
+int lastmode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
@@ -271,6 +280,7 @@ int plutoGpo=0;
 
 float inbuf[2];
 FILE *fftstream;
+FILE *txfftstream;
 float buf[512][130];
 int points=512;
 int rows=130;
@@ -286,6 +296,12 @@ float sMeterPeak;
 struct iio_context *plutoctx;
 struct iio_device *plutophy;
 
+//UDP server to receive FFT data from GNU RAdio
+
+#define RXPORT 7373
+#define TXPORT 7374
+
+
 
 int main(int argc, char* argv[])
 {
@@ -299,15 +315,15 @@ int main(int argc, char* argv[])
 
   printf("plutoip = %s\n",plutoip);
   
-  fftstream=fopen("/tmp/langstonefft","r");                 //Open FFT Stream from GNU Radio 
-  fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);
+  
+  initUDP();
+  
   
   lastClock=0;
   readConfig();
   detectHw();
   initPluto();
   initFifos();
-  init_fft_Fifo();
   initScreen();
   initGPIO();
   if(touchPresent) initTouch(touchPath);
@@ -317,7 +333,7 @@ int main(int argc, char* argv[])
   //              RGB Vals   Black >  Blue  >  Green  >  Yellow   >   Red     4 gradients    //number of gradients is varaible
   gen_palette((char [][3]){ {0,0,0},{0,0,255},{0,255,0},{255,255,0},{255,0,0}},4);
 
-  setFFTPipe(1);            //Turn on FFT Stream from GNU RAdio
+  setFFTPipe(1);            //Turn on FFT Stream from GNU RAdio Receiver
 
   
   while(1)
@@ -472,12 +488,25 @@ void waterfall()
 {
   int level,level2;
   int ret;
+  int baselevel;
+  int bwbaroffset;
+  float scaling;
+  int fftref;
   int centreShift=0;
-  char smStr[10];
-  static int sMeterCount=0;
+
   
       //check if data avilable to read
-      ret = fread(&inbuf,sizeof(float),1,fftstream);
+      if((transmitting==1) && (satMode()==0))
+        {
+        ret = fread(&inbuf,sizeof(float),1,txfftstream);
+        fftref=10;
+        }
+      else
+        {
+          ret = fread(&inbuf,sizeof(float),1,fftstream);
+          fftref=FFTRef;
+        }
+      
       if(ret>0)
     {    
     
@@ -494,8 +523,16 @@ void waterfall()
     
         //Read in float values, shift centre and store in buffer 1st 'row'
         for(int p=1;p<points;p++)
-        {  
-        fread(&inbuf,sizeof(float),1,fftstream);
+        {                                               
+        if((transmitting==1) && (satMode()==0))
+          {
+          fread(&inbuf,sizeof(float),1,txfftstream);
+          }
+        else
+          {
+          fread(&inbuf,sizeof(float),1,fftstream);
+          }
+          
           if(p<points/2)
           {
             buf[p+points/2][0]=inbuf[0];
@@ -505,11 +542,22 @@ void waterfall()
           }
         }
  
+ 
+        if(((mode==CW)||(mode==CWN)) && (transmitting==1) && (satMode()==0))
+          {
+          bwbaroffset=800/HzPerBin;
+          }
+        else
+          {
+           bwbaroffset=0;
+          }
+        
+ 
         //use raw values to calculate S meter value
         //use highest reading within the receiver bandwidth
         
          sMeterPeak=-200;
-         for (int p=points/2+bwBarStart;p<points/2+bwBarEnd;p++)
+         for (int p=points/2+bwBarStart-bwbaroffset;p<points/2+bwBarEnd-bwbaroffset;p++)
           {
            if(buf[p][0]>sMeterPeak)
              {
@@ -521,8 +569,11 @@ void waterfall()
     
         //RF level adjustment
     
-        int baselevel=FFTRef-80;
-        float scaling = 255.0/(float)(FFTRef-baselevel);
+ 
+        baselevel=fftref-80;
+        scaling = 255.0/(float)(fftref-baselevel);
+        
+        
     
         //draw waterfall
         for(int r=0;r<rows;r++)
@@ -531,7 +582,7 @@ void waterfall()
           {                                                                                                           
             //limit values displayed to range specified
             if (buf[p][r]<baselevel) buf[p][r]=baselevel;
-            if (buf[p][r]>FFTRef) buf[p][r]=FFTRef;
+            if (buf[p][r]>fftref) buf[p][r]=fftref;
     
             //scale to 0-255
             level = (buf[p][r]-baselevel)*scaling;   
@@ -550,12 +601,12 @@ void waterfall()
     
         //draw spectrum line
         
-        scaling = spectrum_rows/(float)(FFTRef-baselevel);
+        scaling = spectrum_rows/(float)(fftref-baselevel);
         for(int p=0;p<points-1;p++)
         {  
             //limit values displayed to range specified
             if (buf[p][0]<baselevel) buf[p][0]=baselevel;
-            if (buf[p][0]>FFTRef) buf[p][0]=FFTRef;
+            if (buf[p][0]>fftref) buf[p][0]=fftref;
     
             //scale to display height
             level = (buf[p][0]-baselevel)*scaling;   
@@ -566,7 +617,7 @@ void waterfall()
           //draw Bandwidth indicator
           int p=points/2;
           
-          if ((mode==CW) || (mode==CWN))
+          if (((mode==CW) || (mode==CWN)) && (transmitting==0 && satMode()== 0))
           {
            centreShift=800/HzPerBin;
           }
@@ -575,9 +626,9 @@ void waterfall()
            centreShift=0;          
           }
 
-          drawLine(p+FFTX+bwBarStart, FFTY-spectrum_rows+5, p+FFTX+bwBarStart, FFTY-spectrum_rows,255,140,0);
-          drawLine(p+FFTX+bwBarStart, FFTY-spectrum_rows, p+FFTX+bwBarEnd, FFTY-spectrum_rows,255,140,0);
-          drawLine(p+FFTX+bwBarEnd, FFTY-spectrum_rows+5, p+FFTX+bwBarEnd, FFTY-spectrum_rows,255,140,0);  
+          drawLine(p+FFTX+bwBarStart-bwbaroffset, FFTY-spectrum_rows+5, p+FFTX+bwBarStart-bwbaroffset, FFTY-spectrum_rows,255,140,0);
+          drawLine(p+FFTX+bwBarStart-bwbaroffset, FFTY-spectrum_rows, p+FFTX+bwBarEnd-bwbaroffset, FFTY-spectrum_rows,255,140,0);
+          drawLine(p+FFTX+bwBarEnd-bwbaroffset, FFTY-spectrum_rows+5, p+FFTX+bwBarEnd-bwbaroffset, FFTY-spectrum_rows,255,140,0);  
           //draw centre line (displayed frequency)
           drawLine(p+FFTX+centreShift, FFTY-10, p+FFTX+centreShift, FFTY-spectrum_rows,255,0,0);  
           
@@ -597,7 +648,25 @@ void waterfall()
           displayStr(" +20k ");
  
 
+          if((transmitting==0) || (satMode()==1))
+          {
+          S_Meter();
+          }
+          
+          else
+          {
+          P_Meter();
+          }
+   }       
+}
 
+
+void S_Meter(void)
+{
+
+          char smStr[10];
+          static int sMeterCount=0;
+         
           sMeterPeak=sMeterPeak-bandSmeterZero[band];                   //adjust offset to give positive values for s-meter
           int dbOver=0;
           int sValue=0;
@@ -674,8 +743,74 @@ void waterfall()
                 }
            }
  
-   }       
 }
+
+ void P_Meter(void)
+{
+
+          char smStr[10];
+          static int sMeterCount=0;
+         
+          sMeterPeak=(sMeterPeak+50)*2.1;  
+                  
+          if(sMeterPeak < 0) sMeterPeak=0;
+          if(sMeterPeak >100) sMeterPeak=100;     // Now Scaled between 0 and 100
+          
+        
+        
+          
+          
+          
+          if(sMeterPeak >= sMeter)
+            {
+            sMeter=sMeterPeak;                                    //fast attack
+            } 
+          else
+            {
+            if(sMeter > 0) 
+             {
+             if((mode==CW) || (mode==CWN))
+                {
+                sMeter=sMeter-10;                               //fast decay for CW
+                }
+              else if((mode==USB) || (mode==LSB))
+                {
+                sMeter=sMeter-3;                                 //Slow Decay for SSB. 
+                }
+              else
+                {
+                sMeter=sMeter-0.5;                               //very slow decay
+                }
+              }
+             
+             }
+            
+             if(sMeter<0) sMeter=0;
+          
+          //Draw PO meter
+          drawLine(sMeterX,sMeterY,sMeterX+sMeterWidth,sMeterY,255,255,255);
+          drawLine(sMeterX,sMeterY,sMeterX,sMeterY+sMeterHeight,255,255,255);
+          drawLine(sMeterX,sMeterY+sMeterHeight,sMeterX+sMeterWidth,sMeterY+sMeterHeight,255,255,255);
+          drawLine(sMeterX+sMeterWidth,sMeterY,sMeterX+sMeterWidth,sMeterY+sMeterHeight,255,255,255);          
+
+          for(int ln=0;ln<10;ln++)
+          {
+          drawLine(sMeterX+5,sMeterY+5+ln,sMeterX+6+sMeter*1.5,sMeterY+5+ln,0,255,0);
+          drawLine(sMeterX+6+sMeter*1.5,sMeterY+5+ln,sMeterX+6+160,sMeterY+5+ln,0,0,0);
+          }
+ 
+          sMeterCount++;
+          if(sMeterCount>5)
+          {
+              sMeterCount=0;
+              textSize=2;
+              setForeColour(0,255,0);
+              gotoXY(sMeterX+10,sMeterY+20);
+              displayStr("Tx Level");
+           }
+ 
+}
+
 
 
 
@@ -895,6 +1030,35 @@ void setPlutoGpo(int p)
 }
 
 
+void initUDP(void)
+{
+   struct sockaddr_in myaddr;
+   int fdr; 
+   int fdt; 
+   
+//initialise Receive UDP receiver for FFT stream
+   fdr=socket(AF_INET,SOCK_DGRAM,0);
+   memset((char *)&myaddr,0,sizeof(myaddr));                      //Set any valid address for receiving UDP packets
+   myaddr.sin_family = AF_INET;                                     //Network Connection
+   myaddr.sin_addr.s_addr = htonl(INADDR_ANY);                   //Any Address
+   myaddr.sin_port = htons(RXPORT);                               //set UDP POrt to listen on
+   bind(fdr,(struct sockaddr *)&myaddr,sizeof(myaddr));          //bind the socket to the address  
+   fftstream=fdopen(fdr,"r");                                      //open as a stream
+   fcntl(fileno(fftstream), F_SETFL, O_RDONLY | O_NONBLOCK);    //set it as nonblocking
+
+//repeat for Transmitter UDP receiver for FFT stream
+   fdt=socket(AF_INET,SOCK_DGRAM,0);
+   memset((char *)&myaddr,0,sizeof(myaddr));                      //Set any valid address for receiving UDP packets
+   myaddr.sin_family = AF_INET;                                     //Network Connection
+   myaddr.sin_addr.s_addr = htonl(INADDR_ANY);                   //Any Address
+   myaddr.sin_port = htons(TXPORT);                               //set UDP POrt to listen on
+   bind(fdt,(struct sockaddr *)&myaddr,sizeof(myaddr));          //bind the socket to the address  
+   txfftstream=fdopen(fdt,"r");                                      //open as a stream
+   fcntl(fileno(txfftstream), F_SETFL, O_RDONLY | O_NONBLOCK);    //set it as nonblocking
+}
+
+
+
 void initFifos()
 {
  if(access("/tmp/langstoneTx",F_OK)==-1)   //does tx fifo exist already?
@@ -908,15 +1072,7 @@ void initFifos()
     }
 }
 
-void init_fft_Fifo()
-{
- if(access("/tmp/langstonefft",F_OK)==-1)   //does fifo exist already?
-    {
-        mkfifo("/tmp/langstonefft", 0666);
-    }
-}
-
-void sendTxFifo(char * s)
+void sendTxFifo(char * s)                                                                
 {
   char fs[50];
   int ret;
@@ -1180,14 +1336,20 @@ void initGUI()
     sqlButton(0);
     }
 
-    //clear waterfall buffer.
-        //shift buffer
-    for(int r=0;r<rows;r++){  
-      for(int p=0;p<points;p++){  
-        buf[p][r]=-100;
-      }
-    }
+    clearWaterfall();
 
+}
+
+
+void clearWaterfall(void)
+{
+  for(int r=0;r<rows;r++)
+   {  
+   for(int p=0;p<points;p++)
+    {  
+    buf[p][r]=-100;
+    }
+   }
 }
 
 
@@ -1873,9 +2035,11 @@ void setBeacon(int b)
       sendBeacon=b;
       morseReset();
       keyDownTimer=300;
-      setMode(CW);
-      if(mode==USB) freq=freq+0.0008;         //If we are working SSb add an offset of 800Hz to bring pips into Rx bandwidth.
-      if(mode==LSB) freq=freq-0.0008;
+      lastmode=mode;
+      mode=CW;
+      setMode(mode);
+      if(lastmode==USB) freq=freq+0.0008;         //If we are working SSb add an offset of 800Hz to bring pips into Rx bandwidth.
+      if(lastmode==LSB) freq=freq-0.0008;
       setFreq(freq);                  
       if(!(ptt|ptts))                     //if not already transmitting
         {
@@ -1895,6 +2059,7 @@ void setBeacon(int b)
       ptts=0;
       setTx(0);
       setKey(0);
+      mode=lastmode;
       setMode(mode);
       if(mode==USB) freq=freq-0.0008;
       if(mode==LSB) freq=freq+0.0008;
@@ -2087,6 +2252,11 @@ void setFFTPipe(int ctrl)
 if(ctrl==0) sendRxFifo("p"); else sendRxFifo("P");
 }
 
+void setTxFFTPipe(int ctrl)
+{
+if(ctrl==0) sendTxFifo("p"); else sendTxFifo("P");
+}
+
 void setRxFilter(int low,int high)
 {
   char filtStr[10];
@@ -2232,12 +2402,18 @@ void setTx(int pt)
       if (moni==0) sendRxFifo("U");                        //mute the receiver
       if(satMode()==0)
       {
-        setFFTPipe(0);                        //turn off the FFT stream
+        setFFTPipe(0);                        //turn off the Rx FFT stream
+        sMeter=0;
         setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
         PlutoRxEnable(0);
         sendRxFifo("H");                      //freeze the receive Flowgraph 
       }
       sendTxFifo("h");                        //unfreeze the Tx Flowgraph
+      if(satMode()==0)
+      {
+        clearWaterfall();
+        setTxFFTPipe(1);                      //turn on the TX FFT Stream
+      }
       sendTxFifo("T");
       gotoXY(txX,txY);
       setForeColour(255,0,0);
@@ -2247,6 +2423,13 @@ void setTx(int pt)
     }
   else if((pt==0)&&(transmitting==1))
     {
+      if(satMode()==0)
+      {
+      setTxFFTPipe(0);                  //turn off the Tx FFT Stream
+      sMeter=0;
+      clearWaterfall();
+      }
+      
       sendTxFifo("R");
       sendTxFifo("H");                  //freeze the Tx Flowgraph
       sendRxFifo("h");                  //unfreeze the Rx Flowgraph
@@ -2254,7 +2437,7 @@ void setTx(int pt)
       setHwTxFreq(freq+10.0);           //offset the Tx freq to prevent unwanted spurious
       PlutoTxEnable(0);
       PlutoRxEnable(1);
-      setFFTPipe(1);                //turn on the FFT Stream
+      setFFTPipe(1);                //turn on the Rx FFT Stream
       setHwRxFreq(freq);
       if((mode==FM)&&(bandDuplex[band]==1))
         {

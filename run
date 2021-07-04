@@ -9,11 +9,6 @@ export PLUTO_IP=pluto.local
 
 
 
-if test -e /tmp/langstonefft ; then
-rm /tmp/langstonefft
-fi
-mkfifo /tmp/langstonefft
-
 if test -e /tmp/langstoneTx ;then
 rm /tmp/langstoneTx
 fi
@@ -55,8 +50,9 @@ if [ ${retry} -ge 1 ]; then
 fi
 
   python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
+sleep 3
   python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
-sleep 5
+sleep 3
 	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
 	  /home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1
 	else
