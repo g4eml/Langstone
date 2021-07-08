@@ -1850,8 +1850,14 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = BEAC
       else if (inputMode==SETTINGS)
       {
          setBandBits(0);
+         sendTxFifo("h");        //unlock the Tx so that it can exit
+         sendRxFifo("h");        //and unlock the Rx just in case
+         sendTxFifo("Q");       //kill the SDR Tx
+         sendRxFifo("Q");       //kill the SDR Rx
          clearScreen();
-         iio_context_destroy(plutoctx);                  
+         writeConfig();
+         iio_context_destroy(plutoctx);
+         sleep(2);                  
          exit(0);
       }
       else

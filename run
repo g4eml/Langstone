@@ -1,12 +1,11 @@
 #
 #!/bin/bash
 
-# Change this line to configure the Pluto IP address iff required. 
+# Do not Change this line directly.
+# Please use the command ./set_pluto to configure the Pluto IP address if required. 
+# This will ensure that all necessary files are updated, including this one. 
 
 export PLUTO_IP=pluto.local
-
-# export PLUTO_IP=192.168.2.1
-
 
 
 if test -e /tmp/langstoneTx ;then
@@ -49,16 +48,26 @@ if [ ${retry} -ge 1 ]; then
    sleep 5
 fi
 
+#start up the GNU Radio flowgraphs
   python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
 sleep 3
   python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
 sleep 3
+
+#check that the GNU modules started corretly
+
 	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
+# If they did then start the GUI
 	  /home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1
 	else
+# If not then display the error screen  
 		sudo cp /home/pi/Langstone/gnufail.bgra /dev/fb0
                 sleep 10
 	fi
+# Send a reboot command to Pluto after GUI Exits
+ssh-keygen -f "/home/pi/.ssh/known_hosts" -R $PLUTO_IP >/dev/null 2>&1
+timeout 2 sshpass -p analog ssh -o StrictHostKeyChecking=no root@$PLUTO_IP 'PATH=/bin:/sbin:/usr/bin;reboot'  >/dev/null 2>&1
+
 else
 	echo Langstone is already running. Use ./stop first.
         sleep 5
