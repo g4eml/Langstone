@@ -12,7 +12,7 @@ Currently only the following hardware is supported:-
 
 - Raspberry Pi 4
 
-- Official Raspberry Pi 7" touchscreen or Pimoroni Hyperpixel4 4" Touchscreen
+- Official Raspberry Pi 7" touchscreen, DFRobot DFR0550 5" Touchscreen or Pimoroni Hyperpixel4 4" Touchscreen
 
 - Adalm Pluto SDR Module
 
@@ -79,6 +79,13 @@ The preferred installation method only needs a Windows PC connected to the same 
 
 ```sh
 wget https://raw.githubusercontent.com/g4eml/Langstone/master/install.sh
+chmod +x install.sh
+./install.sh
+```
+# For the 5" DFR0550 Display:-
+
+```sh
+wget https://raw.githubusercontent.com/g4eml/Langstone/master/install_dfr0550.sh
 chmod +x install.sh
 ./install.sh
 ```
