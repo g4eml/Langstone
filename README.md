@@ -86,8 +86,8 @@ chmod +x install.sh
 
 ```sh
 wget https://raw.githubusercontent.com/g4eml/Langstone/master/install_dfr0550.sh
-chmod +x install.sh
-./install.sh
+chmod +x install_dfr0550.sh
+./install_dfr0550.sh
 ```
 
 # For the 4" Hyperpixel4 Display:-
