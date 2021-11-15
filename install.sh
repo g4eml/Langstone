@@ -40,6 +40,10 @@ sudo apt-get -y install gnuradio
 sudo apt-get -y install raspi-gpio
 sudo apt-get -y install sshpass
 sudo apt-get -y install libi2c-dev
+sudo apt-get -y install doxygen
+sudo apt-get -y install swig
+
+
 
 echo "#################################"
 echo "##     Install Wiring Pi       ##"
@@ -49,6 +53,55 @@ echo "#################################"
 cd /tmp
 wget https://project-downloads.drogon.net/wiringpi-latest.deb
 sudo dpkg -i wiringpi-latest.deb
+cd ~
+
+# Install LimeSuite 20.10 as at 25 Jan 21
+# Commit be276996ec3f23b2aadc10543add867d1a55afdd
+echo
+echo "#######################################"
+echo "##    Installing LimeSuite 20.10     ##"
+echo "#######################################"
+
+wget https://github.com/myriadrf/LimeSuite/archive/be276996ec3f23b2aadc10543add867d1a55afdd.zip -O master.zip
+unzip -o master.zip
+cp -f -r LimeSuite-be276996ec3f23b2aadc10543add867d1a55afdd LimeSuite
+rm -rf LimeSuite-be276996ec3f23b2aadc10543add867d1a55afdd
+rm master.zip
+
+# Compile LimeSuite
+cd LimeSuite/
+mkdir dirbuild
+cd dirbuild/
+cmake ../
+make
+sudo make install
+sudo ldconfig
+cd /home/pi
+
+# Install udev rules for LimeSuite
+cd LimeSuite/udev-rules
+chmod +x install.sh
+sudo /home/pi/LimeSuite/udev-rules/install.sh
+cd ~	
+
+# Record the LimeSuite Version	
+echo "be27699" >/home/pi/LimeSuite/commit_tag.txt
+
+
+
+echo "#################################"
+echo "##        Install gr-limesdr   ##"
+echo "#################################"
+
+git clone https://github.com/myriadrf/gr-limesdr.git
+cd gr-limesdr
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig
+
 cd ~
 
 echo "#################################"
