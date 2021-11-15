@@ -17,6 +17,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+
+//#define PLUTOIP "ip:pluto.local"
+
+char plutoip[30];
+
 const char *i2cNode1 = "/dev/i2c-1";        //linux i2c node for the Hyperpixel display on Pi 4
 const char *i2cNode2 = "/dev/i2c-11";       //linux i2c node for the Hyperpixel display on Pi 4
 int  mcp23017_addr = 0x20;	               //MCP23017 I2C Address
@@ -40,11 +45,13 @@ void initGUI();
 void sendFifo(char * s);
 void initFifos();
 void initUDP(void);
-void setLimeRxFreq(long long rxfreq);
-void setLimeTxFreq(long long rxfreq);
+void initPluto(void);
+void setPlutoRxFreq(long long rxfreq);
+void setPlutoTxFreq(long long rxfreq);
 void setHwRxFreq(double fr);
 void setHwTxFreq(double fr);
-void LimeTxEnable(int txon);
+void PlutoTxEnable(int txon);
+void PlutoRxEnable(int rxon);
 void detectHw();
 int buttonTouched(int bx,int by);
 void setKey(int k);
@@ -70,9 +77,11 @@ void S_Meter(void);
 void setRit(int rit);
 void setInputMode(int n);
 void gen_palette(char colours[][3],int num_grads);
-void setLimeTxAtt(int att);
-void setLimeRxGain(int gain);
+void setPlutoTxAtt(int att);
+void setPlutoRxGain(int gain);
+int readPlutoRxGain(void);
 void setBand(int b);
+void setPlutoGpo(int p);
 void setTxPin(int v);
 long long runTimeMs(void);                                                    
 void clearPopUp(void);
@@ -91,10 +100,10 @@ double freq;
 double freqInc=0.001;
 #define numband 12
 int band=3;
-double bandFreq[numband] = {50.200,70.200,144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,10489.55};
-double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-5328.0,-9936.0,-23616.0,-10069.5};
-double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,-5328.0,-9936.0,-23616.0,-10345.0};
-double bandRepShift[numband]={0.5,0,-0.6,1.6,-6.0,0,0,0,0,0,0,0};
+double bandFreq[numband] = {70.200,144.200,432.200,1296.200,2320.200,2400.100,3400.100,5760.100,10368.200,24048.200,47088.2,10489.55};
+double bandTxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10069.5};
+double bandRxOffset[numband]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-9936.0,-23616.0,-46656.0,-10345.0};
+double bandRepShift[numband]={0,-0.6,1.6,-6.0,0,0,0,0,0,0,0,0};
 int bandTxHarmonic[numband]={1,1,1,1,1,1,1,1,1,1,1,1};
 int bandRxHarmonic[numband]={1,1,1,1,1,1,1,1,1,1,1,1};
 int bandMode[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
@@ -102,8 +111,8 @@ int bandBitsRx[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandBitsTx[numband]={0,1,2,3,4,5,6,7,8,9,10,11};
 int bandSquelch[numband]={30,30,30,30,30,30,30,30,30,30,30,30};
 int bandFFTRef[numband]={-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10};
-int bandTxAtt[numband]={73,73,73,73,73,73,73,73,73,73,73,73};
-int bandRxGain[numband]={73,73,73,73,73,73,73,73,73,73,73,73};              
+int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
+int bandRxGain[numband]={100,100,100,100,100,100,100,100,100,100,100,100};              //100 is automatic gain
 int bandDuplex[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 float bandSmeterZero[numband]={-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80};
 int bandSSBFiltLow[numband]={300,300,300,300,300,300,300,300,300,300,300,300};
@@ -111,12 +120,9 @@ int bandSSBFiltHigh[numband]={3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,
 
 #define minFreq 0.0
 #define maxFreq 99999.99999
-#define minHwFreq 30.0
-#define maxHwFreq 3799.99999
-#define MAXRXGAIN 73
-#define MAXTXGAIN 73
-#define MINRXGAIN 0
-#define MINTXGAIN 0
+#define minHwFreq 69.9
+#define maxHwFreq 5999.99999
+
 
 #define nummode 6
 int mode=0;
@@ -126,8 +132,8 @@ enum {USB,LSB,CW,CWN,FM,AM};
 
 #define numSettings 19
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits (Rx)= ","Band Bits (Tx)= ","FFT Ref= ","Tx Gain= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS_RX,BAND_BITS_TX,FFT_REF,TX_GAIN,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits (Rx)= ","Band Bits (Tx)= ","Copy Band Bits to Pluto=","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS_RX,BAND_BITS_TX,BAND_BITS_TO_PLUTO,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
 int settingNo=RX_GAIN;
 int setIndex=0;
 int maxSetIndex=10;
@@ -238,9 +244,12 @@ char mousePath[20];
 char touchPath[20];
 int mousePresent;
 int touchPresent;
+int plutoPresent;
 int portsdownPresent;
 int hyperPixelPresent;
 int MCP23017Present;
+
+int bandBitsToPluto=0;      //copy low 3 band bits to pluto IO1-IO3
 
 int popupSel=0;
 int popupFirstBand;
@@ -264,6 +273,7 @@ enum {NONE,MODE,BAND,BEACON};
 #define i2cTxPin 7      //MCP23017 TX Output if fitted
                         //MCP23017 uses port B for band bits. 
 
+int plutoGpo=0;
 
 //robs Waterfall
 
@@ -282,6 +292,8 @@ int bwBarEnd=34;
 float sMeter;                             //peak reading S meter.
 float sMeterPeak;
 
+struct iio_context *plutoctx;
+struct iio_device *plutophy;
 
 //UDP server to receive FFT data from GNU RAdio
 
@@ -293,11 +305,24 @@ float sMeterPeak;
 
 int main(int argc, char* argv[])
 {
+  strcpy(plutoip,"ip:");
+  char * penv = getenv("PLUTO_IP");
+  if(penv==NULL)
+    {
+      strcpy(penv,"pluto.local");
+    }
+  strcat(plutoip,penv);
 
-  initUDP(); 
+  printf("plutoip = %s\n",plutoip);
+  
+  
+  initUDP();
+  
+  
   lastClock=0;
   readConfig();
   detectHw();
+  initPluto();
   initFifos();
   initScreen();
   initGPIO();
@@ -404,6 +429,13 @@ int main(int argc, char* argv[])
         }
     }
     
+   
+   if(firstpass==1)
+   {
+   firstpass=0;
+   setTx(1);                                              //seems to be needed to initialise Pluto
+   setTx(0);
+   }
     
     while(runTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second (10ms)
     {
@@ -652,7 +684,12 @@ void S_Meter(void)
          
           sMeterPeak=sMeterPeak-bandSmeterZero[band];                   //adjust offset to give positive values for s-meter
           int dbOver=0;
-          int sValue=0;       
+          int sValue=0;
+          
+          if(bandRxGain[band]==100)                  //if we are in RF AGC mode
+            {
+             sMeterPeak=sMeterPeak + maxGain(freq) - readPlutoRxGain();       //compensate for reduced gain due to AGC action
+            }       
             
           if(sMeterPeak < 0) sMeterPeak=0;
           if(sMeterPeak >= sMeter)
@@ -862,6 +899,7 @@ void detectHw()
     hyperPixelPresent=0;
   }
   
+    plutoPresent=1;      //this will be reset by setPlutoFreq if Pluto is not present.
   
 // try to initialise MCP23017 i2c chip for additonal I/O
 // this will set or reset MCP23017Present flag 
@@ -876,51 +914,134 @@ void displayError(char*st)
   displayStr(st);
 }
 
-void setLimeRxFreq(long long rxfreq)
+void initPluto(void)
 {
-  char freqStr[10];
-  sprintf(freqStr,"L%lld",rxfreq);
-  sendFifo(freqStr);
+    plutoctx = iio_create_context_from_uri(plutoip);
+      if(plutoctx==NULL)
+      {
+        plutoPresent=0;
+        displayError("Pluto not responding");
+        return;
+      }
+      else
+      {
+      plutophy = iio_context_find_device(plutoctx, "ad9361-phy"); 
+      }
 }
 
-void setLimeTxFreq(long long txfreq)
+void setPlutoRxFreq(long long rxfreq)
 {
-  char freqStr[10];
-  sprintf(freqStr,"l%lld",txfreq);
-  sendFifo(freqStr);
+int ret;
+   if(plutoPresent)
+    { 
+      ret=iio_channel_attr_write_longlong(iio_device_find_channel(plutophy, "altvoltage0", true),"frequency", rxfreq); //Rx LO Freq
+      if(ret<0)
+      {
+      displayError("Pluto not responding");
+      }
+    }
+  
 }
 
-void setLimeTxAtt(int gain)
+void setPlutoTxFreq(long long txfreq)
+{
+int ret;
+   if(plutoPresent)
+    { 
+      ret=iio_channel_attr_write_longlong(iio_device_find_channel(plutophy, "altvoltage1", true),"frequency", txfreq); //Tx LO Freq
+   if(ret<0)
+      {
+      displayError("Pluto not responding");
+      }
+    }
+  
+}
+
+void setPlutoTxAtt(int att)
 { 
- char gStr[10];
-  if(gain> 100) gain=100;
-  if(gain < 0) gain=0;
-  sprintf(gStr,"a%d",gain);
-  sendFifo(gStr);
+  if(plutoPresent)
+    {
+      iio_channel_attr_write_double(iio_device_find_channel(plutophy, "voltage0", true),"hardwaregain", (double)att); //set Tx Attenuator     
+    }
 }
 
-void setLimeRxGain(int gain)
+void setPlutoRxGain(int gain)
 { 
-  char gStr[10];
-  if(gain > 73) gain=73;
-  if(gain < 0) gain=0;
-  sprintf(gStr,"A%d",gain);
-  sendFifo(gStr);
+  if(plutoPresent)
+    {
+     if(gain>maxGain(freq))
+        {
+          iio_channel_attr_write(iio_device_find_channel(plutophy, "voltage0", false),"gain_control_mode", "slow_attack");  //set Auto Gain
+        }
+        else
+        {
+        iio_channel_attr_write(iio_device_find_channel(plutophy, "voltage0", false),"gain_control_mode", "manual");  //set Manual  Gain control
+        iio_channel_attr_write_double(iio_device_find_channel(plutophy, "voltage0", false),"hardwaregain", (double)gain); //set Rx Gain 
+        }
+    } 
+}
+
+
+int readPlutoRxGain(void)
+{
+double ret;
+      if(plutoPresent)
+      {
+        iio_channel_attr_read_double(iio_device_find_channel(plutophy, "voltage0", false),"hardwaregain", &ret); //Read current Rx Gain
+        return (int) ret; 
+      }
+      else
+      {
+      return 73;
+      }
+
 }
 
 
 
-void LimeTxEnable(int txon)
+void PlutoTxEnable(int txon)
 {
-   if(txon==1)
-   {
-     setLimeTxAtt(TxAtt);
-   }
-   else
-   {
-    setLimeTxAtt(0);
-   }
+  if(plutoPresent)
+    { 
+      if(txon==0)
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage1", true),"powerdown", true); //turn off TX LO
+        }
+      else
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage1", true),"powerdown", false); //turn on TX LO
+        }
+    }
 
+}
+
+void PlutoRxEnable(int rxon)
+{
+  if(plutoPresent)
+    {
+      if(rxon==0)
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage0", true),"powerdown", true); //turn off RX LO
+        }
+      else
+        {
+        iio_channel_attr_write_bool(iio_device_find_channel(plutophy, "altvoltage0", true),"powerdown", false); //turn on RX LO
+        }
+    }
+
+}
+
+void setPlutoGpo(int p)
+{
+  char pins[10]; 
+   
+  sprintf(pins,"0x27 0x%x0",p);
+  pins[9]=0;
+
+  if(plutoPresent)
+    {
+      iio_device_debug_attr_write(plutophy,"direct_reg_access",pins);
+    }
 }
 
 
@@ -1722,6 +1843,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*5,funcButtonsY))    //Button 6 = BEAC
          sendFifo("Q");       //kill the SDR
          clearScreen();
          writeConfig();
+         iio_context_destroy(plutoctx);
          sleep(2);                  
          exit(0);
       }
@@ -1751,6 +1873,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*6,funcButtonsY))   //Button 7 = PTT  
       sendFifo("H");        //unlock the flowgraph so that it can exit
       sendFifo("Q");       //kill the SDR 
       writeConfig();
+      iio_context_destroy(plutoctx);
       system("sudo cp /home/pi/Langstone/splash.bgra /dev/fb0");
       sleep(2);
       system("sudo poweroff");                          
@@ -1855,8 +1978,8 @@ void setBand(int b)
   setSquelch(squelch);
   FFTRef=bandFFTRef[band];
   TxAtt=bandTxAtt[band];
-  setLimeTxAtt(TxAtt);
-  setLimeRxGain(bandRxGain[band]);
+  setPlutoTxAtt(TxAtt);
+  setPlutoRxGain(bandRxGain[band]);
   configCounter=configDelay;
 }
 
@@ -2242,6 +2365,8 @@ void setTx(int pt)
     {
       setTxPin(1);
       setBandBits(bandBitsTx[band]);
+      plutoGpo=plutoGpo | 0x10;
+      setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
       usleep(TXDELAY);
       setHwTxFreq(freq);
       if((mode==FM)&&(bandDuplex[band]==1))
@@ -2249,12 +2374,13 @@ void setTx(int pt)
         displayFreq(freq+bandRepShift[band]);
         displayMenu();
         }
-      LimeTxEnable(1);
+      PlutoTxEnable(1);
       if (moni==0) sendFifo("U1");                        //mute the receiver
       if(satMode()==0)
       {
         sMeter=0;
-        setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!)  
+        setHwRxFreq(freq+10.0);               //offset the Rx frequency to prevent unwanted mixing. (happens even if disabled!) 
+        PlutoRxEnable(0);
       }
       if(satMode()==0)
       {
@@ -2278,7 +2404,8 @@ void setTx(int pt)
       sendFifo("R");
       sendFifo("U0");                  //unmute the receiver
       setHwTxFreq(freq+10.0);           //offset the Tx freq to prevent unwanted spurious
-      LimeTxEnable(0);
+      PlutoTxEnable(0);
+      PlutoRxEnable(1);
       setHwRxFreq(freq);
       if((mode==FM)&&(bandDuplex[band]==1))
         {
@@ -2293,6 +2420,8 @@ void setTx(int pt)
       usleep(RXDELAY);
       setTxPin(0);
       setBandBits(bandBitsRx[band]);
+      plutoGpo=plutoGpo & 0xEF;
+      setPlutoGpo(plutoGpo);                               //clear the Pluto GPO Pin 
     }
 }
 
@@ -2307,9 +2436,19 @@ void setHwRxFreq(double fr)
   frRx=fr+bandRxOffset[band];
   
   rxfreqhz=frRx*1000000;
-
+  
+  if (rxfreqhz<69900000) rxfreqhz=69900000;         //this is the lowest frequency we can receive with a pluto 
+  
+  if(rxfreqhz<70100000)
+  {
+  rxoffsethz=(rxfreqhz-70000000);        //Special case for receiving below 70.100     Use the offset of +-100KHz
+  LOrxfreqhz=70000000;
+  }
+  else
+  {
   rxoffsethz=(rxfreqhz % 100000)+50000;        //use just the +50Khz to +150Khz positive side of the sampled spectrum. This avoids seeing the DC hump .
   LOrxfreqhz=rxfreqhz-rxoffsethz;
+  }
 
   if( bandRxHarmonic[band]>1)                                //allow for harmonic mixing for higher bands (10GHz)
     {
@@ -2324,7 +2463,7 @@ void setHwRxFreq(double fr)
     }
   if(LOrxfreqhz!=lastLOhz)         
     {
-      setLimeRxFreq(LOrxfreqhz);          
+      setPlutoRxFreq(LOrxfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
       lastLOhz=LOrxfreqhz;
     }
   
@@ -2352,7 +2491,7 @@ void setHwTxFreq(double fr)
     txfreqhz=txfreqhz/bandTxHarmonic[band];
     } 
   
-      setLimeTxFreq(txfreqhz);          
+      setPlutoTxFreq(txfreqhz);          //Control Pluto directly to bypass problems with Gnu Radio Sink
 }
 
 void displayFreq(double fr)
@@ -2637,6 +2776,43 @@ if(hyperPixelPresent==0)                //dont use Raspberry Pi GPIO with Hyperp
         }       
   }
 
+//  copy bits 0,1 and 2to Pluto GPO Pins if enabled
+
+ if(bandBitsToPluto==1)
+ {
+  if(b & 0x01) 
+      {
+      plutoGpo=plutoGpo | 0x20;
+      }
+  else
+      {
+      plutoGpo=plutoGpo & 0xDF;
+      }
+      
+  if(b & 0x02) 
+      {
+      plutoGpo=plutoGpo | 0x40;
+      }
+  else
+      {
+      plutoGpo=plutoGpo & 0xBF;
+      }   
+  
+  if(b & 0x04) 
+      {
+      plutoGpo=plutoGpo | 0x80;
+      }
+  else
+      {;
+      plutoGpo=plutoGpo & 0x7F;
+      }   
+  setPlutoGpo(plutoGpo);
+ } 
+ else
+ {
+   plutoGpo=plutoGpo & 0x1F;
+   setPlutoGpo(plutoGpo);
+ }
  
   
 if(MCP23017Present==1)                       //optional extender chip has port b for band bits. 
@@ -2802,7 +2978,20 @@ if(settingNo==BAND_BITS_TX)        // Band Bits Tx
       if(bandBitsTx[band]<0) bandBitsTx[band]=0;
       if(bandBitsTx[band]>255) bandBitsTx[band]=255;
       displaySetting(settingNo);  
-      }        
+      }  
+    if(settingNo==BAND_BITS_TO_PLUTO)        // Copy Band Bits to Pluto
+      {
+      if(mouseScroll>0)
+      {
+        bandBitsToPluto=1;
+      }
+      if(mouseScroll<0)
+      {
+         bandBitsToPluto=0;
+      }
+      mouseScroll=0;
+      displaySetting(settingNo);  
+      }       
         
    if(settingNo==FFT_REF)        // FFT Ref Level
       {
@@ -2813,24 +3002,32 @@ if(settingNo==BAND_BITS_TX)        // Band Bits Tx
       bandFFTRef[band]=FFTRef;
       displaySetting(settingNo);  
       }    
-    if(settingNo= TX_GAIN)        // Tx Gain
+    if(settingNo==TX_ATT)        // Tx Attenuator
       {
       TxAtt=TxAtt+mouseScroll;
       mouseScroll=0;
-      if(TxAtt<MINTXGAIN) TxAtt= MINTXGAIN;
-      if(TxAtt>MAXTXGAIN) TxAtt=MAXTXGAIN;
+      if(TxAtt<-89) TxAtt=-89;
+      if(TxAtt>0) TxAtt=0;
       bandTxAtt[band]=TxAtt;
-      setLimeTxAtt(TxAtt);
+      setPlutoTxAtt(TxAtt);
       displaySetting(settingNo);  
       }  
      if(settingNo==RX_GAIN)        // Rx Gain Setting
       {
+      if (bandRxGain[band] == 100)
+        {
+        bandRxGain[band]=maxGain(freq)+1+mouseScroll;
+        }
+      else
+      {
         bandRxGain[band]=bandRxGain[band]+mouseScroll;
-        if (bandRxGain[band] > MAXRXGAIN) bandRxGain[band]=MAXRXGAIN;
-        if (bandRxGain[band] < MINRXGAIN) bandRxGain[band]=MINRXGAIN;
-        mouseScroll=0;
-        setLimeRxGain(bandRxGain[band]);
-        displaySetting(settingNo);  
+      }
+
+      mouseScroll=0;
+      if(bandRxGain[band]< minGain(freq)) bandRxGain[band]=minGain(freq);
+      if(bandRxGain[band]> maxGain(freq)) bandRxGain[band]=100;
+      setPlutoRxGain(bandRxGain[band]);
+      displaySetting(settingNo);  
       }                   
     if(settingNo==S_ZERO)        // S Meter Zero
       {
@@ -2901,6 +3098,53 @@ if(settingNo==BAND_BITS_TX)        // Band Bits Tx
 }
 
                
+int minGain(double freq)
+{
+double rxfreq;
+
+rxfreq=(freq+bandRxOffset[band])/bandRxHarmonic[band];
+
+if(rxfreq<1300)
+ {
+ return -1;
+ }
+if((rxfreq>=1300) && (rxfreq<4000))
+  {
+  return -3;
+  }
+if(rxfreq>=4000)
+  {
+  return -10;
+  }
+  
+return 0;
+}
+
+int maxGain(double freq)
+{
+double rxfreq; 
+
+rxfreq=(freq+bandRxOffset[band])/bandRxHarmonic[band];
+
+if(rxfreq<1300)
+ {
+ return 73;
+ }
+if((rxfreq>=1300) && (rxfreq<4000))
+  {
+  return 71;
+  }
+if(rxfreq>=4000)
+  {
+  return 62;
+  }
+  
+return 73;
+}
+
+
+
+
 
 void displaySetting(int se)
 {
@@ -3006,20 +3250,39 @@ if(se==BAND_BITS_TX)
         displayChar('0');
         }
     } 
+  }
+  if(se==BAND_BITS_TO_PLUTO)
+  {
+    if(bandBitsToPluto==1)
+      {
+      sprintf(valStr,"Yes");
+      }
+    else
+      {
+      sprintf(valStr,"No");
+      }
+   displayStr(valStr);  
   } 
   if(se==FFT_REF)
   {
   sprintf(valStr,"%d",FFTRef);
   displayStr(valStr);
   }
-  if(se==TX_GAIN)
+  if(se==TX_ATT)
   {
   sprintf(valStr,"%d dB",TxAtt);
   displayStr(valStr);
   }
   if(se==RX_GAIN)
   {
-  sprintf(valStr,"%d dB",bandRxGain[band]);
+    if(bandRxGain[band]>maxGain(freq))
+    {
+    sprintf(valStr,"Auto");
+    }
+    else
+    {
+    sprintf(valStr,"%d dB",bandRxGain[band]);
+    }
   displayStr(valStr);
   }
   if(se==S_ZERO)
@@ -3096,7 +3359,7 @@ char variable[50];
 char value[100];
 char vname[20];
 
-conffile=fopen("/home/pi/Langstone/Langstone_Lime.conf","r");
+conffile=fopen("/home/pi/Langstone/Langstone_Pluto.conf","r");
 
 if(conffile==NULL)
   {
@@ -3174,6 +3437,7 @@ while(fscanf(conffile,"%49s %99s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,"FMMic")) sscanf(value,"%d",&FMMic);
     if(strstr(variable,"volume")) sscanf(value,"%d",&volume);
     if(strstr(variable,"breakInTime")) sscanf(value,"%d",&breakInTime);
+    if(strstr(variable,"bandBitsToPluto")) sscanf(value,"%d",&bandBitsToPluto);
     if(mode>nummode-1) mode=0;
             
   }
@@ -3201,7 +3465,7 @@ for(int i=0;i<MORSEIDENTLENGTH;i++)                                             
   }
 
 
-conffile=fopen("/home/pi/Langstone/Langstone_Lime.conf","w");
+conffile=fopen("/home/pi/Langstone/Langstone_Pluto.conf","w");
 
 if(conffile==NULL)
   {
@@ -3239,6 +3503,7 @@ fprintf(conffile,"SSBMic %d\n",SSBMic);
 fprintf(conffile,"FMMic %d\n",FMMic);
 fprintf(conffile,"volume %d\n",volume);
 fprintf(conffile,"breakInTime %d\n",breakInTime);
+fprintf(conffile,"bandBitsToPluto %d\n",bandBitsToPluto);
 
 fclose(conffile);
 return 0;
