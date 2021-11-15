@@ -1,6 +1,6 @@
 #!/bin/bash
 # Langstone Install script 
-# Buster Version G4EML 23/05/20
+# Buster Version G4EML 15/11/21
 
 echo "######################################"
 echo "## Installing Langstone Transceiver ##"
