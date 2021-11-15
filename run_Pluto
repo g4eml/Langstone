@@ -8,18 +8,13 @@
 export PLUTO_IP=pluto.local
 
 
-if test -e /tmp/langstoneTx ;then
-rm /tmp/langstoneTx
+if test -e /tmp/langstoneTRx ;then
+rm /tmp/langstoneTRx
 fi
-mkfifo /tmp/langstoneTx
-
-if test -e /tmp/langstoneRx ;then
-rm /tmp/langstoneRx
-fi
-mkfifo /tmp/langstoneRx
+mkfifo /tmp/langstoneTRx
 
 
-if !(ps -ax |grep -v grep| grep -q Lang_TX.py) then
+if !(ps -ax |grep -v grep| grep -q Lang_TRX_Pluto.py) then
 	sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
 	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
 	sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
@@ -49,16 +44,15 @@ if [ ${retry} -ge 1 ]; then
 fi
 
 #start up the GNU Radio flowgraphs
-  python /home/pi/Langstone/Lang_TX.py > /tmp/LangstoneTX.log 2>&1 &
-sleep 3
-  python /home/pi/Langstone/Lang_RX.py > /tmp/LangstoneRX.log 2>&1 &
-sleep 3
+  python /home/pi/Langstone/Lang_TRX_Pluto.py > /tmp/LangstoneTRX_Pluto.log 2>&1 &
+sleep 10
+
 
 #check that the GNU modules started corretly
 
-	if (ps -ax | grep -v grep| grep -q Lang_TX.py)then
+	if (ps -ax | grep -v grep| grep -q Lang_TRX_Pluto.py)then
 # If they did then start the GUI
-	  /home/pi/Langstone/GUI > /tmp/LangstoneGUI.log 2>&1
+	  /home/pi/Langstone/GUI_Pluto > /tmp/LangstoneGUI_Pluto.log 2>&1
 	else
 # If not then display the error screen  
 		sudo cp /home/pi/Langstone/gnufail.bgra /dev/fb0

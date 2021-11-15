@@ -7,7 +7,7 @@ PLUTO_IP=pluto.local
 echo Stopping GNU Radio Modules
 killall python >/dev/null 2>&1
 echo Stopping GUI
-killall /home/pi/Langstone/GUI >/dev/null 2>&1
+killall /home/pi/Langstone/GUI_Pluto >/dev/null 2>&1
 echo Rebooting Pluto
 cp /home/pi/Langstone/splash.bgra /dev/fb0
 ssh-keygen -f "/home/pi/.ssh/known_hosts" -R $PLUTO_IP >/dev/null 2>&1

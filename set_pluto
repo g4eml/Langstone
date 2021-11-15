@@ -7,8 +7,8 @@ echo
 echo
 read PLUTO_IP
 
- sed -i "s/export PLUTO_IP=.*/export PLUTO_IP=$PLUTO_IP/" /home/pi/Langstone/run
- sed -i "s/PLUTO_IP=.*/PLUTO_IP=$PLUTO_IP/" /home/pi/Langstone/stop
+ sed -i "s/export PLUTO_IP=.*/export PLUTO_IP=$PLUTO_IP/" /home/pi/Langstone/run_Pluto
+ sed -i "s/PLUTO_IP=.*/PLUTO_IP=$PLUTO_IP/" /home/pi/Langstone/stop_Pluto
 
 echo
 echo Langstone has been updated to use $PLUTO_IP

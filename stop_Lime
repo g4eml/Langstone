@@ -1,0 +1,5 @@
+echo Stopping GNU Radio Modules
+killall python >/dev/null 2>&1
+echo Stopping GUI
+killall /home/pi/Langstone/GUI >/dev/null 2>&1
+cp /home/pi/Langstone/splash.bgra /dev/fb0

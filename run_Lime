@@ -1,0 +1,39 @@
+#
+#!/bin/bash
+
+
+if test -e /tmp/langstoneTRx ;then
+rm /tmp/langstoneTRx
+fi
+mkfifo /tmp/langstoneTRx
+
+
+if !(ps -ax |grep -v grep| grep -q Lang_TRX_Lime.py) then
+	sudo amixer -c1 cset numid=6 100%  > /dev/null 2>&1
+	sudo amixer -c1 cset numid=8 50%  > /dev/null 2>&1
+	sudo cp /home/pi/Langstone/splashload.bgra /dev/fb0
+        sudo raspi-gpio set 17,18 pu
+   
+#start up the GNU Radio flowgraphs
+  python /home/pi/Langstone/Lang_TRX_Lime.py > /tmp/LangstoneTRX_Lime.log 2>&1 &
+sleep 10
+
+#check that the GNU modules started corretly
+
+	if (ps -ax | grep -v grep| grep -q Lang_TRX_Lime.py)then
+# If they did then start the GUI
+	  /home/pi/Langstone/GUI_Lime > /tmp/LangstoneGUI_Lime.log 2>&1 
+	else
+# If not then display the error screen  
+		sudo cp /home/pi/Langstone/gnufail.bgra /dev/fb0
+                sleep 10
+	fi
+
+else
+	echo Langstone is already running. Use ./stop first.
+        sleep 5
+fi
+
+
+
+
