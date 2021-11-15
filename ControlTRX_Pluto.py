@@ -1,6 +1,6 @@
 
 ##################################################
-# Piped Commands TRx Control Thread for Hayling Transceiver Version 2
+# Piped Commands TRx Control Thread for Hayling Transceiver Pluto Version 
 # Author: G4EML
 # Needs to be manually added into Gnu Radio Flowgraph
 ##################################################
@@ -11,6 +11,27 @@
  
 import os
 import errno
+
+#######################################################
+# Add these lines at the start of the Variables section
+#######################################################
+
+        plutoip=os.environ.get('PLUTO_IP')
+        if plutoip==None :
+          plutoip='pluto.local'
+        plutoip='ip:' + plutoip
+        
+########################################################
+# change the pluto sink definition to  this
+########################################################
+
+        self.pluto_sink_0 = iio.pluto_sink(plutoip, 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
+        
+########################################################
+# change the pluto source definition to  this
+########################################################
+
+        self.pluto_source_0 = iio.pluto_source(plutoip, 1000000000, 528000, 2000000, 0x800, True, True, True, "slow_attack", 64.0, '', True)
 
         
 #######################################################
