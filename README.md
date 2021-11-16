@@ -102,7 +102,7 @@ chmod +x install_hyperpixel4.sh
 #  To build the development version for the 7" Raspberry Pi Display (Not Guaranteed to work. For testing only):-
 
 ```sh
-wget https://raw.githubusercontent.com/g4eml/Langstone/master/install_Dev.sh
+wget https://raw.githubusercontent.com/g4eml/Langstone/Dev/install_Dev.sh
 chmod +x install_Dev.sh
 ./install_Dev.sh
 ```
