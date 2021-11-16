@@ -17,8 +17,8 @@ do
     echo
     echo "The Langstone/run and Langstone/stop commands will now use the Adalm Pluto"
     echo
-    ln -sf run_Pluto run
-    ln -sf stop_Pluto stop
+    ln -sf run_pluto run
+    ln -sf stop_pluto stop
     break
   fi
 
@@ -29,8 +29,8 @@ do
     echo
     echo "The Langstone/run and Langstone/stop commands will now use the Lime SDR"
     echo
-    ln -sf run_Lime run
-    ln -sf stop_Lime stop
+    ln -sf run_lime run
+    ln -sf stop_lime stop
     break  
   fi
 done

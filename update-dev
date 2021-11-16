@@ -1,10 +1,14 @@
 #!/bin/bash
 cd /home/pi
-cp /home/pi/Langstone/Langstone.conf /tmp
+cp /home/pi/Langstone/Langstone_Lime.conf /tmp
+cp /home/pi/Langstone/Langstone_Pluto.conf /tmp
 rm -rf /home/pi/Langstone
 git clone -b Dev http://www.github.com/g4eml/Langstone
 /home/pi/Langstone/build
-cp /tmp/Langstone.conf /home/pi/Langstone
-
+cp /tmp/Langstone_Lime.conf /home/pi/Langstone
+cp /tmp/Langstone_Pluto.conf /home/pi/Langstone
+cd ~
+cd Langstone
+./set_sdr
 
 

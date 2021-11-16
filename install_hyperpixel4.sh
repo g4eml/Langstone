@@ -89,10 +89,10 @@ echo "#################################"
 git clone https://github.com/g4eml/Langstone.git
 cd Langstone
 chmod +x build
-chmod +x run_Lime
-chmod +x stop_Lime
-chmod +x run_Pluto
-chmod +x stop_Pluto
+chmod +x run_lime
+chmod +x stop_lime
+chmod +x run_pluto
+chmod +x stop_pluto
 chmod +x update
 ./build
 
@@ -122,6 +122,9 @@ fi
 
 sudo sed -i '/dtoverlay=vc4-fkms-v3d/s/^/#/' /boot/config.txt
 
+cd ~
+cd Langstone
+./set_sdr
 
 
 echo "#################################"
