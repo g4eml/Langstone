@@ -1,0 +1,39 @@
+while [ 1 ]
+do
+  clear
+  echo
+  echo Langstone SDR Device Selection
+  echo --------------------------------
+  echo "Please select your SDR Hardware" 
+  echo " 1= Adalm Pluto"
+  echo " 2= Lime SDR Mini"
+  echo
+  read SDRTYPE
+
+  if [ $SDRTYPE -eq 1 ]
+  then
+    echo
+    echo "Adalm Pluto Selected"
+    echo
+    echo "The Langstone/run and Langstone/stop commands will now use the Adalm Pluto"
+    echo
+    ln -sf run_Pluto run
+    ln -sf stop_Pluto stop
+    break
+  fi
+
+  if [ $SDRTYPE -eq 2 ]
+  then
+    echo
+    echo "Lime SDR Selected"
+    echo
+    echo "The Langstone/run and Langstone/stop commands will now use the Lime SDR"
+    echo
+    ln -sf run_Lime run
+    ln -sf stop_Lime stop
+    break  
+  fi
+done
+
+
+  
