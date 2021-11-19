@@ -96,6 +96,7 @@ int minGain(double freq);
 int maxGain(double freq);
 void setDialLock(int d);
 void setBeacon(int b);
+void setScreenBrightness(int newScreenBrightness);
 int firstpass=1;
 double freq;
 double freqInc=0.001;
@@ -131,10 +132,53 @@ int lastmode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 19
+#define numSettings 20
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits (Rx)= ","Band Bits (Tx)= ","Copy Band Bits to Pluto=","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS_RX,BAND_BITS_TX,BAND_BITS_TO_PLUTO,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
+char *settingText[numSettings] = {
+        "Rx Gain= ",
+        "SSB Mic Gain= ",
+        "FM Mic Gain= ",
+        "Repeater Shift= ",
+        " Rx Offset= ",
+        "Rx Harmonic Mixing= ",
+        " Tx Offset= ",
+        "Tx Harmonic Mixing= ",
+        "Band Bits (Rx)= ",
+        "Band Bits (Tx)= ",
+        "Copy Band Bits to Pluto=",
+        "FFT Ref= ",
+        "Tx Att= ",
+        "S-Meter Zero= ",
+        "SSB Rx Filter Low= ",
+        "SSB Rx Filter High= ",
+        "CW Ident= ",
+        "CWID Carrier= ",
+        "CW Break-In Hang Time= ",
+        "Screen Brightness= "
+};
+enum {
+    RX_GAIN,
+    SSB_MIC,
+    FM_MIC,
+    REP_SHIFT,
+    RX_OFFSET,
+    RX_HARMONIC,
+    TX_OFFSET,
+    TX_HARMONIC,
+    BAND_BITS_RX,
+    BAND_BITS_TX,
+    BAND_BITS_TO_PLUTO,
+    FFT_REF,
+    TX_ATT,
+    S_ZERO,
+    SSB_FILT_LOW,
+    SSB_FILT_HIGH,
+    CWID,
+    CW_CARRIER,
+    BREAK_IN_TIME,
+    SCREEN_BRIGHTNESS
+};
+
 int settingNo=RX_GAIN;
 int setIndex=0;
 int maxSetIndex=10;
@@ -207,6 +251,9 @@ int lastBut=0;
 
 int breakInTimer=0;
 int breakInTime=100;
+
+int screenBrightness = 255;
+int maxScreenBrightness = 255;
 
 long long lastLOhz;
 
@@ -3132,7 +3179,20 @@ if(settingNo==BAND_BITS_TX)        // Band Bits Tx
       if(breakInTime< 50) breakInTime=50;
       if(breakInTime> 200) breakInTime=200;
       displaySetting(settingNo);  
-      }                                                                                                                     
+      }
+
+    if (settingNo == SCREEN_BRIGHTNESS) {
+        screenBrightness += mouseScroll;
+        mouseScroll = 0;
+        if (screenBrightness < 0) {
+            screenBrightness = 0;
+        }
+        if (screenBrightness > maxScreenBrightness) {
+            screenBrightness = maxScreenBrightness;
+        }
+        setScreenBrightness(screenBrightness);
+        displaySetting(settingNo);
+    }
 }
 
                
@@ -3552,3 +3612,12 @@ return 0;
 }
 
 
+void setScreenBrightness(int newScreenBrightness) {
+    FILE *f;
+    f = fopen("/sys/class/backlight/rpi_backlight/brightness", "w");
+    if (f == NULL) {
+        return;
+    }
+    fprintf(f, "%d", newScreenBrightness);
+    fclose(f);
+}

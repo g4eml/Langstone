@@ -111,6 +111,9 @@ fi
 
 sudo sed -i '/dtoverlay=vc4-fkms-v3d/s/^/#/' /boot/config.txt
 
+#allow user pi to change screen brightness
+echo 'SUBSYSTEM=="backlight",RUN+="/bin/chmod 666 /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power"' | sudo tee -a /etc/udev/rules.d/backlight-permissions.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
 
 
 echo "#################################"
