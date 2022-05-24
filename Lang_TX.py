@@ -6,6 +6,9 @@
 # Generated: Tue May 24 21:01:04 2022
 ##################################################
 
+import os
+import errno
+
 from gnuradio import analog
 from gnuradio import audio
 from gnuradio import blocks
@@ -28,6 +31,12 @@ class Lang_TX(gr.top_block):
         ##################################################
         # Variables
         ##################################################
+        
+        plutoip=os.environ.get('PLUTO_IP')
+        if plutoip==None :
+          plutoip='pluto.local'
+        plutoip='ip:' + plutoip
+        
         self.ToneBurst = ToneBurst = False
         self.PTT = PTT = False
         self.Mode = Mode = 0
@@ -48,7 +57,7 @@ class Lang_TX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
-        self.pluto_sink_0 = iio.pluto_sink('ip:pluto.local', 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink(plutoip, 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
         	sample_rate=48000,
         	fft_size=512,
@@ -206,14 +215,69 @@ class Lang_TX(gr.top_block):
         self.analog_sig_source_x_1_0.set_amplitude(0.15 * (self.CTCSS >0))
 
 
+def docommands(tb):
+  try:
+    os.mkfifo("/tmp/langstoneTx")
+  except OSError as oe:
+    if oe.errno != errno.EEXIST:
+      raise    
+  ex=False
+  lastbase=0
+  while not ex:
+    fifoin=open("/tmp/langstoneTx",'r')
+    while True:
+       try:
+        with fifoin as filein:
+         for line in filein:
+           line=line.strip()
+           if line=='Q':
+              ex=True        
+           if line=='P':
+              tb.set_FFTEn(1)
+           if line=='p':
+              tb.set_FFTEn(0)
+           if line=='R':
+              tb.set_PTT(False) 
+           if line=='T':
+              tb.set_PTT(True)
+           if line=='K':
+              tb.set_KEY(True) 
+           if line=='k':
+              tb.set_KEY(False) 
+           if line=='A':
+              tb.set_ToneBurst(True) 
+           if line=='a':
+              tb.set_ToneBurst(False) 
+           if line=='H':
+              tb.lock()
+           if line=='h':
+              tb.unlock()    
+           if line[0]=='G':
+              value=int(line[1:])
+              tb.set_MicGain(value) 
+           if line[0]=='g':
+              value=int(line[1:])
+              tb.set_FMMIC(value)
+           if line[0]=='F':
+              value=int(line[1:])
+              tb.set_Filt_High(value) 
+           if line[0]=='f':
+              value=int(line[1:])
+              tb.set_Filt_Low(value) 
+           if line[0]=='M':
+              value=int(line[1:])
+              tb.set_Mode(value)   
+            if line[0]=='C':
+              value=int(line[1:])
+              tb.set_CTCSS(value)                    
+       except:
+         break
+
 def main(top_block_cls=Lang_TX, options=None):
 
     tb = top_block_cls()
     tb.start()
-    try:
-        raw_input('Press Enter to quit: ')
-    except EOFError:
-        pass
+    docommands(tb)
     tb.stop()
     tb.wait()
 
