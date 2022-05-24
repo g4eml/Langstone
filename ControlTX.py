@@ -84,7 +84,7 @@ def docommands(tb):
            if line[0]=='M':
               value=int(line[1:])
               tb.set_Mode(value)   
-            if line[0]=='C':
+           if line[0]=='C':
               value=int(line[1:])
               tb.set_CTCSS(value)                    
        except:
