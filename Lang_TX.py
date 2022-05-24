@@ -3,10 +3,9 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Tx
-# Generated: Tue Jun 29 20:58:28 2021
+# Generated: Tue May 24 21:01:04 2022
 ##################################################
-import os
-import errno
+
 from gnuradio import analog
 from gnuradio import audio
 from gnuradio import blocks
@@ -29,10 +28,6 @@ class Lang_TX(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        plutoip=os.environ.get('PLUTO_IP')
-        if plutoip==None :
-          plutoip='pluto.local'
-        plutoip='ip:' + plutoip
         self.ToneBurst = ToneBurst = False
         self.PTT = PTT = False
         self.Mode = Mode = 0
@@ -42,6 +37,7 @@ class Lang_TX(gr.top_block):
         self.Filt_High = Filt_High = 3000
         self.FMMIC = FMMIC = 50
         self.FFTEn = FFTEn = 0
+        self.CTCSS = CTCSS = 885
 
         ##################################################
         # Blocks
@@ -52,7 +48,7 @@ class Lang_TX(gr.top_block):
                 taps=None,
                 fractional_bw=None,
         )
-        self.pluto_sink_0 = iio.pluto_sink(plutoip, 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
+        self.pluto_sink_0 = iio.pluto_sink('ip:pluto.local', 1000000000, 528000, 2000000, 0x800, False, 0, '', True)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
         	sample_rate=48000,
         	fft_size=512,
@@ -71,6 +67,7 @@ class Lang_TX(gr.top_block):
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_vff(((MicGain/10.0)*(not (Mode==2))*(not (Mode==3)), ))
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
         self.blocks_add_xx_2 = blocks.add_vcc(1)
+        self.blocks_add_xx_0_0 = blocks.add_vff(1)
         self.blocks_add_xx_0 = blocks.add_vff(1)
         self.blocks_add_const_vxx_0 = blocks.add_const_vcc(((0.5 * int(Mode==5)) + (int(Mode==2) * KEY) +(int(Mode==3) * KEY), ))
         self.blks2_selector_0 = grc_blks2.selector(
@@ -81,10 +78,11 @@ class Lang_TX(gr.top_block):
         	output_index=FFTEn,
         )
         self.band_pass_filter_1 = filter.fir_filter_fff(1, firdes.band_pass(
-        	1, 48000, 200, 3500, 100, firdes.WIN_HAMMING, 6.76))
+        	1, 48000, 300, 3500, 100, firdes.WIN_HAMMING, 6.76))
         self.band_pass_filter_0_0 = filter.fir_filter_ccc(1, firdes.complex_band_pass(
         	1, 48000, Filt_Low, Filt_High, 100, firdes.WIN_HAMMING, 6.76))
         self.audio_source_0 = audio.source(48000, "hw:CARD=Device,DEV=0", False)
+        self.analog_sig_source_x_1_0 = analog.sig_source_f(48000, analog.GR_SIN_WAVE, CTCSS / 10.0, 0.15 * (CTCSS >0), 0)
         self.analog_sig_source_x_1 = analog.sig_source_f(48000, analog.GR_COS_WAVE, 1750, 1.0*ToneBurst, 0)
         self.analog_sig_source_x_0 = analog.sig_source_c(48000, analog.GR_COS_WAVE, 0, 1, 0)
         self.analog_rail_ff_0 = analog.rail_ff(-1, 1)
@@ -99,6 +97,8 @@ class Lang_TX(gr.top_block):
         self.analog_agc2_xx_1 = analog.agc2_cc(1e-1, 1e-1, 1.3- (0.65*(int(Mode==5))), 1.0)
         self.analog_agc2_xx_1.set_max_gain(10)
 
+
+
         ##################################################
         # Connections
         ##################################################
@@ -108,14 +108,16 @@ class Lang_TX(gr.top_block):
         self.connect((self.analog_rail_ff_0, 0), (self.band_pass_filter_1, 0))
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0, 1))
         self.connect((self.analog_sig_source_x_1, 0), (self.blocks_add_xx_0, 0))
+        self.connect((self.analog_sig_source_x_1_0, 0), (self.blocks_add_xx_0_0, 0))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0, 0))
         self.connect((self.audio_source_0, 0), (self.blocks_multiply_const_vxx_0_0, 0))
         self.connect((self.band_pass_filter_0_0, 0), (self.blocks_multiply_const_vxx_4, 0))
-        self.connect((self.band_pass_filter_1, 0), (self.analog_nbfm_tx_0, 0))
+        self.connect((self.band_pass_filter_1, 0), (self.blocks_add_xx_0_0, 1))
         self.connect((self.blks2_selector_0, 0), (self.blocks_null_sink_0, 0))
         self.connect((self.blks2_selector_0, 1), (self.blocks_udp_sink_0, 0))
         self.connect((self.blocks_add_const_vxx_0, 0), (self.blocks_multiply_xx_0, 0))
         self.connect((self.blocks_add_xx_0, 0), (self.analog_rail_ff_0, 0))
+        self.connect((self.blocks_add_xx_0_0, 0), (self.analog_nbfm_tx_0, 0))
         self.connect((self.blocks_add_xx_2, 0), (self.logpwrfft_x_0, 0))
         self.connect((self.blocks_add_xx_2, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.blocks_float_to_complex_0, 0), (self.blocks_add_const_vxx_0, 0))
@@ -195,68 +197,26 @@ class Lang_TX(gr.top_block):
         self.FFTEn = FFTEn
         self.blks2_selector_0.set_output_index(int(self.FFTEn))
 
-def docommands(tb):
-  try:
-    os.mkfifo("/tmp/langstoneTx")
-  except OSError as oe:
-    if oe.errno != errno.EEXIST:
-      raise    
-  ex=False
-  lastbase=0
-  while not ex:
-    fifoin=open("/tmp/langstoneTx",'r')
-    while True:
-       try:
-        with fifoin as filein:
-         for line in filein:
-           line=line.strip()
-           if line=='Q':
-              ex=True        
-           if line=='P':
-              tb.set_FFTEn(1)
-           if line=='p':
-              tb.set_FFTEn(0)
-           if line=='R':
-              tb.set_PTT(False) 
-           if line=='T':
-              tb.set_PTT(True)
-           if line=='K':
-              tb.set_KEY(True) 
-           if line=='k':
-              tb.set_KEY(False) 
-           if line=='A':
-              tb.set_ToneBurst(True) 
-           if line=='a':
-              tb.set_ToneBurst(False) 
-           if line=='H':
-              tb.lock()
-           if line=='h':
-              tb.unlock()    
-           if line[0]=='G':
-              value=int(line[1:])
-              tb.set_MicGain(value) 
-           if line[0]=='g':
-              value=int(line[1:])
-              tb.set_FMMIC(value)
-           if line[0]=='F':
-              value=int(line[1:])
-              tb.set_Filt_High(value) 
-           if line[0]=='f':
-              value=int(line[1:])
-              tb.set_Filt_Low(value) 
-           if line[0]=='M':
-              value=int(line[1:])
-              tb.set_Mode(value)                      
-       except:
-         break
+    def get_CTCSS(self):
+        return self.CTCSS
+
+    def set_CTCSS(self, CTCSS):
+        self.CTCSS = CTCSS
+        self.analog_sig_source_x_1_0.set_frequency(self.CTCSS / 10.0)
+        self.analog_sig_source_x_1_0.set_amplitude(0.15 * (self.CTCSS >0))
+
 
 def main(top_block_cls=Lang_TX, options=None):
 
     tb = top_block_cls()
     tb.start()
-    docommands(tb)
+    try:
+        raw_input('Press Enter to quit: ')
+    except EOFError:
+        pass
     tb.stop()
     tb.wait()
+
 
 if __name__ == '__main__':
     main()
