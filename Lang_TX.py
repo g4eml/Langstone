@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Lang Tx
-# Generated: Tue May 24 21:01:04 2022
+# Generated: Wed May 25 11:58:00 2022
 ##################################################
 
 import os
@@ -31,7 +31,6 @@ class Lang_TX(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        
         plutoip=os.environ.get('PLUTO_IP')
         if plutoip==None :
           plutoip='pluto.local'
@@ -98,15 +97,13 @@ class Lang_TX(gr.top_block):
         self.analog_nbfm_tx_0 = analog.nbfm_tx(
         	audio_rate=48000,
         	quad_rate=48000,
-        	tau=1000e-6,
-        	max_dev=250,
+        	tau=75e-6,
+        	max_dev=5000,
         	fh=-1,
                 )
         self.analog_const_source_x_0 = analog.sig_source_f(0, analog.GR_CONST_WAVE, 0, 0, 0)
         self.analog_agc2_xx_1 = analog.agc2_cc(1e-1, 1e-1, 1.3- (0.65*(int(Mode==5))), 1.0)
         self.analog_agc2_xx_1.set_max_gain(10)
-
-
 
         ##################################################
         # Connections
@@ -213,7 +210,6 @@ class Lang_TX(gr.top_block):
         self.CTCSS = CTCSS
         self.analog_sig_source_x_1_0.set_frequency(self.CTCSS / 10.0)
         self.analog_sig_source_x_1_0.set_amplitude(0.15 * (self.CTCSS >0))
-
 
 def docommands(tb):
   try:
