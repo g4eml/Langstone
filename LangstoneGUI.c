@@ -91,6 +91,7 @@ void clearPopUp(void);
 void displayPopupMode(void);
 void displayPopupBand(void);
 void send1750(void);
+void setCTCSS(int t);
 void displayError(char*st);
 int minGain(double freq);
 int maxGain(double freq);
@@ -115,6 +116,7 @@ int bandFFTRef[numband]={-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10};
 int bandTxAtt[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 int bandRxGain[numband]={100,100,100,100,100,100,100,100,100,100,100,100};              //100 is automatic gain
 int bandDuplex[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
+int bandCTCSS[numband]={0,0,0,0,0,0,0,0,0,0,0,0};
 float bandSmeterZero[numband]={-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80,-80};
 int bandSSBFiltLow[numband]={300,300,300,300,300,300,300,300,300,300,300,300};
 int bandSSBFiltHigh[numband]={3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,3000,3000};
@@ -131,10 +133,10 @@ int lastmode=0;
 char * modename[nummode]={"USB","LSB","CW ","CWN","FM ","AM "};
 enum {USB,LSB,CW,CWN,FM,AM};
 
-#define numSettings 19
+#define numSettings 20
 
-char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= "," Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits (Rx)= ","Band Bits (Tx)= ","Copy Band Bits to Pluto=","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
-enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS_RX,BAND_BITS_TX,BAND_BITS_TO_PLUTO,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
+char * settingText[numSettings]={"Rx Gain= ","SSB Mic Gain= ","FM Mic Gain= ","Repeater Shift= ","CTCSS= ", Rx Offset= ","Rx Harmonic Mixing= "," Tx Offset= ","Tx Harmonic Mixing= ","Band Bits (Rx)= ","Band Bits (Tx)= ","Copy Band Bits to Pluto=","FFT Ref= ","Tx Att= ","S-Meter Zero= ", "SSB Rx Filter Low= ", "SSB Rx Filter High= ","CW Ident= ", "CWID Carrier= ", "CW Break-In Hang Time= "};
+enum {RX_GAIN,SSB_MIC,FM_MIC,REP_SHIFT,CTCSS,RX_OFFSET,RX_HARMONIC,TX_OFFSET,TX_HARMONIC,BAND_BITS_RX,BAND_BITS_TX,BAND_BITS_TO_PLUTO,FFT_REF,TX_ATT,S_ZERO,SSB_FILT_LOW,SSB_FILT_HIGH,CWID,CW_CARRIER,BREAK_IN_TIME};
 int settingNo=RX_GAIN;
 int setIndex=0;
 int maxSetIndex=10;
@@ -142,6 +144,8 @@ int maxSetIndex=10;
 enum {FREQ,SETTINGS,VOLUME,SQUELCH,RIT};
 int inputMode=FREQ;
 
+#define NUMCTCSS 52
+int CTCSSTone[NUMCTCSS] = {0,670,693,719,744,770,797,825,854,885,915,948,974,1000,1035,1072,1109,1148,1188,1230,1273,1318,1365,1413,1462,1500,1514,1567,1598,1622,1655,1679,1713,1738,1773,1799,1835,1862,1899,1928,1966,1995,2035,2065,2107,2181,2257,2291,2336,2418,2503,2541};
 
 //GUI Layout values X and Y coordinates for each group of buttons.
 
@@ -2016,6 +2020,7 @@ void setBand(int b)
   setBandBits(bandBitsRx[band]);
   squelch=bandSquelch[band];
   setSquelch(squelch);
+  setCTCSS(bandCTCSS[band]);
   FFTRef=bandFFTRef[band];
   TxAtt=bandTxAtt[band];
   setPlutoTxAtt(TxAtt);
@@ -2271,6 +2276,13 @@ void setFMMic(int mic)
   char micStr[10];
   sprintf(micStr,"g%d",mic);
   sendTxFifo(micStr);
+}
+
+void setCTCSS(int t)
+{
+  char ctStr[10];
+  sprintf(ctStr,"C%d",CTCSSTone[t]);
+  sendTxFifo(ctStr);
 }
 
 void setKey(int k)
@@ -2912,6 +2924,15 @@ void changeSetting(void)
         setFreq(freq);
         displaySetting(settingNo);
       }  
+    if(settingNo==CTCSS)        //CTCSS Tone
+      {
+        bandCTCSS[band]=bandCTCSS[band]+mouseScroll;
+        if(bandCTCSS[band] < 0 ) bandCTCSS[band]=0;
+        if(bandCTCSS[band] > (NUMCTCSS - 1) ) bandCTCSS[band]= NUMCTCSS - 1;        
+        mouseScroll=0;
+        setCTCSS(bandCTCSS[band]);
+        displaySetting(settingNo);
+      }  
    if(settingNo==RX_OFFSET)        //Transverter Rx Offset 
       {
         bandRxOffset[band]=bandRxOffset[band]+mouseScroll*freqInc;
@@ -3240,7 +3261,12 @@ if(se==REP_SHIFT)
   sprintf(valStr,"%.5f",bandRepShift[band]);
   displayStr(valStr);
   }
-  if(se==RX_OFFSET)
+if(se==CTCSS)
+  {
+  sprintf(valStr,"%.1f Hz",CTCSSTone[bandCTCSS[band]]/10.0);
+  displayStr(valStr);
+  }
+if(se==RX_OFFSET)
   {
   sprintf(valStr,"%.5f",bandRxOffset[band]);
   displayStr(valStr);
@@ -3460,6 +3486,8 @@ while(fscanf(conffile,"%49s %99s [^\n]\n",variable,value) !=EOF)
     if(strstr(variable,vname)) sscanf(value,"%d",&bandRxHarmonic[b]);   
     sprintf(vname,"bandRepShift%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%lf",&bandRepShift[b]);
+    sprintf(vname,"bandCTCSS%02d",b);
+    if(strstr(variable,vname)) sscanf(value,"%d",&bandCTCSS[b]);
     sprintf(vname,"bandDuplex%02d",b);
     if(strstr(variable,vname)) sscanf(value,"%d",&bandDuplex[b]);  
  
@@ -3550,6 +3578,7 @@ for(int b=0;b<numband;b++)
   fprintf(conffile,"bandRxOffSet%02d %lf\n",b,bandRxOffset[b]);
   fprintf(conffile,"bandRxHarmonic%02d %d\n",b,bandRxHarmonic[b]);
   fprintf(conffile,"bandRepShift%02d %lf\n",b,bandRepShift[b]);
+  fprintf(conffile,"bandCTCSS%02d %d\n",b,bandCTCSS[b]);
   fprintf(conffile,"bandDuplex%02d %d\n",b,bandDuplex[b]);
   fprintf(conffile,"bandRxBits%02d %d\n",b,bandBitsRx[b]);
   fprintf(conffile,"bandTxBits%02d %d\n",b,bandBitsTx[b]);
