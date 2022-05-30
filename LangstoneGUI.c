@@ -440,9 +440,9 @@ int main(int argc, char* argv[])
    
    if(firstpass==1)
    {
-   firstpass=0;
    setTx(1);                                              //seems to be needed to initialise Pluto
    setTx(0);
+   firstpass=0;
    }
     
     while(runTimeMs() < (lastClock + 10))                //delay until the next iteration at 100 per second (10ms)
@@ -2430,10 +2430,13 @@ void setTx(int pt)
 {
   if((pt==1)&&(transmitting==0))
     {
-      setTxPin(1);
-      setBandBits(bandBitsTx[band]);
-      plutoGpo=plutoGpo | 0x10;
-      setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
+      if(firstpass == 0)                                      //don't set the Output pins if we are still initialising
+        { 
+         setTxPin(1);
+         setBandBits(bandBitsTx[band]);
+         plutoGpo=plutoGpo | 0x10;
+         setPlutoGpo(plutoGpo);                               //set the Pluto GPO Pin 
+        }
       usleep(TXDELAY);
       setHwTxFreq(freq);
       if((mode==FM)&&(bandDuplex[band]==1))
