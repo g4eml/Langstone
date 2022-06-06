@@ -66,6 +66,7 @@ int readConfig(void);
 int writeConfig(void);
 int satMode(void);
 int splitMode(void);
+int satSplitMode(void);
 int txvtrMode(void);
 int duplexMode(void);
 int multMode(void);
@@ -502,7 +503,7 @@ void waterfall()
 
   
       //check if data avilable to read
-      if((transmitting==1) && (satMode()==0))
+      if((transmitting==1) && (satSplitMode()==0))
         {
         ret = fread(&inbuf,sizeof(float),1,txfftstream);
         fftref=10;
@@ -530,7 +531,7 @@ void waterfall()
         //Read in float values, shift centre and store in buffer 1st 'row'
         for(int p=1;p<points;p++)
         {                                               
-        if((transmitting==1) && (satMode()==0))
+        if((transmitting==1) && (satSplitMode()==0))
           {
           fread(&inbuf,sizeof(float),1,txfftstream);
           }
@@ -549,7 +550,7 @@ void waterfall()
         }
  
  
-        if(((mode==CW)||(mode==CWN)) && (transmitting==1) && (satMode()==0))
+        if(((mode==CW)||(mode==CWN)) && (transmitting==1) && (satSplitMode()==0))
           {
           bwbaroffset=800/HzPerBin;
           }
@@ -623,7 +624,7 @@ void waterfall()
           //draw Bandwidth indicator
           int p=points/2;
           
-          if (((mode==CW) || (mode==CWN)) && (transmitting==0 && satMode()== 0))
+          if (((mode==CW) || (mode==CWN)) && (transmitting==0 && satSplitMode()== 0))
           {
            centreShift=800/HzPerBin;
           }
@@ -654,7 +655,7 @@ void waterfall()
           displayStr(" +20k ");
  
 
-          if((transmitting==0) || (satMode()==1))
+          if((transmitting==0) || (satSplitMode()==1))
           {
           S_Meter();
           }
@@ -1406,7 +1407,7 @@ gotoXY(funcButtonsX,funcButtonsY);
   }
 
   displayButton("SET");
-  if(satMode()==1) 
+  if(satSplitMode()==1) 
     {
     displayButton("MONI");
     }
@@ -1847,7 +1848,7 @@ if(buttonTouched(funcButtonsX+buttonSpaceX*4,funcButtonsY))    //Button 5 =MONI 
     {
     if(inputMode==FREQ)
       {
-      if(satMode()==1)
+      if(satSplitMode()==1)
         {
         if(moni==1) setMoni(0); else setMoni(1);
         }      
@@ -2446,7 +2447,7 @@ void setTx(int pt)
         }
       PlutoTxEnable(1);
       if (moni==0) sendRxFifo("U");                        //mute the receiver
-      if(satMode()==0)
+      if(satSplitMode()==0)
       {
         setFFTPipe(0);                        //turn off the Rx FFT stream
         sMeter=0;
@@ -2455,7 +2456,7 @@ void setTx(int pt)
         sendRxFifo("H");                      //freeze the receive Flowgraph 
       }
       sendTxFifo("h");                        //unfreeze the Tx Flowgraph
-      if(satMode()==0)
+      if(satSplitMode()==0)
       {
         clearWaterfall();
         setTxFFTPipe(1);                      //turn on the TX FFT Stream
@@ -2469,7 +2470,7 @@ void setTx(int pt)
     }
   else if((pt==0)&&(transmitting==1))
     {
-      if(satMode()==0)
+      if(satSplitMode()==0)
       {
       setTxFFTPipe(0);                  //turn off the Tx FFT Stream
       sMeter=0;
@@ -2659,7 +2660,7 @@ displayFreq(fr);
    setForeColour(0,255,0);
    if(inputMode==FREQ)
    {
-     if(satMode()==1)
+     if(satSplitMode()==1)
       {
        displayButton("MONI");
        setMoni(moni);
@@ -2672,6 +2673,12 @@ displayFreq(fr);
     }
  
  configCounter=configDelay;                       //write config after this amount of inactivity    
+}
+
+
+int satSplitMode(void)
+{
+return satMode() | splitMode();
 }
 
 int satMode(void)
@@ -2700,7 +2707,7 @@ else
 
 int splitMode(void)
 {
-if((abs(bandTxOffset[band])>0) & (bandRxOffset[band]==0))     //  if tx Offset is non zero and rxoffset is zero then we are in split mode. 
+if(((abs(bandTxOffset[band]) > 0) & (bandRxOffset[band] == 0)) | ((abs(bandRxOffset[band]) > 0) & (bandTxOffset[band] == 0)) )    //  if tx Offset or rx Offset is non zero and the other is zero then we are in split mode. 
   {
   return 1;
   }
