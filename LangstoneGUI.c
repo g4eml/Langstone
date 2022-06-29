@@ -593,20 +593,12 @@ void waterfall()
     
             //scale to 0-255
             level = (buf[p][r]-baselevel)*scaling;   
-            setPixel(p+FFTX,FFTY+20+r,palette[level*3+2],palette[level*3+1],palette[level*3]);
+            setPixel(p+FFTX,FFTY+20+r,palette[level*3+2],palette[level*3+1],palette[level*3]);   
           }
         }
     
-        //clear spectrum area
-        for(int r=0;r<spectrum_rows+1;r++)
-        { 
-          for(int p=0;p<points;p++)
-          {   
-            setPixel(p+FFTX,FFTY-r,0,0,0);
-          }
-        }
     
-        //draw spectrum line
+        //draw spectrum bars
         
         scaling = spectrum_rows/(float)(fftref-baselevel);
         for(int p=0;p<points-1;p++)
@@ -616,11 +608,11 @@ void waterfall()
             if (buf[p][0]>fftref) buf[p][0]=fftref;
     
             //scale to display height
-            level = (buf[p][0]-baselevel)*scaling;   
-            level2 = (buf[p+1][0]-baselevel)*scaling;
-            drawLine(p+FFTX, FFTY-level, p+1+FFTX, FFTY-level2,255,255,255);
-        }
-          
+            level = (baselevel)*scaling;   
+            level = (buf[p][0]-baselevel)*scaling;
+            drawLine(p+FFTX, FFTY, p+FFTX, FFTY-level,0,255,0);                     //draw the signal bar in Green
+            drawLine(p+FFTX, FFTY-level-1, p+FFTX, FFTY-spectrum_rows,0,0,0);       // fill the rest of the bar with black  (saves having to clear the whole area)
+          }
           //draw Bandwidth indicator
           int p=points/2;
           
