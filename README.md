@@ -2,7 +2,7 @@
 
 # This Version is now superseded and will not be updated.
 
-# Please use Langstone V2 for new projects. 
+# Please use Langstone-V2 for new projects. 
 
 This is an experimental project to produce a simple VHF, UHF and Microwave SDR Transceiver operating on SSB CW and FM.
 
